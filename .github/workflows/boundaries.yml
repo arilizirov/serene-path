@@ -35,6 +35,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "20"
+      - name: Use npm 11 (match the lockfile generator; avoids optional-peer resolution diffs)
+        run: npm i -g npm@11
       - name: Install dependencies (dependency-cruiser comes from the lockfile)
         run: npm ci
 
