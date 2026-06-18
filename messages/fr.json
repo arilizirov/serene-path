@@ -1,0 +1,14 @@
+{
+  "Home": {
+    "tagline": "Trouvez le thérapeute qu'il vous faut, et consultez-le sur la plateforme."
+  },
+  "LocaleSwitcher": {
+    "label": "Changer de langue",
+    "he": "עברית",
+    "en": "English",
+    "fr": "Français"
+  },
+  "Theme": {
+    "toggle": "Basculer le thème clair/sombre"
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "Home": {
+    "tagline": "Find the right therapist, and meet them on-platform."
+  },
+  "LocaleSwitcher": {
+    "label": "Change language",
+    "he": "עברית",
+    "en": "English",
+    "fr": "Français"
+  },
+  "Theme": {
+    "toggle": "Toggle light/dark theme"
+  }
+}
