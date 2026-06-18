@@ -1,0 +1,17 @@
+# Normalize line endings to LF in the repository. Linux CI, the POSIX
+# pre-commit hook, and the bash `run:` blocks in the workflows all expect LF;
+# storing CRLF would break them. Windows checkouts still work fine.
+* text=auto eol=lf
+
+# Binary assets — never normalize.
+*.png  binary
+*.jpg  binary
+*.jpeg binary
+*.gif  binary
+*.ico  binary
+*.webp binary
+*.woff  binary
+*.woff2 binary
+*.ttf  binary
+*.otf  binary
+*.pdf  binary

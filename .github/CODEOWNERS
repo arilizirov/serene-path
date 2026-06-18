@@ -1,0 +1,17 @@
+# CODEOWNERS — mechanical ownership. Pair with branch protection's
+# "Require review from Code Owners" (optional for a solo repo).
+#
+# NOTE: confirm @arilizirov is your exact GitHub username; GitHub silently
+# ignores unknown owners. Adjust or remove entries as needed.
+
+# The boundary POLICY is guarded: widening an allowlist must be an explicit,
+# reviewed PR (with an ADR naming the present-day force) — never a quiet edit
+# slipped into a feature change.
+/boundaries.yaml            @arilizirov
+
+# CI / enforcement config is guarded too — the agent must not weaken its own gates.
+/.github/                   @arilizirov
+
+# Feature slices + the server-only vendor-adapter layer (APP_SPEC §4).
+/src/features/              @arilizirov
+/src/server/                @arilizirov

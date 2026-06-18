@@ -57,9 +57,11 @@ jobs:
         run: |
           BASE="origin/${{ github.base_ref }}"
           git fetch origin "${{ github.base_ref }}" --depth=1 || true
-          CHANGED=$(git diff --numstat "$BASE"...HEAD \
+          # Count human-reviewable source only — generated lockfiles are not "work".
+          CHANGED=$(git diff --numstat "$BASE"...HEAD -- \
+              ':(exclude)package-lock.json' ':(exclude)pnpm-lock.yaml' ':(exclude)yarn.lock' \
             | awk '$1!="-" && $2!="-" {s+=$1+$2} END {print s+0}')
-          echo "changed lines: $CHANGED (limit $MAX_CHANGED_LINES)"
+          echo "changed lines (excluding lockfiles): $CHANGED (limit $MAX_CHANGED_LINES)"
           if [ "$CHANGED" -gt "$MAX_CHANGED_LINES" ]; then
             echo "::error::PR too large ($CHANGED > $MAX_CHANGED_LINES). Break it into stacked PRs, one stage each."
             exit 1

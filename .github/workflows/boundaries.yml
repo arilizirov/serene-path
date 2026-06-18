@@ -4,7 +4,7 @@
 # wall when you mark the "boundaries" check as REQUIRED in branch protection
 # and forbid direct pushes to main — see ../../BRANCH_PROTECTION.md.
 #
-# Trim the install steps to the language(s) your repo actually uses.
+# Trimmed to this repo's stack: TypeScript only (adapter: dependency-cruiser).
 
 name: boundaries
 
@@ -31,20 +31,12 @@ jobs:
       - name: Install BoundaryGuard dependency
         run: pip install pyyaml
 
-      # --- TypeScript / JavaScript repos -----------------------------------
+      # --- TypeScript / JavaScript (this repo's only stack) ----------------
       - uses: actions/setup-node@v4
         with:
           node-version: "20"
-      - name: Install dependency-cruiser
-        run: |
-          if [ -f package-lock.json ]; then npm ci; fi
-          npm i -D dependency-cruiser
-
-      # --- Python repos ----------------------------------------------------
-      - name: Install import-linter
-        run: pip install import-linter
-      # If you switched the manifest to `adapter: tach`, replace the line above
-      # with:  pip install tach   (and commit your tach.toml)
+      - name: Install dependencies (dependency-cruiser comes from the lockfile)
+        run: npm ci
 
       - name: Enforce boundaries
         run: python bigbrainBoundaryGuard/check_boundaries.py check
