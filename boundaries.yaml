@@ -1,0 +1,80 @@
+# boundaries.yaml — module boundary policy for The Serene Path
+# ---------------------------------------------------------------------------
+# Single source of truth for who may import whom. BoundaryGuard compiles this
+# into dependency-cruiser rules on every run (CI + pre-commit), so the manifest
+# can never drift from what is enforced. Deny-by-default: an edge not listed
+# under `allow` is forbidden, and a build that violates it cannot merge.
+#
+# This mirrors APP_SPEC §4 (vertical feature slices under src/features/*, a
+# server-only vendor-adapter layer under src/server, and cross-cutting code in
+# src/lib). The generic bigbrain generator stamps `src/domains/*`; we instead
+# use the spec's Next.js `src/features/*` layout, which is what BoundaryGuard
+# enforces here (it is structure-agnostic — it follows these paths).
+# ---------------------------------------------------------------------------
+
+version: 1
+
+# Force the TS/JS validator. This is a single-language Next.js + TypeScript app,
+# so there is no need for `auto` detection (which would also try import-linter).
+adapter: dependency-cruiser
+
+# Every module `path` below is relative to this directory.
+source_root: src
+
+# Modules = the app's feature slices + the server-only vendor-adapter layer.
+# Each `public` list names the ONLY files other modules may import from; every
+# other file in the folder is internal and off-limits across the boundary
+# (enforced by enforce_public_surface below). The app/ routes and components/ui
+# primitives are the composition root / presentational layer — deliberately NOT
+# modules, so the route handlers can wire features together, but they still may
+# only reach a feature through its public `index`.
+modules:
+  # --- feature slices (APP_SPEC §3 areas) ---------------------------------
+  accounts:                      # F5 — users, roles, auth-session wrapper (Stage 4)
+    path: features/accounts
+    public: [index]
+  therapists:                    # F3/F4/F9 — profiles, availability rules, admin CRUD (Stage 1)
+    path: features/therapists
+    public: [index]
+  scheduling:                    # F6 — slot computation + transactional booking (Stages 2/6)
+    path: features/scheduling
+    public: [index]
+  intake:                        # F1/F2 — AI intake chat + bio-grounded matching (Stage 3)
+    path: features/intake
+    public: [index]
+  sessions:                      # F7 — per-appointment video room (Stage 7)
+    path: features/sessions
+    public: [index]
+  payments:                      # F8 — on-platform payment tied to a booking (Stage 8)
+    path: features/payments
+    public: [index]
+
+  # --- platform: server-only vendor adapters (APP_SPEC §2, §10) -----------
+  # The vendor SDK for each area lives ONLY behind its adapter here; swapping a
+  # provider is a local change. Features import the adapter, never the SDK.
+  server:
+    path: server
+    public: [anthropic, auth, payment, video, email]
+
+# A small, boring, leaf-level region everything may import and that imports no
+# module: i18n, the Prisma client, typed env, the error shape, shared utils
+# (APP_SPEC §4 `lib`). Each public entry is a barrel folder (lib/<name>/index).
+shared_kernel:
+  path: lib
+  public: [db, env, errors, i18n, utils]
+
+# Allowed dependencies — DENY BY DEFAULT. List only what is allowed; the shared
+# kernel (lib) is implicitly importable by everyone and omitted here. Each edge
+# below is justified by a force that exists in the spec today (not speculation):
+allow:
+  accounts:   [server]                          # AuthProvider lives in server/auth (§10)
+  therapists: []                                # owns its own tables; only the kernel
+  scheduling: [therapists]                      # slots = therapist availability rules − appointments (§9)
+  intake:     [therapists, scheduling, server]  # catalog + server-resolved nextAvailable + Anthropic (§5)
+  sessions:   [scheduling, server]              # room bound to an appointment + VideoProvider (§10)
+  payments:   [scheduling, server]              # payment bound to a booking + PaymentProvider (§10)
+  server:     []                                # vendor adapters depend on no feature
+
+# Outside code may enter a module only through its `public` entries — never into
+# its internal files. This is what keeps a boundary real. Leave it on.
+enforce_public_surface: true

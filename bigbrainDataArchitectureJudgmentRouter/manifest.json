@@ -1,0 +1,29 @@
+{
+  "name": "bigbrainDataArchitectureJudgmentRouter",
+  "purpose": "Judgment-router skill pack for Codex based on 8 data architecture sources.",
+  "entrypoint": "SKILL.md",
+  "router": "router/00-judgment-router.md",
+  "rules": [
+    "01-conceptual-modeling-and-identity.md",
+    "02-operational-vs-analytical.md",
+    "03-dimensional-analytics.md",
+    "04-data-engineering-lifecycle.md",
+    "05-distributed-data-systems.md",
+    "06-enterprise-warehouse-data-vault.md",
+    "07-data-products-data-mesh.md",
+    "08-governance-security-quality.md",
+    "09-ml-reverse-etl-performance.md",
+    "10-contracts-schema-evolution.md"
+  ],
+  "sources": [
+    "Building the Data Warehouse - Full Extraction.md",
+    "DAMA-DMBOK - Full Extraction.md",
+    "Data Mesh - Full Extraction.md",
+    "Data and Reality - Full Extraction.md",
+    "Designing Data-Intensive Applications.md",
+    "Fundamentals of Data Engineering - Full Extraction.md",
+    "Modeling the Agile Data Warehouse with Data Vault - Full Extraction.md",
+    "The Data Warehouse Toolkit - Full Extraction.md"
+  ],
+  "missing_sources": []
+}

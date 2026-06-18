@@ -1,0 +1,30 @@
+{
+  "name": "bigbrainSoftwareArchitectureJudgmentRouter",
+  "purpose": "Judgment-router skill pack for Codex based on senior software architecture and engineering sources.",
+  "entrypoint": "SKILL.md",
+  "router": "router/00-judgment-router.md",
+  "rules": [
+    "01-clean-code-local-design.md",
+    "02-refactoring-safe-change.md",
+    "03-legacy-code-change.md",
+    "04-testing-and-goos.md",
+    "05-production-readiness.md",
+    "06-distributed-systems.md",
+    "07-architecture-tradeoffs.md",
+    "08-engineering-sequencing.md",
+    "09-contracts-and-migration-safety.md",
+    "10-performance-and-scalability.md",
+    "11-vertical-slices.md"
+  ],
+  "sources_found": {
+    "Clean Code - Full Extraction.md": "Clean%20Code.md",
+    "Refactoring - Full Extraction.md": "Refactoring.md",
+    "Working Effectively with Legacy Code - Full Extraction.md": "Working%20Effectively%20with%20Legacy%20Code.md",
+    "Release It - Full Extraction.md": "Release%20It%21%20Second%20Edition.md",
+    "Designing Data-Intensive Applications - Full Extraction.md": "Designing%20Data-Intensive%20Applications.md",
+    "Software Architecture The Hard Parts - Full Extraction.md": "Software%20Architecture%20-%20The%20Hard%20Parts.md",
+    "Growing Object-Oriented Software Guided by Tests - Full Extraction.md": "Growing%20Object-Oriented%20Software%20Guided%20by%20Tests.md",
+    "An Elegant Puzzle - Full Extraction.md": "An%20Elegant%20Puzzle.md"
+  },
+  "missing_sources": []
+}

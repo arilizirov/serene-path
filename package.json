@@ -1,0 +1,22 @@
+{
+  "name": "serene-path",
+  "version": "0.1.0",
+  "private": true,
+  "description": "The Serene Path — therapist–patient matching platform (Next.js, trilingual he/en/fr).",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "boundaries": "python bigbrainBoundaryGuard/check_boundaries.py check",
+    "verify": "python bigbrain_verify.py"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "devDependencies": {
+    "dependency-cruiser": "^17.4.3"
+  }
+}
