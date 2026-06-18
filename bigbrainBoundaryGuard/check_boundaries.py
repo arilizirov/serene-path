@@ -151,7 +151,7 @@ def load_manifest(path: Path) -> Manifest:
 # --------------------------------------------------------------------------- #
 # Adapter: dependency-cruiser  (TS / JS)   -> .dependency-cruiser.json
 # --------------------------------------------------------------------------- #
-def gen_depcruise(m: Manifest) -> dict:
+def gen_depcruise(m: Manifest, root: Path | None = None) -> dict:
     forbidden: list[dict] = [
         {
             "name": "no-circular",
@@ -206,18 +206,22 @@ def gen_depcruise(m: Manifest) -> dict:
                 }
             )
 
-    return {
-        "forbidden": forbidden,
-        "options": {
-            "doNotFollow": {"path": "(^|/)(node_modules|dist|build|\\.next|coverage)(/|$)"},
-            "tsPreCompilationDeps": True,
-            "baseDir": ".",
-        },
+    options: dict = {
+        "doNotFollow": {"path": "(^|/)(node_modules|dist|build|\\.next|coverage)(/|$)"},
+        "tsPreCompilationDeps": True,
+        "baseDir": ".",
     }
+    # Resolve TS path aliases (e.g. "@/features/x") via the project's tsconfig,
+    # so aliased cross-module imports are matched by the boundary rules instead
+    # of slipping past as unresolvable (which would make the check toothless).
+    if root is not None and (root / "tsconfig.json").exists():
+        options["tsConfig"] = {"fileName": "tsconfig.json"}
+
+    return {"forbidden": forbidden, "options": options}
 
 
 def run_depcruise(m: Manifest, root: Path) -> int:
-    cfg = gen_depcruise(m)
+    cfg = gen_depcruise(m, root)
     runner = _resolve_depcruise(root)
     if runner is None:
         print(

@@ -26,3 +26,6 @@ __pycache__/
 .DS_Store
 .idea/
 .vscode/
+
+# Local tooling (Claude Code preview launch config, etc.)
+.claude/
