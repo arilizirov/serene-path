@@ -1,6 +1,7 @@
 {
   "Home": {
-    "tagline": "Find the right therapist, and meet them on-platform."
+    "tagline": "Find the right therapist, and meet them on-platform.",
+    "therapistsHeading": "Our therapists"
   },
   "LocaleSwitcher": {
     "label": "Change language",

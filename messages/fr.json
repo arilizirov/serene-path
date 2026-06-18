@@ -1,6 +1,7 @@
 {
   "Home": {
-    "tagline": "Trouvez le thérapeute qu'il vous faut, et consultez-le sur la plateforme."
+    "tagline": "Trouvez le thérapeute qu'il vous faut, et consultez-le sur la plateforme.",
+    "therapistsHeading": "Nos thérapeutes"
   },
   "LocaleSwitcher": {
     "label": "Changer de langue",
