@@ -4,6 +4,7 @@ import { Manrope, Public_Sans, Noto_Sans_Hebrew } from "next/font/google";
 import { NextIntlClientProvider, hasLocale } from "next-intl";
 import { setRequestLocale } from "next-intl/server";
 import { notFound } from "next/navigation";
+import Script from "next/script";
 import { routing } from "@/i18n/routing";
 import { LocaleSwitcher } from "@/components/locale-switcher";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -58,10 +59,10 @@ export default async function LocaleLayout({ children, params }: Props) {
       className={`${manrope.variable} ${publicSans.variable} ${notoSansHebrew.variable}`}
       suppressHydrationWarning
     >
-      <head>
-        <script dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />
-      </head>
       <body>
+        <Script id="theme-init" strategy="beforeInteractive">
+          {THEME_SCRIPT}
+        </Script>
         <NextIntlClientProvider>
           <header className="flex items-center justify-end gap-2 p-4">
             <LocaleSwitcher />
