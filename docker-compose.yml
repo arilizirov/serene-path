@@ -1,0 +1,23 @@
+# Local dev database. Bring it up with:  docker compose up -d
+# Host port 5544 (not 5432) to avoid clashing with any locally-installed Postgres.
+services:
+  postgres:
+    image: postgres:17-alpine
+    container_name: serene-path-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: serene
+      POSTGRES_PASSWORD: serene
+      POSTGRES_DB: serene
+    ports:
+      - "5544:5432"
+    volumes:
+      - serene_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U serene -d serene"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  serene_pgdata:

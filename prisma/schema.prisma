@@ -1,0 +1,109 @@
+// The Serene Path — data model (source of truth, APP_SPEC §8).
+// Stage 0 commits the subset the early stages need; Appointment (Stage 6),
+// Payment (Stage 8) and Review (Stage 9) are added ADDITIVELY when their stage
+// begins, keeping these shapes. Ids are cuid; instants are stored UTC; money is
+// Decimal; localized text is { en, he, fr } JSON.
+//
+// NOTE (sensitive data, §11): IntakeSession.messages holds mental-health chat
+// content. Field-level encryption / access auditing is deferred to the Stage 9
+// security pass per BUILD_PLAN; flagged here so it isn't forgotten.
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  CLIENT
+  THERAPIST
+  ADMIN
+}
+
+enum TherapistStatus {
+  DRAFT
+  PENDING
+  VERIFIED
+  SUSPENDED
+}
+
+enum IntakeState {
+  GREETING
+  GATHER
+  MIRROR
+  CONFIRM
+  MATCH
+  CLARIFY
+  PRESENT_OPTIONS
+  FOLLOWUP
+}
+
+model User {
+  id        String   @id @default(cuid())
+  role      Role     @default(CLIENT)
+  email     String   @unique
+  name      String?
+  locale    String   @default("en")
+  timezone  String   @default("Asia/Jerusalem")
+  therapist TherapistProfile?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model TherapistProfile {
+  id           String                  @id @default(cuid())
+  user         User                    @relation(fields: [userId], references: [id])
+  userId       String                  @unique
+  title        String
+  bio          Json // { en, he, fr }
+  skills       String[]
+  modalities   String[]
+  languages    String[]
+  credentials  String?
+  photoUrl     String?
+  sessionPrice Decimal                 @db.Decimal(10, 2)
+  status       TherapistStatus         @default(DRAFT)
+  rating       Float                   @default(0)
+  reviewCount  Int                     @default(0)
+  rules        AvailabilityRule[]
+  exceptions   AvailabilityException[]
+  createdAt    DateTime                @default(now())
+  updatedAt    DateTime                @updatedAt
+}
+
+model AvailabilityRule {
+  id          String           @id @default(cuid())
+  therapist   TherapistProfile @relation(fields: [therapistId], references: [id])
+  therapistId String
+  weekday     Int // 0=Sun..6=Sat
+  startMinute Int // minutes from local midnight
+  endMinute   Int
+
+  @@index([therapistId])
+}
+
+model AvailabilityException {
+  id          String           @id @default(cuid())
+  therapist   TherapistProfile @relation(fields: [therapistId], references: [id])
+  therapistId String
+  date        DateTime         @db.Date
+  isBlocked   Boolean          @default(true)
+  startMinute Int?
+  endMinute   Int?
+
+  @@index([therapistId])
+}
+
+model IntakeSession {
+  id                    String      @id @default(cuid())
+  userId                String? // null while anonymous, linked on login
+  state                 IntakeState @default(GREETING)
+  messages              Json // [{ role, content }]
+  constraints           Json? // { language?, gender?, modality?, window? }
+  suggestedTherapistIds String[]
+  createdAt             DateTime    @default(now())
+  updatedAt             DateTime    @updatedAt
+}
