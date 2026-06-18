@@ -207,7 +207,7 @@ def gen_depcruise(m: Manifest, root: Path | None = None) -> dict:
             )
 
     options: dict = {
-        "doNotFollow": {"path": "(^|/)(node_modules|dist|build|\\.next|coverage)(/|$)"},
+        "doNotFollow": {"path": "(^|/)(node_modules|dist|build|\\.next|coverage|generated)(/|$)"},
         "tsPreCompilationDeps": True,
         "baseDir": ".",
     }

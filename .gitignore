@@ -29,3 +29,5 @@ __pycache__/
 
 # Local tooling (Claude Code preview launch config, etc.)
 .claude/
+
+/src/generated/prisma
