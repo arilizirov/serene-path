@@ -1,20 +1,138 @@
+@import "tailwindcss";
+
+/* Class-based dark mode (APP_SPEC §7: dark variants via the `class` strategy). */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* ------------------------------------------------------------------ *
+ * Material You (M3) tokens — built fresh from the APP_SPEC §7 palette.
+ * Semantic names only; components use `bg-primary`, `text-on-surface`,
+ * etc. — never raw hex. Light values are the spec's; dark values are a
+ * coherent M3-style derivation of the same hues.
+ * ------------------------------------------------------------------ */
 :root {
-  color-scheme: light dark;
+  --primary: #376767;
+  --on-primary: #e0fffe;
+  --primary-container: #baeceb;
+  --on-primary-container: #295959;
+
+  --secondary: #486743;
+  --on-secondary: #ffffff;
+  --secondary-container: #c9ecbe;
+  --on-secondary-container: #0b2007;
+
+  --tertiary: #7b573f;
+  --on-tertiary: #ffffff;
+  --tertiary-container: #fecdaf;
+  --on-tertiary-container: #2e1505;
+
+  --error: #a83836;
+  --on-error: #ffffff;
+  --error-container: #fa746f;
+  --on-error-container: #410002;
+
+  --background: #fbf9f5;
+  --on-background: #31332f;
+  --surface: #fbf9f5;
+  --on-surface: #31332f;
+  --surface-variant: #e3e3dc;
+  --on-surface-variant: #5e605b;
+
+  --outline: #7a7b76;
+  --outline-variant: #b2b2ac;
+
+  --surface-container-lowest: #ffffff;
+  --surface-container-low: #f5f3ee;
+  --surface-container: #efede8;
+  --surface-container-high: #e9e7e1;
+  --surface-container-highest: #e3e3dc;
 }
 
-*,
-*::before,
-*::after {
-  box-sizing: border-box;
+.dark {
+  --primary: #9fd0ce;
+  --on-primary: #003735;
+  --primary-container: #1e4e4d;
+  --on-primary-container: #baeceb;
+
+  --secondary: #aed5a2;
+  --on-secondary: #1a3713;
+  --secondary-container: #314e2b;
+  --on-secondary-container: #c9ecbe;
+
+  --tertiary: #eeba97;
+  --on-tertiary: #46280f;
+  --tertiary-container: #5f3f28;
+  --on-tertiary-container: #fecdaf;
+
+  --error: #ffb4ab;
+  --on-error: #690005;
+  --error-container: #93000a;
+  --on-error-container: #ffdad6;
+
+  --background: #101413;
+  --on-background: #e1e3df;
+  --surface: #101413;
+  --on-surface: #e1e3df;
+  --surface-variant: #43483f;
+  --on-surface-variant: #c2c8c2;
+
+  --outline: #8a938c;
+  --outline-variant: #404943;
+
+  --surface-container-lowest: #0b0f0e;
+  --surface-container-low: #181d1b;
+  --surface-container: #1c2120;
+  --surface-container-high: #262b2a;
+  --surface-container-highest: #313635;
 }
 
-html,
-body {
-  margin: 0;
-  padding: 0;
+/* Expose the tokens to Tailwind as `--color-*` utilities. `inline` makes the
+ * generated classes emit `var(--token)`, so the `.dark` overrides above apply
+ * at runtime without rebuilding. */
+@theme inline {
+  --color-primary: var(--primary);
+  --color-on-primary: var(--on-primary);
+  --color-primary-container: var(--primary-container);
+  --color-on-primary-container: var(--on-primary-container);
+
+  --color-secondary: var(--secondary);
+  --color-on-secondary: var(--on-secondary);
+  --color-secondary-container: var(--secondary-container);
+  --color-on-secondary-container: var(--on-secondary-container);
+
+  --color-tertiary: var(--tertiary);
+  --color-on-tertiary: var(--on-tertiary);
+  --color-tertiary-container: var(--tertiary-container);
+  --color-on-tertiary-container: var(--on-tertiary-container);
+
+  --color-error: var(--error);
+  --color-on-error: var(--on-error);
+  --color-error-container: var(--error-container);
+  --color-on-error-container: var(--on-error-container);
+
+  --color-background: var(--background);
+  --color-on-background: var(--on-background);
+  --color-surface: var(--surface);
+  --color-on-surface: var(--on-surface);
+  --color-surface-variant: var(--surface-variant);
+  --color-on-surface-variant: var(--on-surface-variant);
+
+  --color-outline: var(--outline);
+  --color-outline-variant: var(--outline-variant);
+
+  --color-surface-container-lowest: var(--surface-container-lowest);
+  --color-surface-container-low: var(--surface-container-low);
+  --color-surface-container: var(--surface-container);
+  --color-surface-container-high: var(--surface-container-high);
+  --color-surface-container-highest: var(--surface-container-highest);
+
+  --font-sans: var(--font-public-sans), var(--font-hebrew), ui-sans-serif, system-ui, sans-serif;
+  --font-heading: var(--font-manrope), var(--font-hebrew), ui-sans-serif, system-ui, sans-serif;
 }
 
-body {
-  font-family: system-ui, -apple-system, sans-serif;
-  line-height: 1.5;
+@layer base {
+  body {
+    background-color: var(--background);
+    color: var(--on-background);
+    font-family: var(--font-sans);
+  }
 }
