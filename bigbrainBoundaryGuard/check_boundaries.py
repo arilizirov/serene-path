@@ -480,7 +480,10 @@ def cmd_check(m: Manifest, root: Path) -> int:
 
 def cmd_generate(m: Manifest, adapter: str, write: bool, root: Path) -> int:
     gen, _, filename = ADAPTERS[adapter]
-    out = gen(m)
+    # dependency-cruiser's generator is root-aware (it adds tsConfig for @/ alias
+    # resolution when a tsconfig.json exists); pass root so a written config
+    # matches what `check` actually enforces.
+    out = gen(m, root) if adapter == "dependency-cruiser" else gen(m)
     text = json.dumps(out, indent=2) if isinstance(out, dict) else out
     if write:
         dest = root / filename
