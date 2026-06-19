@@ -34,4 +34,14 @@ describe("toTherapistCard", () => {
     expect(card.id).toBe("t1");
     expect(card.skills).toEqual(["anxiety", "CBT"]);
   });
+
+  it("yields an empty tagline (never crashes) when the bio value is not a string", () => {
+    const malformed: TherapistCardSource = { ...row, bio: { he: 123 } };
+    expect(toTherapistCard(malformed, "he").tagline).toBe("");
+  });
+
+  it("yields an empty tagline when bio is null or absent", () => {
+    const noBio: TherapistCardSource = { ...row, bio: null };
+    expect(toTherapistCard(noBio, "en").tagline).toBe("");
+  });
 });

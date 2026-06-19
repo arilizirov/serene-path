@@ -25,8 +25,11 @@ export function toTherapistCard(
   row: TherapistCardSource,
   locale: Locale,
 ): TherapistCard {
-  const bio = (row.bio ?? {}) as Partial<Record<Locale, string>>;
-  const text = bio[locale] ?? bio.en ?? "";
+  // bio is untrusted JSON — coerce defensively so a malformed row can't crash
+  // discovery (a real risk once admin write-paths exist).
+  const bio = (row.bio ?? {}) as Record<string, unknown>;
+  const candidate = bio[locale] ?? bio.en;
+  const text = typeof candidate === "string" ? candidate : "";
   return {
     id: row.id,
     name: row.user.name ?? row.title,
