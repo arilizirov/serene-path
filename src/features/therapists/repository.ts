@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/db";
+import type { TherapistInput } from "./schema";
 
 /** Verified therapists for discovery, with just the fields a card needs. */
 export function findVerifiedTherapists() {
@@ -11,6 +12,71 @@ export function findVerifiedTherapists() {
       skills: true,
       bio: true,
       user: { select: { name: true } },
+    },
+  });
+}
+
+/** Create a therapist: a User (role THERAPIST) with a nested profile (DRAFT). */
+export function createTherapist(input: TherapistInput) {
+  return prisma.user.create({
+    data: {
+      email: input.email,
+      name: input.name,
+      role: "THERAPIST",
+      therapist: {
+        create: {
+          title: input.title,
+          bio: input.bio,
+          skills: input.skills,
+          modalities: input.modalities,
+          languages: input.languages,
+          credentials: input.credentials ?? null,
+          photoUrl: input.photoUrl ?? null,
+          sessionPrice: input.sessionPrice,
+        },
+      },
+    },
+    include: { therapist: { select: { id: true } } },
+  });
+}
+
+/** Update a profile's editable fields (and the owner's display name). */
+export function updateTherapist(id: string, input: TherapistInput) {
+  return prisma.therapistProfile.update({
+    where: { id },
+    data: {
+      title: input.title,
+      bio: input.bio,
+      skills: input.skills,
+      modalities: input.modalities,
+      languages: input.languages,
+      credentials: input.credentials ?? null,
+      photoUrl: input.photoUrl ?? null,
+      sessionPrice: input.sessionPrice,
+      user: { update: { name: input.name } },
+    },
+    select: { id: true },
+  });
+}
+
+/** Full profile for the admin edit form. */
+export function getTherapistById(id: string) {
+  return prisma.therapistProfile.findUnique({
+    where: { id },
+    include: { user: { select: { email: true, name: true } } },
+  });
+}
+
+/** Every therapist (any status) for the admin list. */
+export function listAllTherapists() {
+  return prisma.therapistProfile.findMany({
+    orderBy: { createdAt: "desc" },
+    select: {
+      id: true,
+      title: true,
+      status: true,
+      languages: true,
+      user: { select: { name: true, email: true } },
     },
   });
 }
