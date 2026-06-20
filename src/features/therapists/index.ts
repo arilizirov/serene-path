@@ -17,3 +17,4 @@ export {
 export type { AdminTherapistRow, TherapistForEdit } from "./service";
 export { therapistInputSchema } from "./schema";
 export type { TherapistInput } from "./schema";
+export { TherapistForm } from "./ui/therapist-form";
