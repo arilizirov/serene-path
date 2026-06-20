@@ -111,3 +111,17 @@ export function setTherapistStatus(id: string, status: TherapistStatusValue) {
     select: { id: true },
   });
 }
+
+/** A single VERIFIED therapist with everything the public profile page needs. */
+export function getVerifiedTherapistById(id: string) {
+  return prisma.therapistProfile.findFirst({
+    where: { id, status: "VERIFIED" },
+    include: {
+      user: { select: { name: true } },
+      rules: {
+        orderBy: [{ weekday: "asc" }, { startMinute: "asc" }],
+        select: { weekday: true, startMinute: true, endMinute: true },
+      },
+    },
+  });
+}

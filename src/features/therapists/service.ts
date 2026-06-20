@@ -1,5 +1,5 @@
 import type { Locale } from "@/lib/utils";
-import type { TherapistCard } from "./types";
+import type { TherapistCard, TherapistProfileView } from "./types";
 import type {
   TherapistInput,
   AvailabilityRuleInput,
@@ -14,6 +14,7 @@ import {
   getAvailabilityRules as repoGetAvailabilityRules,
   replaceAvailabilityRules as repoReplaceAvailabilityRules,
   setTherapistStatus as repoSetTherapistStatus,
+  getVerifiedTherapistById as repoGetVerifiedTherapistById,
 } from "./repository";
 import { toTherapistCard } from "./mapper";
 import { hhmmToMinutes, minutesToHhmm } from "./availability";
@@ -121,4 +122,34 @@ export async function setTherapistStatus(
   status: TherapistStatusValue,
 ): Promise<void> {
   await repoSetTherapistStatus(id, status);
+}
+
+/** The public profile of a VERIFIED therapist, localized; null if not found. */
+export async function getTherapistProfile(
+  id: string,
+  locale: Locale,
+): Promise<TherapistProfileView | null> {
+  const t = await repoGetVerifiedTherapistById(id);
+  if (!t) return null;
+  const bio = (t.bio ?? {}) as Record<string, unknown>;
+  const candidate = bio[locale] ?? bio.en;
+  return {
+    id: t.id,
+    name: t.user.name ?? t.title,
+    title: t.title,
+    bio: typeof candidate === "string" ? candidate : "",
+    skills: t.skills,
+    modalities: t.modalities,
+    languages: t.languages,
+    credentials: t.credentials,
+    photoUrl: t.photoUrl,
+    sessionPrice: Number(t.sessionPrice),
+    rating: t.rating,
+    reviewCount: t.reviewCount,
+    availability: t.rules.map((r) => ({
+      weekday: r.weekday,
+      start: minutesToHhmm(r.startMinute),
+      end: minutesToHhmm(r.endMinute),
+    })),
+  };
 }
