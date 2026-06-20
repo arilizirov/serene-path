@@ -1,11 +1,16 @@
 "use server";
 
 import { redirect } from "next/navigation";
-import { therapistInputSchema, availabilityRulesSchema } from "./schema";
+import {
+  therapistInputSchema,
+  availabilityRulesSchema,
+  therapistStatusSchema,
+} from "./schema";
 import {
   createTherapist,
   updateTherapist,
   saveAvailabilityRules,
+  setTherapistStatus,
 } from "./service";
 import { formDataToTherapistInput, fieldErrorsFromZod } from "./form-parsing";
 
@@ -75,4 +80,15 @@ export async function saveAvailabilityAction(
 
   await saveAvailabilityRules(id, parsed.data);
   redirect(`/${locale}/admin/therapists/${id}`);
+}
+
+/** Quick verification status change from the admin list (plain form action). */
+export async function setStatusAction(formData: FormData): Promise<void> {
+  const id = String(formData.get("id") ?? "");
+  const locale = String(formData.get("locale") ?? "en");
+  const status = therapistStatusSchema.safeParse(formData.get("status"));
+  if (status.success) {
+    await setTherapistStatus(id, status.data);
+  }
+  redirect(`/${locale}/admin/therapists`);
 }

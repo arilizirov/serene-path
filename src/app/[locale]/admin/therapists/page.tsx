@@ -1,12 +1,19 @@
 import { Link } from "@/i18n/navigation";
-import { listTherapistsForAdmin } from "@/features/therapists";
+import { listTherapistsForAdmin, setStatusAction } from "@/features/therapists";
 
 // Always reflect current DB state (never a build-time snapshot); also avoids
 // coupling `next build` to a live database.
 export const dynamic = "force-dynamic";
 
+const STATUSES = ["DRAFT", "PENDING", "VERIFIED", "SUSPENDED"];
+
 // NOTE: unprotected until Stage 4 adds auth (BUILD_PLAN dependency chain).
-export default async function AdminTherapistsPage() {
+export default async function AdminTherapistsPage({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}) {
+  const { locale } = await params;
   const rows = await listTherapistsForAdmin();
   return (
     <main className="mx-auto flex max-w-4xl flex-col gap-6 p-8">
@@ -43,7 +50,26 @@ export default async function AdminTherapistsPage() {
                   <div className="text-xs text-on-surface-variant">{r.email}</div>
                 </td>
                 <td className="py-2">{r.title}</td>
-                <td className="py-2">{r.status}</td>
+                <td className="py-2">
+                  <form action={setStatusAction} className="flex items-center gap-1">
+                    <input type="hidden" name="id" value={r.id} />
+                    <input type="hidden" name="locale" value={locale} />
+                    <select
+                      name="status"
+                      defaultValue={r.status}
+                      className="rounded-md border border-outline-variant bg-surface-container-lowest px-1 py-0.5 text-xs text-on-surface"
+                    >
+                      {STATUSES.map((s) => (
+                        <option key={s} value={s}>
+                          {s}
+                        </option>
+                      ))}
+                    </select>
+                    <button type="submit" className="text-xs text-primary underline">
+                      Apply
+                    </button>
+                  </form>
+                </td>
                 <td className="py-2">{r.languages.join(", ")}</td>
                 <td className="py-2 text-end">
                   <Link href={`/admin/therapists/${r.id}`} className="text-primary underline">

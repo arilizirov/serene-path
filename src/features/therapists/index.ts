@@ -23,3 +23,6 @@ export { TherapistForm } from "./ui/therapist-form";
 export { getAvailabilityRules } from "./service";
 export { AvailabilityEditor } from "./ui/availability-editor";
 export type { AvailabilityRuleInput } from "./schema";
+
+// Verification.
+export { setStatusAction } from "./actions";
