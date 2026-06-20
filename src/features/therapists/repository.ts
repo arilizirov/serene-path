@@ -126,6 +126,20 @@ export function getVerifiedTherapistById(id: string) {
   });
 }
 
+/** The timezone + weekly rules a therapist's next-available slot is computed from. */
+export function getSchedulingContext(therapistId: string) {
+  return prisma.therapistProfile.findUnique({
+    where: { id: therapistId },
+    select: {
+      user: { select: { timezone: true } },
+      rules: {
+        orderBy: [{ weekday: "asc" }, { startMinute: "asc" }],
+        select: { weekday: true, startMinute: true, endMinute: true },
+      },
+    },
+  });
+}
+
 /** VERIFIED therapists for the public directory, filtered by free text + language. */
 export function searchVerifiedTherapists(filters: {
   q?: string;

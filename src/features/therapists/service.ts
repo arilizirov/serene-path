@@ -16,6 +16,7 @@ import {
   setTherapistStatus as repoSetTherapistStatus,
   getVerifiedTherapistById as repoGetVerifiedTherapistById,
   searchVerifiedTherapists as repoSearchVerifiedTherapists,
+  getSchedulingContext as repoGetSchedulingContext,
 } from "./repository";
 import { toTherapistCard } from "./mapper";
 import { hhmmToMinutes, minutesToHhmm } from "./availability";
@@ -148,6 +149,27 @@ export async function getTherapistProfile(
     rating: t.rating,
     reviewCount: t.reviewCount,
     availability: t.rules.map((r) => ({
+      weekday: r.weekday,
+      start: minutesToHhmm(r.startMinute),
+      end: minutesToHhmm(r.endMinute),
+    })),
+  };
+}
+
+/** The timezone + weekly rules (HH:MM) the scheduling engine needs for a therapist. */
+export type SchedulingContext = {
+  timezone: string;
+  rules: AvailabilityRuleInput[];
+};
+
+export async function getSchedulingContext(
+  therapistId: string,
+): Promise<SchedulingContext | null> {
+  const row = await repoGetSchedulingContext(therapistId);
+  if (!row) return null;
+  return {
+    timezone: row.user.timezone,
+    rules: row.rules.map((r) => ({
       weekday: r.weekday,
       start: minutesToHhmm(r.startMinute),
       end: minutesToHhmm(r.endMinute),
