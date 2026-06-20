@@ -1,8 +1,12 @@
 "use server";
 
 import { redirect } from "next/navigation";
-import { therapistInputSchema } from "./schema";
-import { createTherapist, updateTherapist } from "./service";
+import { therapistInputSchema, availabilityRulesSchema } from "./schema";
+import {
+  createTherapist,
+  updateTherapist,
+  saveAvailabilityRules,
+} from "./service";
 import { formDataToTherapistInput, fieldErrorsFromZod } from "./form-parsing";
 
 export type TherapistFormState = {
@@ -42,4 +46,33 @@ export async function saveTherapistAction(
   }
 
   redirect(`/${locale}/admin/therapists`);
+}
+
+export type AvailabilityFormState = { ok: boolean; error?: string };
+
+/** Replace a therapist's weekly availability rules from the editor. */
+export async function saveAvailabilityAction(
+  _prev: AvailabilityFormState,
+  formData: FormData,
+): Promise<AvailabilityFormState> {
+  const id = String(formData.get("therapistId") ?? "");
+  const locale = String(formData.get("locale") ?? "en");
+
+  let raw: unknown;
+  try {
+    raw = JSON.parse(String(formData.get("rules") ?? "[]"));
+  } catch {
+    return { ok: false, error: "Invalid availability data." };
+  }
+
+  const parsed = availabilityRulesSchema.safeParse(raw);
+  if (!parsed.success) {
+    return {
+      ok: false,
+      error: parsed.error.issues[0]?.message ?? "Invalid availability.",
+    };
+  }
+
+  await saveAvailabilityRules(id, parsed.data);
+  redirect(`/${locale}/admin/therapists/${id}`);
 }

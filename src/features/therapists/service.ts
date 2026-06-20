@@ -1,14 +1,17 @@
 import type { Locale } from "@/lib/utils";
 import type { TherapistCard } from "./types";
-import type { TherapistInput } from "./schema";
+import type { TherapistInput, AvailabilityRuleInput } from "./schema";
 import {
   findVerifiedTherapists,
   createTherapist as repoCreateTherapist,
   updateTherapist as repoUpdateTherapist,
   getTherapistById as repoGetTherapistById,
   listAllTherapists as repoListAllTherapists,
+  getAvailabilityRules as repoGetAvailabilityRules,
+  replaceAvailabilityRules as repoReplaceAvailabilityRules,
 } from "./repository";
 import { toTherapistCard } from "./mapper";
+import { hhmmToMinutes, minutesToHhmm } from "./availability";
 
 /** Discovery list: every verified therapist as a localized card. */
 export async function getDiscoverTherapists(
@@ -78,4 +81,31 @@ export async function getTherapistForEdit(
     photoUrl: t.photoUrl ?? undefined,
     sessionPrice: Number(t.sessionPrice),
   };
+}
+
+/** A therapist's weekly availability rules, with times as HH:MM. */
+export async function getAvailabilityRules(
+  therapistId: string,
+): Promise<AvailabilityRuleInput[]> {
+  const rows = await repoGetAvailabilityRules(therapistId);
+  return rows.map((r) => ({
+    weekday: r.weekday,
+    start: minutesToHhmm(r.startMinute),
+    end: minutesToHhmm(r.endMinute),
+  }));
+}
+
+/** Replace a therapist's weekly rules (HH:MM in, minutes stored). */
+export async function saveAvailabilityRules(
+  therapistId: string,
+  rules: AvailabilityRuleInput[],
+): Promise<void> {
+  await repoReplaceAvailabilityRules(
+    therapistId,
+    rules.map((r) => ({
+      weekday: r.weekday,
+      startMinute: hhmmToMinutes(r.start),
+      endMinute: hhmmToMinutes(r.end),
+    })),
+  );
 }
