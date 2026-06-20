@@ -80,3 +80,25 @@ export function listAllTherapists() {
     },
   });
 }
+
+/** A therapist's weekly availability rules (minutes from local midnight). */
+export function getAvailabilityRules(therapistId: string) {
+  return prisma.availabilityRule.findMany({
+    where: { therapistId },
+    orderBy: [{ weekday: "asc" }, { startMinute: "asc" }],
+    select: { weekday: true, startMinute: true, endMinute: true },
+  });
+}
+
+/** Replace all of a therapist's weekly rules atomically. */
+export function replaceAvailabilityRules(
+  therapistId: string,
+  rules: { weekday: number; startMinute: number; endMinute: number }[],
+) {
+  return prisma.$transaction([
+    prisma.availabilityRule.deleteMany({ where: { therapistId } }),
+    prisma.availabilityRule.createMany({
+      data: rules.map((r) => ({ therapistId, ...r })),
+    }),
+  ]);
+}

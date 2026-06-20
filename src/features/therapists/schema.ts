@@ -23,3 +23,20 @@ export const therapistInputSchema = z.object({
 });
 
 export type TherapistInput = z.infer<typeof therapistInputSchema>;
+
+// A weekly availability rule, as edited in the admin UI (times as HH:MM).
+const time = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, "Use HH:MM");
+
+export const availabilityRuleSchema = z
+  .object({
+    weekday: z.coerce.number().int().min(0).max(6),
+    start: time,
+    end: time,
+  })
+  .refine((r) => r.start < r.end, {
+    message: "End must be after start",
+    path: ["end"],
+  });
+
+export const availabilityRulesSchema = z.array(availabilityRuleSchema);
+export type AvailabilityRuleInput = z.infer<typeof availabilityRuleSchema>;

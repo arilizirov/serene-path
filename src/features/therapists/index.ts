@@ -18,3 +18,8 @@ export type { AdminTherapistRow, TherapistForEdit } from "./service";
 export { therapistInputSchema } from "./schema";
 export type { TherapistInput } from "./schema";
 export { TherapistForm } from "./ui/therapist-form";
+
+// Availability rules editing.
+export { getAvailabilityRules } from "./service";
+export { AvailabilityEditor } from "./ui/availability-editor";
+export type { AvailabilityRuleInput } from "./schema";
