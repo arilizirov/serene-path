@@ -1,4 +1,5 @@
 import { getLocale, getTranslations } from "next-intl/server";
+import { Link } from "@/i18n/navigation";
 import { getDiscoverTherapists, TherapistCardView } from "@/features/therapists";
 import { isLocale } from "@/lib/utils";
 
@@ -28,7 +29,13 @@ export default async function HomePage() {
         </h2>
         <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
           {therapists.map((card) => (
-            <TherapistCardView key={card.id} card={card} />
+            <Link
+              key={card.id}
+              href={`/therapists/${card.id}`}
+              className="block rounded-2xl transition hover:opacity-90"
+            >
+              <TherapistCardView card={card} />
+            </Link>
           ))}
         </div>
       </section>
