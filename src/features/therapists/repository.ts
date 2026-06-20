@@ -125,3 +125,33 @@ export function getVerifiedTherapistById(id: string) {
     },
   });
 }
+
+/** VERIFIED therapists for the public directory, filtered by free text + language. */
+export function searchVerifiedTherapists(filters: {
+  q?: string;
+  language?: string;
+}) {
+  const { q, language } = filters;
+  return prisma.therapistProfile.findMany({
+    where: {
+      status: "VERIFIED",
+      ...(language ? { languages: { has: language } } : {}),
+      ...(q
+        ? {
+            OR: [
+              { title: { contains: q, mode: "insensitive" } },
+              { user: { name: { contains: q, mode: "insensitive" } } },
+            ],
+          }
+        : {}),
+    },
+    orderBy: { createdAt: "asc" },
+    select: {
+      id: true,
+      title: true,
+      skills: true,
+      bio: true,
+      user: { select: { name: true } },
+    },
+  });
+}

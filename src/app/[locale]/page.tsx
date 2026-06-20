@@ -24,9 +24,14 @@ export default async function HomePage() {
       </section>
 
       <section>
-        <h2 className="mb-6 font-heading text-2xl font-semibold text-on-background">
-          {t("therapistsHeading")}
-        </h2>
+        <div className="mb-6 flex items-baseline justify-between gap-4">
+          <h2 className="font-heading text-2xl font-semibold text-on-background">
+            {t("therapistsHeading")}
+          </h2>
+          <Link href="/therapists" className="text-sm text-primary underline">
+            Browse all →
+          </Link>
+        </div>
         <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
           {therapists.map((card) => (
             <Link
