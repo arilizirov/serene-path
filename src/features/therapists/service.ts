@@ -15,6 +15,7 @@ import {
   replaceAvailabilityRules as repoReplaceAvailabilityRules,
   setTherapistStatus as repoSetTherapistStatus,
   getVerifiedTherapistById as repoGetVerifiedTherapistById,
+  searchVerifiedTherapists as repoSearchVerifiedTherapists,
 } from "./repository";
 import { toTherapistCard } from "./mapper";
 import { hhmmToMinutes, minutesToHhmm } from "./availability";
@@ -152,4 +153,13 @@ export async function getTherapistProfile(
       end: minutesToHhmm(r.endMinute),
     })),
   };
+}
+
+/** Directory search: VERIFIED therapists as localized cards, filtered. */
+export async function searchTherapists(
+  locale: Locale,
+  filters: { q?: string; language?: string },
+): Promise<TherapistCard[]> {
+  const rows = await repoSearchVerifiedTherapists(filters);
+  return rows.map((row) => toTherapistCard(row, locale));
 }

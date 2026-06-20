@@ -3,7 +3,11 @@
 // stay private to this folder.
 
 // Discovery (read).
-export { getDiscoverTherapists, getTherapistProfile } from "./service";
+export {
+  getDiscoverTherapists,
+  getTherapistProfile,
+  searchTherapists,
+} from "./service";
 export { TherapistCardView } from "./ui/therapist-card";
 export type { TherapistCard, TherapistProfileView } from "./types";
 
