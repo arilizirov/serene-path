@@ -1,6 +1,10 @@
 import type { Locale } from "@/lib/utils";
 import type { TherapistCard } from "./types";
-import type { TherapistInput, AvailabilityRuleInput } from "./schema";
+import type {
+  TherapistInput,
+  AvailabilityRuleInput,
+  TherapistStatusValue,
+} from "./schema";
 import {
   findVerifiedTherapists,
   createTherapist as repoCreateTherapist,
@@ -9,6 +13,7 @@ import {
   listAllTherapists as repoListAllTherapists,
   getAvailabilityRules as repoGetAvailabilityRules,
   replaceAvailabilityRules as repoReplaceAvailabilityRules,
+  setTherapistStatus as repoSetTherapistStatus,
 } from "./repository";
 import { toTherapistCard } from "./mapper";
 import { hhmmToMinutes, minutesToHhmm } from "./availability";
@@ -108,4 +113,12 @@ export async function saveAvailabilityRules(
       endMinute: hhmmToMinutes(r.end),
     })),
   );
+}
+
+/** Set a therapist's verification status (DRAFT → PENDING → VERIFIED …). */
+export async function setTherapistStatus(
+  id: string,
+  status: TherapistStatusValue,
+): Promise<void> {
+  await repoSetTherapistStatus(id, status);
 }

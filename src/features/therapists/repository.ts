@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/db";
-import type { TherapistInput } from "./schema";
+import type { TherapistInput, TherapistStatusValue } from "./schema";
 
 /** Verified therapists for discovery, with just the fields a card needs. */
 export function findVerifiedTherapists() {
@@ -101,4 +101,13 @@ export function replaceAvailabilityRules(
       data: rules.map((r) => ({ therapistId, ...r })),
     }),
   ]);
+}
+
+/** Update a therapist's verification status. */
+export function setTherapistStatus(id: string, status: TherapistStatusValue) {
+  return prisma.therapistProfile.update({
+    where: { id },
+    data: { status },
+    select: { id: true },
+  });
 }

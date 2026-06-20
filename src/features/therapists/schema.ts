@@ -40,3 +40,12 @@ export const availabilityRuleSchema = z
 
 export const availabilityRulesSchema = z.array(availabilityRuleSchema);
 export type AvailabilityRuleInput = z.infer<typeof availabilityRuleSchema>;
+
+// Verification lifecycle (matches Prisma's TherapistStatus enum).
+export const therapistStatusSchema = z.enum([
+  "DRAFT",
+  "PENDING",
+  "VERIFIED",
+  "SUSPENDED",
+]);
+export type TherapistStatusValue = z.infer<typeof therapistStatusSchema>;

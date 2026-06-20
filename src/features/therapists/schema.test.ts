@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { therapistInputSchema } from "./schema";
+import { therapistInputSchema, therapistStatusSchema } from "./schema";
 
 const valid = {
   email: "therapist@example.com",
@@ -39,5 +39,17 @@ describe("therapistInputSchema", () => {
     const r = therapistInputSchema.safeParse({ ...valid, sessionPrice: "320" });
     expect(r.success).toBe(true);
     if (r.success) expect(r.data.sessionPrice).toBe(320);
+  });
+});
+
+describe("therapistStatusSchema", () => {
+  it("accepts the four lifecycle statuses", () => {
+    for (const s of ["DRAFT", "PENDING", "VERIFIED", "SUSPENDED"]) {
+      expect(therapistStatusSchema.safeParse(s).success).toBe(true);
+    }
+  });
+
+  it("rejects an unknown status", () => {
+    expect(therapistStatusSchema.safeParse("ACTIVE").success).toBe(false);
   });
 });
