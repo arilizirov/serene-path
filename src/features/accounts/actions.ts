@@ -2,7 +2,8 @@
 
 import { redirect } from "next/navigation";
 import { z } from "zod";
-import { login, logout } from "./service";
+import { login, logout, registerClient } from "./service";
+import { registerSchema } from "./schema";
 
 const loginSchema = z.object({
   email: z.email(),
@@ -42,5 +43,25 @@ export async function loginAction(
 export async function logoutAction(formData: FormData): Promise<void> {
   const locale = String(formData.get("locale") ?? "en");
   await logout();
+  redirect(`/${locale}`);
+}
+
+export type RegisterState = { error?: string };
+
+export async function registerAction(
+  _prev: RegisterState,
+  formData: FormData,
+): Promise<RegisterState> {
+  const locale = String(formData.get("locale") ?? "en");
+  const parsed = registerSchema.safeParse({
+    email: formData.get("email"),
+    name: formData.get("name"),
+    password: formData.get("password"),
+  });
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message ?? "Check your details." };
+  }
+  const result = await registerClient(parsed.data);
+  if (!result.ok) return { error: result.error };
   redirect(`/${locale}`);
 }
