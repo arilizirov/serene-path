@@ -46,6 +46,8 @@ model User {
   role      Role     @default(CLIENT)
   email     String   @unique
   name      String?
+  // bcrypt hash for email/password sign-in; null for social/passwordless users.
+  passwordHash String? @map("password_hash")
   locale    String   @default("en")
   timezone  String   @default("Asia/Jerusalem")
   therapist TherapistProfile?
