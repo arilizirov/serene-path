@@ -7,12 +7,13 @@ export {
   login,
   logout,
   getCurrentUser,
+  getUserContact,
   requireRole,
   registerClient,
   startSessionFor,
   normalizeEmail,
 } from "./service";
-export type { AuthedUser, Role } from "./service";
+export type { AuthedUser, Role, UserContact } from "./service";
 export { hashPassword } from "./password";
 export { loginAction, logoutAction, registerAction } from "./actions";
 export type { LoginState, RegisterState } from "./actions";

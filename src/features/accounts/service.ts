@@ -1,6 +1,11 @@
 import { redirect } from "next/navigation";
 import { getSession, startSession, endSession } from "@/server/auth";
-import { findUserByEmail, createUser, findUserRole } from "./repository";
+import {
+  findUserByEmail,
+  createUser,
+  findUserRole,
+  findUserContactById,
+} from "./repository";
 import { verifyPassword, hashPassword } from "./password";
 import type { RegisterInput } from "./schema";
 
@@ -50,6 +55,17 @@ export async function verifyCredentials(
 export async function getCurrentUser(): Promise<AuthedUser | null> {
   const s = await getSession();
   return s ? { id: s.userId, role: s.role } : null;
+}
+
+export type UserContact = { email: string; name: string };
+
+/** A user's contact details (email + display name) by id, or null if missing.
+ *  For transactional mail (e.g. booking confirmations). */
+export async function getUserContact(
+  userId: string,
+): Promise<UserContact | null> {
+  const u = await findUserContactById(userId);
+  return u ? { email: u.email, name: u.name ?? "" } : null;
 }
 
 /** Verify credentials and, on success, start a session. Returns whether it worked. */

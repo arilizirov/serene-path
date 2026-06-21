@@ -17,6 +17,14 @@ export function findUserRole(userId: string) {
   });
 }
 
+/** A user's contact fields by id — for sending them transactional mail. */
+export function findUserContactById(userId: string) {
+  return prisma.user.findUnique({
+    where: { id: userId },
+    select: { email: true, name: true },
+  });
+}
+
 /** Create a CLIENT user with a password hash. The DB's email unique constraint
  *  is the authoritative guard against duplicates (the service catches P2002). */
 export function createUser(input: {
