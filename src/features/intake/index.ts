@@ -4,6 +4,8 @@
 export { intakeRequestSchema } from "./schema";
 export type { IntakeRequestInput } from "./schema";
 export { runIntakeTurn } from "./service";
+export { IntakeChat } from "./ui/intake-chat";
+export { FeelingField } from "./ui/feeling-field";
 export type {
   IntakeResponse,
   TherapistMatch,

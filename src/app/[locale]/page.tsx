@@ -1,6 +1,7 @@
 import { getLocale, getTranslations } from "next-intl/server";
 import { Link } from "@/i18n/navigation";
 import { getDiscoverTherapists, TherapistCardView } from "@/features/therapists";
+import { FeelingField } from "@/features/intake";
 import { isLocale } from "@/lib/utils";
 
 export default async function HomePage() {
@@ -21,6 +22,7 @@ export default async function HomePage() {
         <span className="rounded-full bg-primary-container px-4 py-2 text-sm font-medium text-on-primary-container">
           עברית · English · Français
         </span>
+        <FeelingField locale={locale} />
       </section>
 
       <section>
