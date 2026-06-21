@@ -52,5 +52,9 @@ export { BlockedDatesEditor } from "./ui/blocked-dates-editor";
 export { getSchedulingContext } from "./service";
 export type { SchedulingContext } from "./service";
 
+// AI matching catalog (consumed by the intake feature) — no prices/availability.
+export { getMatchingCatalog } from "./service";
+export type { CatalogEntry } from "./service";
+
 // Verification.
 export { setStatusAction } from "./actions";

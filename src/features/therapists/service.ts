@@ -7,6 +7,7 @@ import type {
 } from "./schema";
 import {
   findVerifiedTherapists,
+  findVerifiedForCatalog,
   createTherapist as repoCreateTherapist,
   createTherapistUser as repoCreateTherapistUser,
   updateTherapist as repoUpdateTherapist,
@@ -28,6 +29,33 @@ import {
 import { toTherapistCard } from "./mapper";
 import { isoToUtcDate, utcDateToIso } from "./exceptions";
 import { hhmmToMinutes, minutesToHhmm } from "./availability";
+
+/** One verified therapist as the AI matcher sees them (§5). Deliberately carries
+ *  NO price or availability — the model must never see or invent those; the
+ *  server resolves real slots after matching. */
+export type CatalogEntry = {
+  id: string;
+  title: string;
+  bio: string; // resolved to the requested locale
+  skills: string[];
+  languages: string[];
+};
+
+/** The eligible-therapist catalog for intake matching: every verified therapist,
+ *  bio resolved to `locale`. */
+export async function getMatchingCatalog(locale: Locale): Promise<CatalogEntry[]> {
+  const rows = await findVerifiedForCatalog();
+  return rows.map((r) => {
+    const bio = (r.bio ?? {}) as Record<string, string>;
+    return {
+      id: r.id,
+      title: r.title,
+      bio: bio[locale] ?? bio.en ?? "",
+      skills: r.skills,
+      languages: r.languages,
+    };
+  });
+}
 
 /** Discovery list: every verified therapist as a localized card. */
 export async function getDiscoverTherapists(
