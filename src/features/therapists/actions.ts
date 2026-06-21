@@ -1,6 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { requireRole } from "@/features/accounts";
 import {
   therapistInputSchema,
   availabilityRulesSchema,
@@ -23,11 +24,16 @@ export type TherapistFormState = {
   fieldErrors?: Record<string, string>;
 };
 
+// Every mutating admin action re-checks requireRole("ADMIN") at the action
+// boundary. Server Actions compile to independent POST endpoints dispatched
+// before/independent of page + layout rendering, so the middleware gate and the
+// admin layout's requireRole do NOT protect them — the action itself is the real
+// trust boundary and must fail closed.
+
 /**
  * Admin form submit: create (no `id`) or update (with `id`) a therapist.
  * Validates the untrusted form input at the boundary (§11) and, on success,
- * redirects back to the admin list. Authz is added in Stage 4 (until then the
- * admin routes are unprotected — see BUILD_PLAN dependency chain).
+ * redirects back to the admin list.
  */
 export async function saveTherapistAction(
   _prev: TherapistFormState,
@@ -35,6 +41,7 @@ export async function saveTherapistAction(
 ): Promise<TherapistFormState> {
   const id = String(formData.get("id") ?? "");
   const locale = String(formData.get("locale") ?? "en");
+  await requireRole("ADMIN", locale);
 
   const parsed = therapistInputSchema.safeParse(
     formDataToTherapistInput(formData),
@@ -65,6 +72,7 @@ export async function saveAvailabilityAction(
 ): Promise<AvailabilityFormState> {
   const id = String(formData.get("therapistId") ?? "");
   const locale = String(formData.get("locale") ?? "en");
+  await requireRole("ADMIN", locale);
 
   let raw: unknown;
   try {
@@ -89,6 +97,7 @@ export async function saveAvailabilityAction(
 export async function setStatusAction(formData: FormData): Promise<void> {
   const id = String(formData.get("id") ?? "");
   const locale = String(formData.get("locale") ?? "en");
+  await requireRole("ADMIN", locale);
   const status = therapistStatusSchema.safeParse(formData.get("status"));
   if (status.success) {
     await setTherapistStatus(id, status.data);
@@ -100,6 +109,7 @@ export async function setStatusAction(formData: FormData): Promise<void> {
 export async function addBlockedDateAction(formData: FormData): Promise<void> {
   const therapistId = String(formData.get("therapistId") ?? "");
   const locale = String(formData.get("locale") ?? "en");
+  await requireRole("ADMIN", locale);
   const parsed = availabilityExceptionSchema.safeParse({
     date: formData.get("date"),
   });
@@ -116,6 +126,7 @@ export async function removeBlockedDateAction(
   const id = String(formData.get("id") ?? "");
   const therapistId = String(formData.get("therapistId") ?? "");
   const locale = String(formData.get("locale") ?? "en");
+  await requireRole("ADMIN", locale);
   await removeBlockedDate(id, therapistId);
   redirect(`/${locale}/admin/therapists/${therapistId}`);
 }

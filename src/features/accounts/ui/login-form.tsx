@@ -1,0 +1,55 @@
+"use client";
+
+import { useActionState } from "react";
+import { loginAction, type LoginState } from "../actions";
+
+const inputClass =
+  "rounded-md border border-outline-variant bg-surface-container-lowest px-3 py-2 text-on-surface";
+
+export function LoginForm({ locale, next }: { locale: string; next?: string }) {
+  const [state, action, pending] = useActionState<LoginState, FormData>(
+    loginAction,
+    {},
+  );
+
+  return (
+    <form action={action} className="flex flex-col gap-4">
+      <input type="hidden" name="locale" defaultValue={locale} />
+      {next ? <input type="hidden" name="next" defaultValue={next} /> : null}
+
+      {state.error ? (
+        <p className="rounded-md bg-error-container px-3 py-2 text-sm text-on-error-container">
+          {state.error}
+        </p>
+      ) : null}
+
+      <label className="flex flex-col gap-1 text-sm text-on-surface-variant">
+        Email
+        <input
+          name="email"
+          type="email"
+          required
+          autoComplete="email"
+          className={inputClass}
+        />
+      </label>
+      <label className="flex flex-col gap-1 text-sm text-on-surface-variant">
+        Password
+        <input
+          name="password"
+          type="password"
+          required
+          autoComplete="current-password"
+          className={inputClass}
+        />
+      </label>
+      <button
+        type="submit"
+        disabled={pending}
+        className="rounded-full bg-primary px-5 py-2 font-medium text-on-primary disabled:opacity-60"
+      >
+        {pending ? "Signing in…" : "Sign in"}
+      </button>
+    </form>
+  );
+}

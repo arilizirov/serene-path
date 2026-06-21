@@ -68,7 +68,7 @@ shared_kernel:
 # below is justified by a force that exists in the spec today (not speculation):
 allow:
   accounts:   [server]                          # AuthProvider lives in server/auth (§10)
-  therapists: []                                # owns its own tables; only the kernel
+  therapists: [accounts]                        # ADR: admin mutation server actions must enforce authz at the action boundary (actions are independently-dispatched endpoints, not gated by middleware/layout), so they call accounts.requireRole
   scheduling: [therapists]                      # slots = therapist availability rules − appointments (§9)
   intake:     [therapists, scheduling, server]  # catalog + server-resolved nextAvailable + Anthropic (§5)
   sessions:   [scheduling, server]              # room bound to an appointment + VideoProvider (§10)

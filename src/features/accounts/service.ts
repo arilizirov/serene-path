@@ -1,3 +1,4 @@
+import { redirect } from "next/navigation";
 import { getSession, startSession, endSession } from "@/server/auth";
 import { findUserByEmail } from "./repository";
 import { verifyPassword } from "./password";
@@ -53,4 +54,20 @@ export async function login(email: string, password: string): Promise<boolean> {
 /** End the current session (sign out). */
 export async function logout(): Promise<void> {
   await endSession();
+}
+
+/**
+ * Server-side guard: require the current user to hold `role`, else redirect to
+ * the localized login. Defense in depth ALONGSIDE the middleware gate — the
+ * middleware matcher can drift, so each protected route re-checks here too.
+ */
+export async function requireRole(
+  role: Role,
+  locale: string,
+): Promise<AuthedUser> {
+  const user = await getCurrentUser();
+  if (!user || user.role !== role) {
+    redirect(`/${locale}/login`);
+  }
+  return user;
 }
