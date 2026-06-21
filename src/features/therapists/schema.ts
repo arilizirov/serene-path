@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { isIsoDate } from "./exceptions";
 
 // Validation contract for authoring a therapist (APP_SPEC §8 / §11: validate at
 // the boundary). The admin action parses untrusted form input through this.
@@ -40,6 +41,15 @@ export const availabilityRuleSchema = z
 
 export const availabilityRulesSchema = z.array(availabilityRuleSchema);
 export type AvailabilityRuleInput = z.infer<typeof availabilityRuleSchema>;
+
+// A blocked date (availability exception): a whole-day block as YYYY-MM-DD.
+// Partial-day blocks (startMinute/endMinute on the model) are deferred.
+export const availabilityExceptionSchema = z.object({
+  date: z.string().refine(isIsoDate, "Use a real calendar date (YYYY-MM-DD)"),
+});
+export type AvailabilityExceptionInput = z.infer<
+  typeof availabilityExceptionSchema
+>;
 
 // Verification lifecycle (matches Prisma's TherapistStatus enum).
 export const therapistStatusSchema = z.enum([
