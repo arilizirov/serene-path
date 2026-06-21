@@ -15,6 +15,7 @@ function Field({
   error,
   type = "text",
   textarea = false,
+  readOnly = false,
 }: {
   name: string;
   label: string;
@@ -22,6 +23,7 @@ function Field({
   error?: string;
   type?: string;
   textarea?: boolean;
+  readOnly?: boolean;
 }) {
   return (
     <label className={labelClass}>
@@ -29,7 +31,15 @@ function Field({
       {textarea ? (
         <textarea name={name} defaultValue={defaultValue} rows={2} className={inputClass} />
       ) : (
-        <input name={name} type={type} defaultValue={defaultValue} className={inputClass} />
+        // readOnly (not disabled) so the value is still submitted — it passes
+        // validation but the update layer ignores it (e.g. email on edit).
+        <input
+          name={name}
+          type={type}
+          defaultValue={defaultValue}
+          readOnly={readOnly}
+          className={readOnly ? `${inputClass} opacity-60` : inputClass}
+        />
       )}
       {error ? <span className="text-xs text-error">{error}</span> : null}
     </label>
@@ -39,12 +49,19 @@ function Field({
 export function TherapistForm({
   locale,
   initial,
+  action: submitAction = saveTherapistAction,
 }: {
   locale: string;
   initial?: TherapistForEdit;
+  // Defaults to the admin action; the therapist dashboard passes an
+  // owner-scoped one (saveMyProfileAction) so the same form serves both.
+  action?: (
+    state: TherapistFormState,
+    formData: FormData,
+  ) => Promise<TherapistFormState>;
 }) {
   const [state, action, pending] = useActionState<TherapistFormState, FormData>(
-    saveTherapistAction,
+    submitAction,
     { ok: false },
   );
   const e = state.fieldErrors ?? {};
@@ -61,7 +78,9 @@ export function TherapistForm({
       ) : null}
 
       <Field name="name" label="Display name" defaultValue={initial?.name} error={e.name} />
-      <Field name="email" label="Email" type="email" defaultValue={initial?.email} error={e.email} />
+      {/* Email is the login identity — editable only when creating; read-only on
+          edit (admin + dashboard), where the update layer never changes it. */}
+      <Field name="email" label="Email" type="email" defaultValue={initial?.email} error={e.email} readOnly={!!initial?.id} />
       <Field name="title" label="Title / specialty" defaultValue={initial?.title} error={e.title} />
 
       <Field name="bioEn" label="Bio (English)" textarea defaultValue={initial?.bio.en} error={e["bio.en"]} />

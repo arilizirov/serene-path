@@ -15,7 +15,11 @@ import {
   setTherapistStatus,
   addBlockedDate,
   removeBlockedDate,
+  saveMyProfile,
+  requestVerification,
+  getMyProfileForEdit,
 } from "./service";
+import { profileCompleteness } from "./completeness";
 import { formDataToTherapistInput, fieldErrorsFromZod } from "./form-parsing";
 
 export type TherapistFormState = {
@@ -129,4 +133,42 @@ export async function removeBlockedDateAction(
   await requireRole("ADMIN", locale);
   await removeBlockedDate(id, therapistId);
   redirect(`/${locale}/admin/therapists/${therapistId}`);
+}
+
+// --- Therapist self-service (dashboard) — owner-scoped to the session user ---
+
+/** Therapist saves their OWN profile. The target is resolved from the session
+ *  user id, never a form-supplied id, so a therapist can't edit another's. */
+export async function saveMyProfileAction(
+  _prev: TherapistFormState,
+  formData: FormData,
+): Promise<TherapistFormState> {
+  const locale = String(formData.get("locale") ?? "en");
+  const { id: userId } = await requireRole("THERAPIST", locale);
+  const parsed = therapistInputSchema.safeParse(
+    formDataToTherapistInput(formData),
+  );
+  if (!parsed.success) {
+    return {
+      ok: false,
+      error: "Please fix the highlighted fields.",
+      fieldErrors: fieldErrorsFromZod(parsed.error),
+    };
+  }
+  await saveMyProfile(userId, parsed.data);
+  redirect(`/${locale}/dashboard`);
+}
+
+/** Therapist requests verification of their OWN profile — only when complete
+ *  (server-side guard, not just the UI). */
+export async function requestVerificationAction(
+  formData: FormData,
+): Promise<void> {
+  const locale = String(formData.get("locale") ?? "en");
+  const { id: userId } = await requireRole("THERAPIST", locale);
+  const profile = await getMyProfileForEdit(userId);
+  if (profile && profileCompleteness(profile).isComplete) {
+    await requestVerification(userId);
+  }
+  redirect(`/${locale}/dashboard`);
 }

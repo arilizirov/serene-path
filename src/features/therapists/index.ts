@@ -29,6 +29,12 @@ export type { SelfRegisterResult } from "./service";
 export { therapistSignupSchema } from "./schema";
 export type { TherapistSignupInput } from "./schema";
 
+// Therapist dashboard — own profile (owner-scoped) + completeness.
+export { getMyProfileForEdit } from "./service";
+export { saveMyProfileAction, requestVerificationAction } from "./actions";
+export { profileCompleteness } from "./completeness";
+export type { Completeness } from "./completeness";
+
 // Availability rules editing.
 export { getAvailabilityRules } from "./service";
 export { AvailabilityEditor } from "./ui/availability-editor";
