@@ -1,3 +1,4 @@
+import { getSession, startSession, endSession } from "@/server/auth";
 import { findUserByEmail } from "./repository";
 import { verifyPassword } from "./password";
 
@@ -33,4 +34,23 @@ export async function verifyCredentials(
   }
   const ok = await verifyPassword(password, user.passwordHash);
   return ok ? { id: user.id, role: user.role } : null;
+}
+
+/** The current authenticated principal (from the session cookie), or null. */
+export async function getCurrentUser(): Promise<AuthedUser | null> {
+  const s = await getSession();
+  return s ? { id: s.userId, role: s.role } : null;
+}
+
+/** Verify credentials and, on success, start a session. Returns whether it worked. */
+export async function login(email: string, password: string): Promise<boolean> {
+  const principal = await verifyCredentials(email, password);
+  if (!principal) return false;
+  await startSession({ id: principal.id, role: principal.role });
+  return true;
+}
+
+/** End the current session (sign out). */
+export async function logout(): Promise<void> {
+  await endSession();
 }

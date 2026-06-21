@@ -42,6 +42,7 @@
     "@prisma/adapter-pg": "^7.8.0",
     "@prisma/client": "^7.8.0",
     "bcryptjs": "^3.0.3",
+    "jose": "^6.2.3",
     "luxon": "^3.7.2",
     "next": "^16.2.9",
     "next-intl": "^4.13.0",
