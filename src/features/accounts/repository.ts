@@ -8,6 +8,15 @@ export function findUserByEmail(email: string) {
   });
 }
 
+/** A user's role by id — used to mint a session whose role always matches the
+ *  stored user (never a caller-supplied role). */
+export function findUserRole(userId: string) {
+  return prisma.user.findUnique({
+    where: { id: userId },
+    select: { role: true },
+  });
+}
+
 /** Create a CLIENT user with a password hash. The DB's email unique constraint
  *  is the authoritative guard against duplicates (the service catches P2002). */
 export function createUser(input: {

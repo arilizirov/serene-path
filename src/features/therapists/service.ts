@@ -8,6 +8,7 @@ import type {
 import {
   findVerifiedTherapists,
   createTherapist as repoCreateTherapist,
+  createTherapistUser as repoCreateTherapistUser,
   updateTherapist as repoUpdateTherapist,
   getTherapistById as repoGetTherapistById,
   listAllTherapists as repoListAllTherapists,
@@ -52,6 +53,32 @@ export async function createTherapist(input: TherapistInput): Promise<string> {
     throw new Error("therapist profile was not created");
   }
   return user.therapist.id;
+}
+
+export type SelfRegisterResult =
+  | { ok: true; userId: string }
+  | { ok: false; error: string };
+
+/** Self-register a therapist: an atomic User(THERAPIST)+DRAFT profile, race-safe
+ *  on the email unique constraint (create-then-catch P2002). The caller (app
+ *  composition) hashes the password and starts the session. */
+export async function selfRegisterTherapist(input: {
+  email: string;
+  name: string;
+  passwordHash: string;
+  title: string;
+}): Promise<SelfRegisterResult> {
+  try {
+    const userId = await repoCreateTherapistUser(input);
+    return { ok: true, userId };
+  } catch (e) {
+    // User.email is the only @unique on this nested write, so any P2002 is the
+    // email collision (same rationale as accounts.isUniqueViolation).
+    if (typeof e === "object" && e !== null && "code" in e && e.code === "P2002") {
+      return { ok: false, error: "That email is already registered." };
+    }
+    throw e;
+  }
 }
 
 export async function updateTherapist(

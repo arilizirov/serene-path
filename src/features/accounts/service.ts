@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { getSession, startSession, endSession } from "@/server/auth";
-import { findUserByEmail, createUser } from "./repository";
+import { findUserByEmail, createUser, findUserRole } from "./repository";
 import { verifyPassword, hashPassword } from "./password";
 import type { RegisterInput } from "./schema";
 
@@ -23,7 +23,7 @@ const DUMMY_HASH =
  *  SENSITIVE, so without this `Alex@B.com` and `alex@b.com` would be two
  *  accounts — and a user could lock themselves out by registering with one
  *  casing and logging in with another. Applied at every email entry point. */
-function normalizeEmail(email: string): string {
+export function normalizeEmail(email: string): string {
   return email.trim().toLowerCase();
 }
 
@@ -63,6 +63,17 @@ export async function login(email: string, password: string): Promise<boolean> {
 /** End the current session (sign out). */
 export async function logout(): Promise<void> {
   await endSession();
+}
+
+/**
+ * Start a session for an already-created user (e.g. immediately after signup).
+ * The role is read from the STORED user, never taken from the caller — so this
+ * public primitive can't be used to mint an escalated (e.g. ADMIN) session.
+ */
+export async function startSessionFor(userId: string): Promise<void> {
+  const user = await findUserRole(userId);
+  if (!user) throw new Error("cannot start a session for a missing user");
+  await startSession({ id: userId, role: user.role });
 }
 
 export type RegisterResult = { ok: true } | { ok: false; error: string };

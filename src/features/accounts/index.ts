@@ -9,8 +9,11 @@ export {
   getCurrentUser,
   requireRole,
   registerClient,
+  startSessionFor,
+  normalizeEmail,
 } from "./service";
 export type { AuthedUser, Role } from "./service";
+export { hashPassword } from "./password";
 export { loginAction, logoutAction, registerAction } from "./actions";
 export type { LoginState, RegisterState } from "./actions";
 export { LoginForm } from "./ui/login-form";

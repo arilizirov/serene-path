@@ -23,6 +23,12 @@ export { therapistInputSchema } from "./schema";
 export type { TherapistInput } from "./schema";
 export { TherapistForm } from "./ui/therapist-form";
 
+// Therapist self-onboarding (Stage 5).
+export { selfRegisterTherapist } from "./service";
+export type { SelfRegisterResult } from "./service";
+export { therapistSignupSchema } from "./schema";
+export type { TherapistSignupInput } from "./schema";
+
 // Availability rules editing.
 export { getAvailabilityRules } from "./service";
 export { AvailabilityEditor } from "./ui/availability-editor";
