@@ -3,6 +3,7 @@
 // engine (service + session persistence) and the API route land in 3.3 / 3.4.
 export { intakeRequestSchema } from "./schema";
 export type { IntakeRequestInput } from "./schema";
+export { runIntakeTurn } from "./service";
 export type {
   IntakeResponse,
   TherapistMatch,

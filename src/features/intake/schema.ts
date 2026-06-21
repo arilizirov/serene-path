@@ -35,6 +35,9 @@ export const modelOutputSchema = z.object({
         rationale: z.string().min(1),
       }),
     )
+    // Defensive cap on untrusted output — independent of the provider's
+    // max-output-tokens. The service further filters to catalog ids + dedupes.
+    .max(20)
     .default([]),
 });
 export type ModelOutput = z.infer<typeof modelOutputSchema>;
