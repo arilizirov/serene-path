@@ -2,8 +2,10 @@ import { notFound } from "next/navigation";
 import {
   getTherapistForEdit,
   getAvailabilityRules,
+  getBlockedDates,
   TherapistForm,
   AvailabilityEditor,
+  BlockedDatesEditor,
 } from "@/features/therapists";
 
 // Always load the current profile for editing (no build-time snapshot).
@@ -18,6 +20,7 @@ export default async function EditTherapistPage({
   const therapist = await getTherapistForEdit(id);
   if (!therapist) notFound();
   const rules = await getAvailabilityRules(id);
+  const blockedDates = await getBlockedDates(id);
 
   return (
     <main className="mx-auto flex max-w-2xl flex-col gap-8 p-8">
@@ -32,6 +35,16 @@ export default async function EditTherapistPage({
           Weekly availability
         </h2>
         <AvailabilityEditor therapistId={id} locale={locale} initialRules={rules} />
+      </section>
+      <section className="flex flex-col gap-3">
+        <h2 className="font-heading text-xl font-semibold text-on-background">
+          Blocked dates
+        </h2>
+        <BlockedDatesEditor
+          therapistId={id}
+          locale={locale}
+          blockedDates={blockedDates}
+        />
       </section>
     </main>
   );

@@ -28,6 +28,10 @@ export { getAvailabilityRules } from "./service";
 export { AvailabilityEditor } from "./ui/availability-editor";
 export type { AvailabilityRuleInput } from "./schema";
 
+// Blocked-date editing (whole-day availability exceptions).
+export { getBlockedDates } from "./service";
+export { BlockedDatesEditor } from "./ui/blocked-dates-editor";
+
 // Scheduling read-model (consumed by the scheduling feature).
 export { getSchedulingContext } from "./service";
 export type { SchedulingContext } from "./service";

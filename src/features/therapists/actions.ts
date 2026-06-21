@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import {
   therapistInputSchema,
   availabilityRulesSchema,
+  availabilityExceptionSchema,
   therapistStatusSchema,
 } from "./schema";
 import {
@@ -11,6 +12,8 @@ import {
   updateTherapist,
   saveAvailabilityRules,
   setTherapistStatus,
+  addBlockedDate,
+  removeBlockedDate,
 } from "./service";
 import { formDataToTherapistInput, fieldErrorsFromZod } from "./form-parsing";
 
@@ -91,4 +94,28 @@ export async function setStatusAction(formData: FormData): Promise<void> {
     await setTherapistStatus(id, status.data);
   }
   redirect(`/${locale}/admin/therapists`);
+}
+
+/** Block a date for a therapist (plain form action). Invalid dates are ignored. */
+export async function addBlockedDateAction(formData: FormData): Promise<void> {
+  const therapistId = String(formData.get("therapistId") ?? "");
+  const locale = String(formData.get("locale") ?? "en");
+  const parsed = availabilityExceptionSchema.safeParse({
+    date: formData.get("date"),
+  });
+  if (parsed.success) {
+    await addBlockedDate(therapistId, parsed.data.date);
+  }
+  redirect(`/${locale}/admin/therapists/${therapistId}`);
+}
+
+/** Remove a blocked date by id (plain form action). */
+export async function removeBlockedDateAction(
+  formData: FormData,
+): Promise<void> {
+  const id = String(formData.get("id") ?? "");
+  const therapistId = String(formData.get("therapistId") ?? "");
+  const locale = String(formData.get("locale") ?? "en");
+  await removeBlockedDate(id, therapistId);
+  redirect(`/${locale}/admin/therapists/${therapistId}`);
 }

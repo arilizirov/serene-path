@@ -103,6 +103,30 @@ export function replaceAvailabilityRules(
   ]);
 }
 
+/** A therapist's blocked dates (whole-day availability exceptions), ascending. */
+export function getAvailabilityExceptions(therapistId: string) {
+  return prisma.availabilityException.findMany({
+    where: { therapistId, isBlocked: true },
+    orderBy: { date: "asc" },
+    select: { id: true, date: true },
+  });
+}
+
+/** Add a whole-day blocked date for a therapist. */
+export function addAvailabilityException(therapistId: string, date: Date) {
+  return prisma.availabilityException.create({
+    data: { therapistId, date, isBlocked: true },
+    select: { id: true },
+  });
+}
+
+/** Remove a blocked date by id, scoped to its therapist. deleteMany (not delete)
+ *  so a mismatched therapistId is a no-op, not a throw — guards against deleting
+ *  another therapist's row by raw id (IDOR) once admin auth lands in Stage 4. */
+export function removeAvailabilityException(id: string, therapistId: string) {
+  return prisma.availabilityException.deleteMany({ where: { id, therapistId } });
+}
+
 /** Update a therapist's verification status. */
 export function setTherapistStatus(id: string, status: TherapistStatusValue) {
   return prisma.therapistProfile.update({

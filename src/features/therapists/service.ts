@@ -17,8 +17,12 @@ import {
   getVerifiedTherapistById as repoGetVerifiedTherapistById,
   searchVerifiedTherapists as repoSearchVerifiedTherapists,
   getSchedulingContext as repoGetSchedulingContext,
+  getAvailabilityExceptions as repoGetAvailabilityExceptions,
+  addAvailabilityException as repoAddAvailabilityException,
+  removeAvailabilityException as repoRemoveAvailabilityException,
 } from "./repository";
 import { toTherapistCard } from "./mapper";
+import { isoToUtcDate, utcDateToIso } from "./exceptions";
 import { hhmmToMinutes, minutesToHhmm } from "./availability";
 
 /** Discovery list: every verified therapist as a localized card. */
@@ -116,6 +120,38 @@ export async function saveAvailabilityRules(
       endMinute: hhmmToMinutes(r.end),
     })),
   );
+}
+
+/** A therapist's blocked dates (whole-day exceptions) as YYYY-MM-DD strings. */
+export async function getBlockedDates(
+  therapistId: string,
+): Promise<{ id: string; date: string }[]> {
+  const rows = await repoGetAvailabilityExceptions(therapistId);
+  return rows.map((r) => ({ id: r.id, date: utcDateToIso(r.date) }));
+}
+
+/**
+ * Block a date for a therapist. No-op if that date is already blocked.
+ * Dedupe is best-effort at the app level (no DB unique constraint): the
+ * single-admin write pattern makes a concurrent double-insert unlikely, and a
+ * unique([therapistId, date]) is deferred because it would conflict with the
+ * future partial-day blocks (which allow several rows per date).
+ */
+export async function addBlockedDate(
+  therapistId: string,
+  isoDate: string,
+): Promise<void> {
+  const existing = await repoGetAvailabilityExceptions(therapistId);
+  if (existing.some((r) => utcDateToIso(r.date) === isoDate)) return;
+  await repoAddAvailabilityException(therapistId, isoToUtcDate(isoDate));
+}
+
+/** Remove a therapist's blocked date by id (scoped to that therapist). */
+export async function removeBlockedDate(
+  id: string,
+  therapistId: string,
+): Promise<void> {
+  await repoRemoveAvailabilityException(id, therapistId);
 }
 
 /** Set a therapist's verification status (DRAFT → PENDING → VERIFIED …). */
