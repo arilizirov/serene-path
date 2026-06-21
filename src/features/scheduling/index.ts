@@ -3,8 +3,14 @@
 // in Stage 6; today this exposes the next-available computation that intake
 // matching uses to attach a real slot to each proposed therapist (APP_SPEC §9).
 
-export { getNextAvailable, getBookableSlots, createBooking } from "./service";
-export type { BookingResult } from "./service";
+export {
+  getNextAvailable,
+  getBookableSlots,
+  createBooking,
+  getMyAppointments,
+  cancelAppointment,
+} from "./service";
+export type { BookingResult, MyAppointment } from "./service";
 export { computeNextAvailable } from "./next-available";
 export type { WeeklySlot } from "./next-available";
 export { generateSlots } from "./generate-slots";

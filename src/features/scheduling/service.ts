@@ -1,7 +1,12 @@
 import { getSchedulingContext, getBlockedDates } from "@/features/therapists";
 import { computeNextAvailable } from "./next-available";
 import { generateSlots } from "./generate-slots";
-import { getBookedSlots, bookSlot } from "./repository";
+import {
+  getBookedSlots,
+  bookSlot,
+  getClientAppointments,
+  cancelOwnAppointment,
+} from "./repository";
 
 /** Session length in minutes — one fixed duration for v1 (§9). */
 const SESSION_MINUTES = 60;
@@ -83,4 +88,43 @@ export async function createBooking(
   return outcome === "booked"
     ? { ok: true }
     : { ok: false, error: "That slot was just taken." };
+}
+
+/** One of a client's upcoming appointments, shaped for the page. */
+export type MyAppointment = {
+  id: string;
+  startIso: string;
+  status: string;
+  therapistName: string;
+  therapistTitle: string;
+};
+
+/** A client's own upcoming appointments (UTC instants), soonest first. */
+export async function getMyAppointments(userId: string): Promise<MyAppointment[]> {
+  const rows = await getClientAppointments(userId, new Date().toISOString());
+  return rows.map((r) => ({
+    id: r.id,
+    startIso: r.startUtc.toISOString(),
+    status: r.status,
+    therapistName: r.therapist.user.name ?? "",
+    therapistTitle: r.therapist.title,
+  }));
+}
+
+/**
+ * Cancel one of the caller's own appointments. Ownership + the future-only policy
+ * are enforced atomically in the repository's scoped UPDATE — a client can only
+ * cancel their own (or a therapist their own) upcoming session. Returns whether a
+ * row was actually cancelled (false = not yours / already over / already cancelled).
+ */
+export async function cancelAppointment(
+  appointmentId: string,
+  userId: string,
+): Promise<boolean> {
+  const count = await cancelOwnAppointment(
+    appointmentId,
+    userId,
+    new Date().toISOString(),
+  );
+  return count > 0;
 }
