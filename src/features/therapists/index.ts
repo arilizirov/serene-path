@@ -31,7 +31,11 @@ export type { TherapistSignupInput } from "./schema";
 
 // Therapist dashboard — own profile (owner-scoped) + completeness.
 export { getMyProfileForEdit } from "./service";
-export { saveMyProfileAction, requestVerificationAction } from "./actions";
+export {
+  saveMyProfileAction,
+  saveMyAvailabilityAction,
+  requestVerificationAction,
+} from "./actions";
 export { profileCompleteness } from "./completeness";
 export type { Completeness } from "./completeness";
 

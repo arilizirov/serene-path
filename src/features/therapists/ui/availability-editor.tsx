@@ -12,14 +12,20 @@ export function AvailabilityEditor({
   therapistId,
   locale,
   initialRules,
+  action: submitAction = saveAvailabilityAction,
 }: {
   therapistId: string;
   locale: string;
   initialRules: AvailabilityRuleInput[];
+  // Default = admin action; the dashboard passes an owner-scoped one.
+  action?: (
+    state: AvailabilityFormState,
+    formData: FormData,
+  ) => Promise<AvailabilityFormState>;
 }) {
   const [rules, setRules] = useState<AvailabilityRuleInput[]>(initialRules);
   const [state, action, pending] = useActionState<AvailabilityFormState, FormData>(
-    saveAvailabilityAction,
+    submitAction,
     { ok: false },
   );
 

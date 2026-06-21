@@ -159,6 +159,35 @@ export async function saveMyProfileAction(
   redirect(`/${locale}/dashboard`);
 }
 
+/** Therapist saves their OWN weekly availability (owner-scoped — the profile id
+ *  is resolved from the session user, never the form's therapistId). */
+export async function saveMyAvailabilityAction(
+  _prev: AvailabilityFormState,
+  formData: FormData,
+): Promise<AvailabilityFormState> {
+  const locale = String(formData.get("locale") ?? "en");
+  const { id: userId } = await requireRole("THERAPIST", locale);
+  const profile = await getMyProfileForEdit(userId);
+  if (!profile) return { ok: false, error: "Profile not found." };
+
+  let raw: unknown;
+  try {
+    raw = JSON.parse(String(formData.get("rules") ?? "[]"));
+  } catch {
+    return { ok: false, error: "Invalid availability data." };
+  }
+  const parsed = availabilityRulesSchema.safeParse(raw);
+  if (!parsed.success) {
+    return {
+      ok: false,
+      error: parsed.error.issues[0]?.message ?? "Invalid availability.",
+    };
+  }
+
+  await saveAvailabilityRules(profile.id, parsed.data);
+  redirect(`/${locale}/dashboard`);
+}
+
 /** Therapist requests verification of their OWN profile — only when complete
  *  (server-side guard, not just the UI). */
 export async function requestVerificationAction(

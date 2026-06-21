@@ -1,10 +1,13 @@
 import { requireRole, logoutAction } from "@/features/accounts";
 import {
   getMyProfileForEdit,
+  getAvailabilityRules,
   saveMyProfileAction,
+  saveMyAvailabilityAction,
   requestVerificationAction,
   profileCompleteness,
   TherapistForm,
+  AvailabilityEditor,
 } from "@/features/therapists";
 
 // Therapist-only; reflects the live profile/status on each load.
@@ -22,6 +25,7 @@ export default async function DashboardPage({
     return <main className="p-8 text-on-surface-variant">Profile not found.</main>;
   }
   const completeness = profileCompleteness(profile);
+  const rules = await getAvailabilityRules(profile.id);
 
   return (
     <main className="mx-auto flex max-w-2xl flex-col gap-8 p-8">
@@ -93,6 +97,18 @@ export default async function DashboardPage({
           locale={locale}
           initial={profile}
           action={saveMyProfileAction}
+        />
+      </section>
+
+      <section className="flex flex-col gap-3">
+        <h2 className="font-heading text-xl font-semibold text-on-background">
+          Weekly availability
+        </h2>
+        <AvailabilityEditor
+          therapistId={profile.id}
+          locale={locale}
+          initialRules={rules}
+          action={saveMyAvailabilityAction}
         />
       </section>
     </main>
