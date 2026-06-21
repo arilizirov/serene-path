@@ -9,8 +9,13 @@ export {
   createBooking,
   getMyAppointments,
   cancelAppointment,
+  getAppointmentForParty,
 } from "./service";
-export type { BookingResult, MyAppointment } from "./service";
+export type {
+  BookingResult,
+  MyAppointment,
+  AppointmentParty,
+} from "./service";
 export { computeNextAvailable } from "./next-available";
 export type { WeeklySlot } from "./next-available";
 export { generateSlots } from "./generate-slots";
