@@ -54,7 +54,10 @@ modules:
   # provider is a local change. Features import the adapter, never the SDK.
   server:
     path: server
-    public: [anthropic, auth, payment, video, email]
+    # `ai` is the intake/matching LLM adapter (APP_SPEC names Anthropic; this
+    # build uses OpenAI GPT-5.4 per the owner's decision — the adapter is
+    # provider-neutral, so the seam name is `ai`, not a vendor name).
+    public: [ai, auth, payment, video, email]
 
 # A small, boring, leaf-level region everything may import and that imports no
 # module: i18n, the Prisma client, typed env, the error shape, shared utils
@@ -70,7 +73,7 @@ allow:
   accounts:   [server]                          # AuthProvider lives in server/auth (§10)
   therapists: [accounts]                        # ADR: admin mutation server actions must enforce authz at the action boundary (actions are independently-dispatched endpoints, not gated by middleware/layout), so they call accounts.requireRole
   scheduling: [therapists]                      # slots = therapist availability rules − appointments (§9)
-  intake:     [therapists, scheduling, server]  # catalog + server-resolved nextAvailable + Anthropic (§5)
+  intake:     [therapists, scheduling, server]  # catalog + server-resolved nextAvailable + the AI adapter (§5)
   sessions:   [scheduling, server]              # room bound to an appointment + VideoProvider (§10)
   payments:   [scheduling, server]              # payment bound to a booking + PaymentProvider (§10)
   server:     []                                # vendor adapters depend on no feature
