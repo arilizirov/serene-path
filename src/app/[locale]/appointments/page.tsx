@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getLocale } from "next-intl/server";
 import { DateTime } from "luxon";
@@ -76,16 +77,28 @@ export default async function AppointmentsPage({
                 </span>
                 <span className="text-xs text-on-surface-variant">{a.status}</span>
               </div>
-              <form action={cancelAppointmentAction}>
-                <input type="hidden" name="locale" defaultValue={locale} />
-                <input type="hidden" name="appointmentId" defaultValue={a.id} />
-                <button
-                  type="submit"
-                  className="rounded-full border border-outline px-3 py-1.5 text-sm text-on-surface transition hover:bg-error hover:text-on-error"
+              <div className="flex items-center gap-2">
+                <Link
+                  href={`/${locale}/appointments/${a.id}/session`}
+                  className="rounded-full bg-primary px-3 py-1.5 text-sm text-on-primary transition hover:opacity-90"
                 >
-                  Cancel
-                </button>
-              </form>
+                  Join
+                </Link>
+                <form action={cancelAppointmentAction}>
+                  <input type="hidden" name="locale" defaultValue={locale} />
+                  <input
+                    type="hidden"
+                    name="appointmentId"
+                    defaultValue={a.id}
+                  />
+                  <button
+                    type="submit"
+                    className="rounded-full border border-outline px-3 py-1.5 text-sm text-on-surface transition hover:bg-error hover:text-on-error"
+                  >
+                    Cancel
+                  </button>
+                </form>
+              </div>
             </li>
           ))}
         </ul>
