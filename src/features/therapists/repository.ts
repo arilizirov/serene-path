@@ -90,6 +90,42 @@ export function updateTherapist(id: string, input: TherapistInput) {
   });
 }
 
+/** Update a therapist's OWN profile, scoped by userId (the session owner) — a
+ *  therapist can only edit their own. Email + role are never touched. */
+export function updateProfileByUserId(userId: string, input: TherapistInput) {
+  return prisma.therapistProfile.update({
+    where: { userId },
+    data: {
+      title: input.title,
+      bio: input.bio,
+      skills: input.skills,
+      modalities: input.modalities,
+      languages: input.languages,
+      credentials: input.credentials ?? null,
+      photoUrl: input.photoUrl ?? null,
+      sessionPrice: input.sessionPrice,
+      user: { update: { name: input.name } },
+    },
+    select: { id: true },
+  });
+}
+
+/** A therapist's OWN profile for editing (by userId). */
+export function getProfileByUserId(userId: string) {
+  return prisma.therapistProfile.findUnique({
+    where: { userId },
+    include: { user: { select: { email: true, name: true } } },
+  });
+}
+
+/** Move a therapist's OWN profile DRAFT → PENDING (owner-scoped + state-guarded). */
+export function requestVerificationByUser(userId: string) {
+  return prisma.therapistProfile.updateMany({
+    where: { userId, status: "DRAFT" },
+    data: { status: "PENDING" },
+  });
+}
+
 /** Full profile for the admin edit form. */
 export function getTherapistById(id: string) {
   return prisma.therapistProfile.findUnique({

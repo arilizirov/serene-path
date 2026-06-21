@@ -11,6 +11,9 @@ import {
   createTherapistUser as repoCreateTherapistUser,
   updateTherapist as repoUpdateTherapist,
   getTherapistById as repoGetTherapistById,
+  getProfileByUserId as repoGetProfileByUserId,
+  updateProfileByUserId as repoUpdateProfileByUserId,
+  requestVerificationByUser as repoRequestVerificationByUser,
   listAllTherapists as repoListAllTherapists,
   getAvailabilityRules as repoGetAvailabilityRules,
   replaceAvailabilityRules as repoReplaceAvailabilityRules,
@@ -120,6 +123,42 @@ export async function getTherapistForEdit(
     photoUrl: t.photoUrl ?? undefined,
     sessionPrice: Number(t.sessionPrice),
   };
+}
+
+/** A therapist's OWN profile for the dashboard edit form (scoped by userId). */
+export async function getMyProfileForEdit(
+  userId: string,
+): Promise<TherapistForEdit | null> {
+  const t = await repoGetProfileByUserId(userId);
+  if (!t) return null;
+  const bio = (t.bio ?? {}) as { en?: string; he?: string; fr?: string };
+  return {
+    id: t.id,
+    status: t.status,
+    email: t.user.email,
+    name: t.user.name ?? "",
+    title: t.title,
+    bio: { en: bio.en ?? "", he: bio.he ?? "", fr: bio.fr ?? "" },
+    skills: t.skills,
+    modalities: t.modalities,
+    languages: t.languages,
+    credentials: t.credentials ?? undefined,
+    photoUrl: t.photoUrl ?? undefined,
+    sessionPrice: Number(t.sessionPrice),
+  };
+}
+
+/** Save a therapist's OWN profile (owner-scoped by userId). */
+export async function saveMyProfile(
+  userId: string,
+  input: TherapistInput,
+): Promise<void> {
+  await repoUpdateProfileByUserId(userId, input);
+}
+
+/** A therapist requests verification of their OWN profile (DRAFT → PENDING). */
+export async function requestVerification(userId: string): Promise<void> {
+  await repoRequestVerificationByUser(userId);
 }
 
 /** A therapist's weekly availability rules, with times as HH:MM. */
