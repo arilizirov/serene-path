@@ -1,6 +1,7 @@
 import "dotenv/config";
 import { PrismaClient } from "../src/generated/prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
+import { hashPassword } from "../src/features/accounts/password";
 
 const connectionString = process.env.DATABASE_URL;
 if (!connectionString) {
@@ -88,6 +89,28 @@ const THERAPISTS: SeedTherapist[] = [
 ];
 
 async function main() {
+  // Dev admin account. Refuse to seed a known default password into production.
+  if (
+    process.env.NODE_ENV === "production" &&
+    !process.env.SEED_ADMIN_PASSWORD
+  ) {
+    throw new Error(
+      "Refusing to seed a default admin password in production — set SEED_ADMIN_PASSWORD.",
+    );
+  }
+  const adminPassword = process.env.SEED_ADMIN_PASSWORD ?? "admin-dev-password";
+  await prisma.user.upsert({
+    where: { email: "admin@serenepath.local" },
+    update: {},
+    create: {
+      email: "admin@serenepath.local",
+      name: "Admin",
+      role: "ADMIN",
+      passwordHash: await hashPassword(adminPassword),
+    },
+  });
+  console.log(`seeded admin: admin@serenepath.local (pw: ${adminPassword})`);
+
   for (const t of THERAPISTS) {
     await prisma.user.upsert({
       where: { email: t.email },
