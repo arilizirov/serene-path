@@ -59,3 +59,21 @@ export const therapistStatusSchema = z.enum([
   "SUSPENDED",
 ]);
 export type TherapistStatusValue = z.infer<typeof therapistStatusSchema>;
+
+// Therapist self-signup (Stage 5): account fields + a starting title. The full
+// profile is completed in the dashboard before requesting verification. The
+// password rule mirrors accounts' registration (bcrypt truncates beyond 72
+// BYTES; TextEncoder keeps it runtime-portable).
+export const therapistSignupSchema = z.object({
+  email: z.email(),
+  name: z.string().min(1).max(120),
+  title: z.string().min(1).max(120),
+  password: z
+    .string()
+    .min(8, "Use at least 8 characters")
+    .refine(
+      (p) => new TextEncoder().encode(p).length <= 72,
+      "Password is too long",
+    ),
+});
+export type TherapistSignupInput = z.infer<typeof therapistSignupSchema>;

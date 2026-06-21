@@ -10,6 +10,10 @@ const intl = createMiddleware(routing);
 // each admin route ALSO re-checks server-side via requireRole (defense in depth).
 // Locales come from routing.locales so adding one can't silently leave a new
 // /<locale>/admin path ungated at the edge.
+//
+// NOTE: this matcher is NOT exhaustive — other protected routes (e.g.
+// /dashboard) are guarded server-side in the route via requireRole, which fails
+// closed. Don't assume "not here" means "public".
 const ADMIN_PATH = new RegExp(`^/(${routing.locales.join("|")})/admin(/|$)`);
 
 export default async function middleware(req: NextRequest) {

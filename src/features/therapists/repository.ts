@@ -40,6 +40,37 @@ export function createTherapist(input: TherapistInput) {
   });
 }
 
+/** Self-signup: create a THERAPIST User (with password) + a DRAFT profile in one
+ *  atomic nested write. Returns the new user id. Email unique → P2002 on dup. */
+export async function createTherapistUser(input: {
+  email: string;
+  name: string;
+  passwordHash: string;
+  title: string;
+}): Promise<string> {
+  const user = await prisma.user.create({
+    data: {
+      email: input.email,
+      name: input.name,
+      passwordHash: input.passwordHash,
+      role: "THERAPIST",
+      therapist: {
+        create: {
+          title: input.title,
+          bio: { en: "", he: "", fr: "" },
+          skills: [],
+          modalities: [],
+          languages: [],
+          sessionPrice: 0,
+          status: "DRAFT",
+        },
+      },
+    },
+    select: { id: true },
+  });
+  return user.id;
+}
+
 /** Update a profile's editable fields (and the owner's display name). */
 export function updateTherapist(id: string, input: TherapistInput) {
   return prisma.therapistProfile.update({
