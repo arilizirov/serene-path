@@ -51,6 +51,7 @@ model User {
   locale    String   @default("en")
   timezone  String   @default("Asia/Jerusalem")
   therapist TherapistProfile?
+  appointments Appointment[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
@@ -72,6 +73,7 @@ model TherapistProfile {
   reviewCount  Int                     @default(0)
   rules        AvailabilityRule[]
   exceptions   AvailabilityException[]
+  appointments Appointment[]
   createdAt    DateTime                @default(now())
   updatedAt    DateTime                @updatedAt
 }
@@ -108,4 +110,38 @@ model IntakeSession {
   suggestedTherapistIds String[]
   createdAt             DateTime    @default(now())
   updatedAt             DateTime    @updatedAt
+}
+
+// An appointment (Stage 6). @@unique([therapistId, startUtc]) is the atomic
+// double-booking guard: two clients can't take the same therapist's slot — the
+// second insert hits the unique constraint (P2002) and fails.
+//
+// Cancel/rebook: the unique key has no status component, so a CANCELLED row
+// still occupies (therapistId, startUtc). getBookedSlots offers a cancelled
+// slot as bookable again, so the Stage-6.2 booking path MUST upsert/revive the
+// cancelled row at that key (update → PENDING + new client), not plain-insert —
+// a plain insert would P2002 on a slot the calendar showed as free.
+model Appointment {
+  id          String            @id @default(cuid())
+  therapist   TherapistProfile  @relation(fields: [therapistId], references: [id])
+  therapistId String
+  client      User              @relation(fields: [clientId], references: [id])
+  clientId    String
+  startUtc    DateTime
+  endUtc      DateTime
+  status      AppointmentStatus @default(PENDING)
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+
+  @@unique([therapistId, startUtc])
+  @@index([therapistId])
+  @@index([clientId])
+}
+
+enum AppointmentStatus {
+  PENDING
+  CONFIRMED
+  CANCELLED
+  COMPLETED
+  NO_SHOW
 }

@@ -1,5 +1,10 @@
-import { getSchedulingContext } from "@/features/therapists";
+import { getSchedulingContext, getBlockedDates } from "@/features/therapists";
 import { computeNextAvailable } from "./next-available";
+import { generateSlots } from "./generate-slots";
+import { getBookedSlots } from "./repository";
+
+/** Session length in minutes — one fixed duration for v1 (§9). */
+const SESSION_MINUTES = 60;
 
 /**
  * The next available slot start for a therapist, at or after `fromIso`, as a
@@ -16,4 +21,29 @@ export async function getNextAvailable(
   const ctx = await getSchedulingContext(therapistId);
   if (!ctx) return null;
   return computeNextAvailable(ctx.rules, ctx.timezone, fromIso);
+}
+
+/**
+ * The real bookable slots for a therapist in [fromIso, toIso]: weekly rules
+ * expanded, MINUS blocked dates, MINUS already-booked appointments. Returns
+ * UTC ISO instants, sorted. Empty if the therapist has no rules/doesn't exist.
+ */
+export async function getBookableSlots(
+  therapistId: string,
+  fromIso: string,
+  toIso: string,
+): Promise<string[]> {
+  const ctx = await getSchedulingContext(therapistId);
+  if (!ctx) return [];
+  const blocked = (await getBlockedDates(therapistId)).map((b) => b.date);
+  const booked = await getBookedSlots(therapistId, fromIso, toIso);
+  return generateSlots(
+    ctx.rules,
+    blocked,
+    booked,
+    ctx.timezone,
+    fromIso,
+    toIso,
+    SESSION_MINUTES,
+  );
 }
