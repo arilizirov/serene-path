@@ -6,6 +6,7 @@ import {
   bookSlot,
   getClientAppointments,
   cancelOwnAppointment,
+  getAppointmentForParty as getAppointmentForPartyRepo,
 } from "./repository";
 
 /** Session length in minutes — one fixed duration for v1 (§9). */
@@ -127,4 +128,21 @@ export async function cancelAppointment(
     new Date().toISOString(),
   );
   return count > 0;
+}
+
+/** Which party of an appointment a user is, with the session times. */
+export type AppointmentParty = {
+  id: string;
+  startIso: string;
+  endIso: string;
+  party: "CLIENT" | "THERAPIST";
+};
+
+/** The appointment a user is a party to (owner-scoped, non-cancelled), or null.
+ *  Used by the sessions feature to gate access to the video room. */
+export async function getAppointmentForParty(
+  appointmentId: string,
+  userId: string,
+): Promise<AppointmentParty | null> {
+  return getAppointmentForPartyRepo(appointmentId, userId);
 }
