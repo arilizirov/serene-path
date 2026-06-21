@@ -16,6 +16,16 @@ export function findVerifiedTherapists() {
   });
 }
 
+/** Verified therapists with exactly the fields the AI matcher may see (§5): no
+ *  prices, no availability — the model must never see or invent those. */
+export function findVerifiedForCatalog() {
+  return prisma.therapistProfile.findMany({
+    where: { status: "VERIFIED" },
+    orderBy: { createdAt: "asc" },
+    select: { id: true, title: true, bio: true, skills: true, languages: true },
+  });
+}
+
 /** Create a therapist: a User (role THERAPIST) with a nested profile (DRAFT). */
 export function createTherapist(input: TherapistInput) {
   return prisma.user.create({
