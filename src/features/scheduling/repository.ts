@@ -43,6 +43,33 @@ export async function getClientAppointments(userId: string, fromIso: string) {
 }
 
 /**
+ * An appointment the given user is a party to (the CLIENT or the THERAPIST),
+ * owner-scoped in the WHERE — no other id is trusted. Excludes cancelled rows.
+ * Returns the times + which party the caller is, or null if it isn't theirs.
+ * The session-join time-gate is applied by the caller (the sessions feature).
+ */
+export async function getAppointmentForParty(
+  appointmentId: string,
+  userId: string,
+) {
+  const a = await prisma.appointment.findFirst({
+    where: {
+      id: appointmentId,
+      status: { not: "CANCELLED" },
+      OR: [{ clientId: userId }, { therapist: { userId } }],
+    },
+    select: { id: true, startUtc: true, endUtc: true, clientId: true },
+  });
+  if (!a) return null;
+  return {
+    id: a.id,
+    startIso: a.startUtc.toISOString(),
+    endIso: a.endUtc.toISOString(),
+    party: a.clientId === userId ? ("CLIENT" as const) : ("THERAPIST" as const),
+  };
+}
+
+/**
  * Cancel an appointment the user owns. Owner-scoped in the WHERE clause — the row
  * must belong to the caller as the CLIENT or as the THERAPIST (no other id is
  * trusted), be still-active, and (policy) start in the future. Returns the number
