@@ -22,3 +22,37 @@ export async function getBookedSlots(
   });
   return rows.map((r) => r.startUtc.toISOString());
 }
+
+function isP2002(e: unknown): boolean {
+  return typeof e === "object" && e !== null && "code" in e && e.code === "P2002";
+}
+
+/**
+ * Book a slot atomically. Revives a CANCELLED appointment at (therapistId,
+ * startUtc) if one exists (the @@unique key still occupies it); otherwise
+ * inserts a fresh PENDING one. The unique constraint serializes concurrent
+ * bookings of a free slot — the loser gets P2002 → "taken". An UPDATE scoped to
+ * status=CANCELLED never overwrites an ACTIVE appointment.
+ */
+export async function bookSlot(
+  therapistId: string,
+  clientId: string,
+  startUtc: Date,
+  endUtc: Date,
+): Promise<"booked" | "taken"> {
+  const revived = await prisma.appointment.updateMany({
+    where: { therapistId, startUtc, status: "CANCELLED" },
+    data: { clientId, status: "PENDING", endUtc },
+  });
+  if (revived.count > 0) return "booked";
+
+  try {
+    await prisma.appointment.create({
+      data: { therapistId, clientId, startUtc, endUtc, status: "PENDING" },
+    });
+    return "booked";
+  } catch (e) {
+    if (isP2002(e)) return "taken";
+    throw e;
+  }
+}
