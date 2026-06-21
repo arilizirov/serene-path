@@ -8,8 +8,10 @@ export {
   logout,
   getCurrentUser,
   requireRole,
+  registerClient,
 } from "./service";
 export type { AuthedUser, Role } from "./service";
-export { loginAction, logoutAction } from "./actions";
-export type { LoginState } from "./actions";
+export { loginAction, logoutAction, registerAction } from "./actions";
+export type { LoginState, RegisterState } from "./actions";
 export { LoginForm } from "./ui/login-form";
+export { RegisterForm } from "./ui/register-form";

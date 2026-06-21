@@ -40,3 +40,10 @@ Severity: **must-fix** (correctness/security boundary) · **should-fix** · **ni
 - should-fix — seed could create a known-credential admin in prod. → **Fixed:** throws if `NODE_ENV=production` and `SEED_ADMIN_PASSWORD` unset.
 - confirmed fine — middleware regex is case-sensitive (`/en/Admin` 404s, no bypass), trailing slash handled, no path-traversal bypass; logout is a server-action POST (Next origin-checked) so no CSRF logout; `requireRole` fails closed.
 - proven live — no-cookie→307 /login, CLIENT-token→307 /login, ADMIN-token→200.
+
+## Stage 4.3 — client registration (PR #19)
+- should-fix — **email never normalized** (`accounts/service.ts` / `repository.ts`): Postgres `@unique` is case-sensitive, so `Alex@B.com` vs `alex@b.com` would create duplicate accounts, and a user could lock themselves out (register one casing, login another — `findUserByEmail` is also case-sensitive). The P2002 duplicate-guard the whole story rests on wouldn't fire. → **Fixed:** `normalizeEmail` (trim + lowercase) applied in both `registerClient` (before create) and `verifyCredentials` (before lookup); +a normalization test.
+- should-fix — **`registerClient` shipped untested** (the stage's headline behavior). → **Fixed:** +3 mocked tests (success→{ok:true}+session started+normalized email; P2002→{ok:false} no session; non-P2002→rethrows).
+- nit — `isUniqueViolation` catches any P2002 (fine while User has one unique col). → Documented the single-unique-column assumption.
+- nit — register leaks email existence ("already registered") vs login's enumeration-resistance. → Documented as a deliberate, standard signup tradeoff.
+- confirmed well — **privilege airtight**: `createUser` hardcodes `role: CLIENT`, form sends only name/email/password, server re-validates — no mass-assignment to role. Create-then-catch closes the TOCTOU window. Byte-cap via TextEncoder exactly matches bcrypt's 72-byte truncation. Auto-login mints a fresh token (no fixation).

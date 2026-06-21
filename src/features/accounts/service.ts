@@ -1,7 +1,8 @@
 import { redirect } from "next/navigation";
 import { getSession, startSession, endSession } from "@/server/auth";
-import { findUserByEmail } from "./repository";
-import { verifyPassword } from "./password";
+import { findUserByEmail, createUser } from "./repository";
+import { verifyPassword, hashPassword } from "./password";
+import type { RegisterInput } from "./schema";
 
 // Keep in sync with the Role enum in prisma/schema.prisma (CLIENT/THERAPIST/
 // ADMIN). Re-declared rather than imported from the generated client to keep
@@ -18,6 +19,14 @@ export type AuthedUser = { id: string; role: Role };
 const DUMMY_HASH =
   "$2b$12$hPXIxkX7DjuLS62Qgt79d.iQt0NWNYbVun7Wk11GxSEVlppCtRxG6";
 
+/** Canonical email form for storage + lookup. Postgres `@unique` is case-
+ *  SENSITIVE, so without this `Alex@B.com` and `alex@b.com` would be two
+ *  accounts — and a user could lock themselves out by registering with one
+ *  casing and logging in with another. Applied at every email entry point. */
+function normalizeEmail(email: string): string {
+  return email.trim().toLowerCase();
+}
+
 /**
  * Verify an email/password pair. Returns the principal on success, or null on
  * ANY failure (unknown email, no password set, wrong password). Both the return
@@ -28,7 +37,7 @@ export async function verifyCredentials(
   email: string,
   password: string,
 ): Promise<AuthedUser | null> {
-  const user = await findUserByEmail(email);
+  const user = await findUserByEmail(normalizeEmail(email));
   if (!user || !user.passwordHash) {
     await verifyPassword(password, DUMMY_HASH); // equalize timing; discard result
     return null;
@@ -54,6 +63,44 @@ export async function login(email: string, password: string): Promise<boolean> {
 /** End the current session (sign out). */
 export async function logout(): Promise<void> {
   await endSession();
+}
+
+export type RegisterResult = { ok: true } | { ok: false; error: string };
+
+/** True for a Prisma unique-constraint violation (P2002). User has exactly one
+ *  unique column (email), so any P2002 here is the email collision — revisit
+ *  (narrow on e.meta.target) if another @unique is added to User. Duck-typed on
+ *  e.code to keep the feature decoupled from the generated client. */
+function isUniqueViolation(e: unknown): boolean {
+  return typeof e === "object" && e !== null && "code" in e && e.code === "P2002";
+}
+
+/**
+ * Register a CLIENT account and start a session. The User.email unique
+ * constraint is the authoritative race-safe guard, so we create-then-catch
+ * rather than check-then-create (which would have a TOCTOU window).
+ *
+ * Note: unlike login (which is enumeration-resistant), signup deliberately
+ * reveals "already registered" — standard signup UX; don't "fix" to match login.
+ */
+export async function registerClient(
+  input: RegisterInput,
+): Promise<RegisterResult> {
+  const passwordHash = await hashPassword(input.password);
+  try {
+    const user = await createUser({
+      email: normalizeEmail(input.email),
+      name: input.name,
+      passwordHash,
+    });
+    await startSession({ id: user.id, role: "CLIENT" });
+    return { ok: true };
+  } catch (e) {
+    if (isUniqueViolation(e)) {
+      return { ok: false, error: "That email is already registered." };
+    }
+    throw e;
+  }
 }
 
 /**
