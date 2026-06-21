@@ -6,6 +6,10 @@ import { z } from "zod";
  */
 const envSchema = z.object({
   DATABASE_URL: z.string().min(1, "DATABASE_URL is required"),
+  // Secret for signing session JWTs (server/auth, HS256). Require >= 32 chars
+  // so the key has enough entropy to match the hash — and it must be RANDOM,
+  // e.g. `node -e "console.log(require('crypto').randomBytes(32).toString('base64url'))"`.
+  AUTH_SECRET: z.string().min(32, "AUTH_SECRET must be a random value >= 32 chars"),
   NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
 });
 
