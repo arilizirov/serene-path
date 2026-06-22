@@ -9,18 +9,8 @@
 // server-side matching rules) is built + tested against this seam now, and the
 // real model plugs in here without any caller changing.
 
-export type ChatRole = "system" | "user" | "assistant";
-export type ChatMessage = { role: ChatRole; content: string };
-
-export interface AiProvider {
-  /**
-   * Send the conversation (a system prompt carrying the intake instructions +
-   * injected catalog, then the transcript) and return the model's RAW completion
-   * text. The contract is that this text is strict JSON per §5 — the caller
-   * (intake service) zod-validates it; the adapter does not parse.
-   */
-  complete(messages: ChatMessage[]): Promise<string>;
-}
+export type { ChatRole, ChatMessage, AiProvider } from "./types";
+import type { AiProvider } from "./types";
 
 const ID_IN_SYSTEM = /"id"\s*:\s*"([^"]+)"/g;
 
@@ -72,10 +62,18 @@ const stubProvider: AiProvider = {
 };
 
 /**
- * The active AI provider. Returns the stub until the OpenAI GPT-5.4 impl is wired
- * here (gated on OPENAI_API_KEY). Kept as a function so the choice is made per
- * call, not frozen at import time.
+ * The active AI provider, chosen per call (not frozen at import): the real model
+ * when OPENAI_API_KEY is set, otherwise the deterministic stub. The OpenAI SDK is
+ * lazy-imported only on the real path, so the stub stays dependency-free.
  */
 export function aiProvider(): AiProvider {
-  return stubProvider;
+  const apiKey = process.env.OPENAI_API_KEY;
+  if (!apiKey) return stubProvider;
+  const model = process.env.OPENAI_MODEL || "gpt-5.4";
+  return {
+    async complete(messages) {
+      const { runOpenAi } = await import("./openai-provider");
+      return runOpenAi(apiKey, model, messages);
+    },
+  };
 }
