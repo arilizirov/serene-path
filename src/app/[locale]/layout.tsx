@@ -6,8 +6,8 @@ import { setRequestLocale } from "next-intl/server";
 import { notFound } from "next/navigation";
 import Script from "next/script";
 import { routing } from "@/i18n/routing";
-import { LocaleSwitcher } from "@/components/locale-switcher";
-import { ThemeToggle } from "@/components/theme-toggle";
+import { AppShell } from "@/components/app-shell";
+import { getCurrentUser } from "@/features/accounts";
 import "../globals.css";
 
 const spaceGrotesk = Space_Grotesk({
@@ -59,6 +59,7 @@ export default async function LocaleLayout({ children, params }: Props) {
   setRequestLocale(locale);
 
   const dir = locale === "he" ? "rtl" : "ltr";
+  const user = await getCurrentUser();
 
   return (
     <html
@@ -72,10 +73,7 @@ export default async function LocaleLayout({ children, params }: Props) {
           {THEME_SCRIPT}
         </Script>
         <NextIntlClientProvider>
-          <header className="flex items-center justify-end gap-2 p-4">
-            <LocaleSwitcher />
-            <ThemeToggle />
-          </header>
+          <AppShell locale={locale} authedRole={user?.role ?? null} />
           {children}
         </NextIntlClientProvider>
       </body>

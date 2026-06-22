@@ -1,7 +1,25 @@
 {
   "Home": {
+    "eyebrow": "THERAPLI",
+    "heading": "How are you feeling today?",
+    "label": "TELL US IN YOUR OWN WORDS",
+    "placeholder": "e.g. overwhelmed and can't sleep…",
+    "start": "Start",
+    "privacy": "No sign-up needed · your conversation is private",
     "tagline": "Find the right therapist, and meet them on-platform.",
     "therapistsHeading": "Our therapists"
+  },
+  "Nav": {
+    "menu": "Menu",
+    "home": "Home",
+    "find": "Find a therapist",
+    "appts": "My appointments",
+    "language": "LANGUAGE",
+    "theme": "THEME",
+    "dark": "Dark",
+    "light": "Light",
+    "signIn": "Sign in",
+    "account": "Account"
   },
   "LocaleSwitcher": {
     "label": "Change language",
