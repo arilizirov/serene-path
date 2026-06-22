@@ -1,5 +1,10 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, beforeAll } from "vitest";
 import { aiProvider, type ChatMessage } from "./index";
+
+// These exercise the STUB path, so guarantee no real key leaks in from the env.
+beforeAll(() => {
+  delete process.env.OPENAI_API_KEY;
+});
 
 // The stub is the dev/runtime provider until the real model is wired; its job is
 // to emit strict JSON in the §5 model-output shape and drive the state machine.
