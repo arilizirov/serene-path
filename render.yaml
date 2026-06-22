@@ -1,0 +1,31 @@
+# Render Blueprint for The Serene Path (Next.js + Prisma/Postgres).
+# Create the service from this repo; set the secret env vars in the Render
+# dashboard (they are sync:false here so they are NOT stored in git).
+# Postgres is hosted on Neon (DATABASE_URL points there).
+services:
+  - type: web
+    name: serene-path
+    runtime: node
+    plan: starter # "free" spins down on idle (cold starts); "starter" stays warm
+    branch: main
+    # postinstall runs `prisma generate`; build produces the Next.js production app.
+    buildCommand: npm install && npm run build
+    # Apply pending DB migrations against Neon right before the new version goes live.
+    preDeployCommand: npm run db:deploy
+    startCommand: npm run start
+    healthCheckPath: /en
+    autoDeploy: true
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: NODE_ENV
+        value: production
+      - key: OPENAI_MODEL
+        value: gpt-5.4
+      # --- secrets: set these in the Render dashboard, not here ---
+      - key: DATABASE_URL # Neon direct connection string (…?sslmode=require)
+        sync: false
+      - key: AUTH_SECRET # random 32+ char string
+        sync: false
+      - key: OPENAI_API_KEY # a FRESH OpenAI key
+        sync: false

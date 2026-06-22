@@ -3,6 +3,10 @@ import { getLocale } from "next-intl/server";
 import { searchTherapists, TherapistCardView } from "@/features/therapists";
 import { isLocale } from "@/lib/utils";
 
+// Live, search-param-driven directory — render per request (never prerender at
+// build time; the build must not require a database connection).
+export const dynamic = "force-dynamic";
+
 const inputClass =
   "rounded-md border border-outline-variant bg-surface-container-lowest px-3 py-2 text-on-surface";
 
