@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
-import { Manrope, Public_Sans, Noto_Sans_Hebrew } from "next/font/google";
+import { Space_Grotesk, IBM_Plex_Sans, IBM_Plex_Mono, Noto_Sans_Hebrew } from "next/font/google";
 import { NextIntlClientProvider, hasLocale } from "next-intl";
 import { setRequestLocale } from "next-intl/server";
 import { notFound } from "next/navigation";
@@ -10,14 +10,22 @@ import { LocaleSwitcher } from "@/components/locale-switcher";
 import { ThemeToggle } from "@/components/theme-toggle";
 import "../globals.css";
 
-const manrope = Manrope({
+const spaceGrotesk = Space_Grotesk({
   subsets: ["latin"],
-  variable: "--font-manrope",
+  weight: ["400", "500", "600", "700"],
+  variable: "--font-space-grotesk",
   display: "swap",
 });
-const publicSans = Public_Sans({
+const plexSans = IBM_Plex_Sans({
   subsets: ["latin"],
-  variable: "--font-public-sans",
+  weight: ["400", "500", "600"],
+  variable: "--font-plex-sans",
+  display: "swap",
+});
+const plexMono = IBM_Plex_Mono({
+  subsets: ["latin"],
+  weight: ["400", "500"],
+  variable: "--font-plex-mono",
   display: "swap",
 });
 const notoSansHebrew = Noto_Sans_Hebrew({
@@ -27,8 +35,8 @@ const notoSansHebrew = Noto_Sans_Hebrew({
 });
 
 export const metadata: Metadata = {
-  title: "The Serene Path",
-  description: "Find the right therapist and meet on-platform.",
+  title: "Therapli",
+  description: "AI-guided therapist matching & booking.",
 };
 
 // Apply the persisted (or system) theme before paint to avoid a flash.
@@ -56,7 +64,7 @@ export default async function LocaleLayout({ children, params }: Props) {
     <html
       lang={locale}
       dir={dir}
-      className={`${manrope.variable} ${publicSans.variable} ${notoSansHebrew.variable}`}
+      className={`${spaceGrotesk.variable} ${plexSans.variable} ${plexMono.variable} ${notoSansHebrew.variable}`}
       suppressHydrationWarning
     >
       <body>

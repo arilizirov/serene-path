@@ -18,7 +18,7 @@ export default async function HomePage() {
     <main className="mx-auto flex max-w-5xl flex-col gap-12 p-8">
       <section className="flex flex-col items-center gap-6 pt-8 text-center">
         <h1 className="font-heading text-5xl font-bold text-primary">
-          The Serene Path
+          Therapli
         </h1>
         <p className="max-w-prose text-lg text-on-surface-variant">
           {t("tagline")}
