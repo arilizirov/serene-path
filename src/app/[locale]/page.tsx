@@ -9,14 +9,16 @@ export default async function HomePage() {
 
   return (
     <main className="relative flex min-h-[calc(100vh-61px)] flex-col items-center justify-center overflow-hidden p-8">
-      {/* Soft sage watercolor wash blooming up from the bottom edge (CSS gradient
-          per design/cadence/HANDOFF.md — no raster dependency). */}
+      {/* Soft sage watercolor wash filling the bottom and fading into the canvas
+          (CSS reproduction of design/cadence/assets/wc-pattern — no raster). Sage
+          = the accent blended into the bg, so it themes for light + dark. A radial
+          bloom adds the watercolor softness over the base vertical wash. */}
       <div
         aria-hidden
         className="pointer-events-none absolute inset-0 z-0"
         style={{
           background:
-            "radial-gradient(120% 78% at 50% 120%, var(--accent-soft) 0%, transparent 60%)",
+            "linear-gradient(to top, color-mix(in srgb, var(--accent) 30%, var(--bg)) 0%, color-mix(in srgb, var(--accent) 13%, var(--bg)) 32%, var(--bg) 62%)",
         }}
       />
 
