@@ -1,7 +1,25 @@
 {
   "Home": {
+    "eyebrow": "THERAPLI",
+    "heading": "Comment vous sentez-vous aujourd'hui ?",
+    "label": "DITES-LE AVEC VOS MOTS",
+    "placeholder": "ex. débordé·e et je n'arrive pas à dormir…",
+    "start": "Commencer",
+    "privacy": "Sans inscription · votre conversation est privée",
     "tagline": "Trouvez le thérapeute qu'il vous faut, et consultez-le sur la plateforme.",
     "therapistsHeading": "Nos thérapeutes"
+  },
+  "Nav": {
+    "menu": "Menu",
+    "home": "Accueil",
+    "find": "Trouver un thérapeute",
+    "appts": "Mes rendez-vous",
+    "language": "LANGUE",
+    "theme": "THÈME",
+    "dark": "Sombre",
+    "light": "Clair",
+    "signIn": "Se connecter",
+    "account": "Compte"
   },
   "LocaleSwitcher": {
     "label": "Changer de langue",
