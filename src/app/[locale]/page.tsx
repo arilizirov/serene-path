@@ -4,6 +4,10 @@ import { getDiscoverTherapists, TherapistCardView } from "@/features/therapists"
 import { FeelingField } from "@/features/intake";
 import { isLocale } from "@/lib/utils";
 
+// Reads the live verified-therapist list, so render per request (never prerender
+// at build time — the build must not require a database connection).
+export const dynamic = "force-dynamic";
+
 export default async function HomePage() {
   const t = await getTranslations("Home");
   const raw = await getLocale();

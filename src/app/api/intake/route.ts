@@ -1,13 +1,22 @@
 import { NextResponse } from "next/server";
 import { intakeRequestSchema, runIntakeTurn } from "@/features/intake";
+import { rateLimit, clientIp } from "./rate-limit";
 
 // POST /api/intake — one anonymous intake turn (APP_SPEC §5). The locale travels
 // in the (validated) body, so this lives OUTSIDE the [locale] segment to stay
 // clear of the next-intl middleware (which would rewrite a locale-prefixed path).
 //
-// Anonymous by design (no auth) — F1 intake precedes sign-in. Abuse/rate-limiting
-// is a Stage-9 hardening concern, noted there.
+// Anonymous by design (no auth) — F1 intake precedes sign-in. Each turn makes a
+// paid model call, so we IP-rate-limit to stop a loop draining the key.
 export async function POST(request: Request): Promise<Response> {
+  const gate = rateLimit(clientIp(request), Date.now());
+  if (!gate.ok) {
+    return NextResponse.json(
+      { error: "rate_limited" },
+      { status: 429, headers: { "retry-after": String(gate.retryAfterSec) } },
+    );
+  }
+
   const body = await request.json().catch(() => null);
   const parsed = intakeRequestSchema.safeParse(body);
   if (!parsed.success) {
