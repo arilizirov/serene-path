@@ -35,4 +35,20 @@ describe("pickMatch", () => {
     const fr = pickMatch(cat, ["anxiety"], "anxious panic", "fr");
     expect(fr?.id).toBe("t1");
   });
+
+  it("does not match on a bio coincidence — requires a real specialty", () => {
+    const child: CatalogEntry[] = [
+      { id: "c1", name: "C", title: "Child & family therapist", bio: "Parents often arrive exhausted.", skills: ["play therapy", "children"], languages: ["en"] },
+    ];
+    // "exhausted" is a stress-burnout keyword, but only in the bio (not a specialty).
+    expect(pickMatch(child, ["stress-burnout"], "burnt out from work", "en")).toBeNull();
+  });
+
+  it("ranks a real specialist above a bio mention", () => {
+    const pool: CatalogEntry[] = [
+      { id: "spec", name: "S", title: "Burnout & stress specialist", bio: "Workplace stress and burnout recovery.", skills: ["burnout", "stress"], languages: ["en"] },
+      { id: "child", name: "C", title: "Child therapist", bio: "Parents arrive exhausted.", skills: ["children"], languages: ["en"] },
+    ];
+    expect(pickMatch(pool, ["stress-burnout"], "exhausted and overwhelmed", "en")?.id).toBe("spec");
+  });
 });
