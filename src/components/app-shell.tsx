@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useState, useSyncExternalStore } from "react";
 import { useTranslations } from "next-intl";
 import { Link, usePathname, useRouter } from "@/i18n/navigation";
@@ -78,10 +79,15 @@ export function AppShell({
       ) : null}
 
       <header className="sticky top-0 z-50 flex items-center justify-between gap-4 bg-transparent px-6 py-4">
-        <Link href="/" className="flex items-center gap-2.5" aria-label="Therapli">
-          <span className="flex h-[22px] w-[22px] items-center justify-center rounded-md bg-accent">
-            <span className="h-2 w-2 rounded-full bg-accent-ink" />
-          </span>
+        <Link href="/" className="flex items-center gap-2" aria-label="Therapli">
+          <Image
+            src="/therapli-mark.png"
+            alt=""
+            width={34}
+            height={23}
+            priority
+            className="h-[22px] w-auto"
+          />
           <span className="font-heading text-[17px] font-semibold tracking-[-0.01em] text-ink">
             Therapli
           </span>

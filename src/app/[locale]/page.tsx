@@ -18,7 +18,7 @@ export default async function HomePage() {
         className="pointer-events-none absolute inset-0 z-0"
         style={{
           background:
-            "linear-gradient(to top, color-mix(in srgb, var(--accent) 30%, var(--bg)) 0%, color-mix(in srgb, var(--accent) 13%, var(--bg)) 32%, var(--bg) 62%)",
+            "linear-gradient(to top, color-mix(in srgb, var(--accent-2) 24%, var(--bg)) 0%, color-mix(in srgb, var(--accent) 13%, var(--bg)) 30%, var(--bg) 60%)",
         }}
       />
 
