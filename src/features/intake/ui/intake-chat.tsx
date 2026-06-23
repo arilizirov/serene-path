@@ -2,7 +2,13 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Link } from "@/i18n/navigation";
-import type { IntakeResponse, IntakeStateName, TherapistMatch, Locale } from "../types";
+import type {
+  IntakeResponse,
+  IntakeStateName,
+  TherapistMatch,
+  Locale,
+  IntakeEngine,
+} from "../types";
 
 type Turn = { role: "user" | "assistant"; content: string };
 
@@ -18,6 +24,11 @@ const PLACEHOLDER: Record<Locale, string> = {
   fr: "Dites-moi ce qui se passe…",
 };
 
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+// Wall clock for pacing. Module-level (not called during render) so it's pure
+// from the component's perspective — used only inside the async send handler.
+const nowMs = () => Date.now();
+
 export function IntakeChat({
   locale,
   initialMessage,
@@ -29,9 +40,12 @@ export function IntakeChat({
   const [matches, setMatches] = useState<TherapistMatch[]>([]);
   const [state, setState] = useState<IntakeStateName>("GREETING");
   const [options, setOptions] = useState<string[]>([]);
+  const [engine, setEngineState] = useState<IntakeEngine>("ai");
+  const [actualEngine, setActualEngine] = useState<IntakeEngine | null>(null);
   const [input, setInput] = useState("");
   const [pending, setPending] = useState(false);
   const sessionId = useRef<string | undefined>(undefined);
+  const engineRef = useRef<IntakeEngine>("ai");
   const started = useRef(false);
 
   async function send(message: string) {
@@ -41,24 +55,50 @@ export function IntakeChat({
     setOptions([]);
     setTurns((t) => [...t, { role: "user", content: text }]);
     setPending(true);
+    const startedAt = nowMs();
     try {
       const res = await fetch("/api/intake", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ sessionId: sessionId.current, message: text, locale }),
+        body: JSON.stringify({
+          sessionId: sessionId.current,
+          message: text,
+          locale,
+          engine: engineRef.current,
+        }),
       });
       if (!res.ok) throw new Error("intake failed");
       const data: IntakeResponse = await res.json();
+      // Human pace: never answer instantly. Longer replies "take longer to type".
+      const thinkMs = Math.min(2400, 650 + data.assistantMessage.length * 12);
+      const elapsed = nowMs() - startedAt;
+      if (elapsed < thinkMs) await sleep(thinkMs - elapsed);
       sessionId.current = data.sessionId;
       setState(data.state);
       setMatches(data.matches);
       setOptions(data.options ?? []);
+      setActualEngine(data.engine);
       setTurns((t) => [...t, { role: "assistant", content: data.assistantMessage }]);
     } catch {
       setTurns((t) => [...t, { role: "assistant", content: ERROR_REPLY[locale] }]);
     } finally {
       setPending(false);
     }
+  }
+
+  // Switching engine starts a fresh conversation; re-run the opening line (if any)
+  // under the new engine so the two can be compared on the same input.
+  function switchEngine(next: IntakeEngine) {
+    if (next === engineRef.current || pending) return;
+    engineRef.current = next;
+    setEngineState(next);
+    sessionId.current = undefined;
+    setTurns([]);
+    setMatches([]);
+    setOptions([]);
+    setActualEngine(null);
+    setState("GREETING");
+    if (initialMessage) void send(initialMessage);
   }
 
   // Auto-start from the home "how are you feeling?" field (F1.2) — exactly once.
@@ -73,6 +113,31 @@ export function IntakeChat({
   return (
     <div className="flex flex-col gap-6 lg:flex-row">
       <section className="flex min-h-[24rem] flex-1 flex-col gap-3 rounded-2xl bg-surface-container p-5">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div className="inline-flex rounded-full border border-outline p-0.5 text-sm">
+            {(["ai", "scripted"] as const).map((e) => (
+              <button
+                key={e}
+                type="button"
+                onClick={() => switchEngine(e)}
+                disabled={pending}
+                className={
+                  engine === e
+                    ? "rounded-full bg-primary px-3 py-1 font-medium text-on-primary"
+                    : "rounded-full px-3 py-1 text-on-surface-variant disabled:opacity-50"
+                }
+              >
+                {e === "ai" ? "AI" : "Guided"}
+              </button>
+            ))}
+          </div>
+          {engine === "ai" && actualEngine === "scripted" ? (
+            <span className="text-xs text-on-surface-variant">
+              AI mode needs an API key — showing the guided flow for now.
+            </span>
+          ) : null}
+        </div>
+
         <div className="flex flex-1 flex-col gap-3">
           {turns.length === 0 && !pending ? (
             <p className="text-on-surface-variant">{PLACEHOLDER[locale]}</p>
@@ -82,16 +147,20 @@ export function IntakeChat({
               key={i}
               className={
                 turn.role === "user"
-                  ? "self-end rounded-2xl rounded-br-sm bg-primary px-4 py-2 text-on-primary"
-                  : "self-start rounded-2xl rounded-bl-sm bg-surface-container-high px-4 py-2 text-on-surface"
+                  ? "self-end whitespace-pre-wrap rounded-2xl rounded-br-sm bg-primary px-4 py-2 text-on-primary"
+                  : "self-start whitespace-pre-wrap rounded-2xl rounded-bl-sm bg-surface-container-high px-4 py-2 text-on-surface"
               }
             >
               {turn.content}
             </div>
           ))}
           {pending ? (
-            <div className="self-start rounded-2xl bg-surface-container-high px-4 py-2 text-on-surface-variant">
-              …
+            <div className="self-start rounded-2xl rounded-bl-sm bg-surface-container-high px-4 py-3">
+              <span className="flex gap-1">
+                <span className="h-2 w-2 animate-bounce rounded-full bg-on-surface-variant [animation-delay:-0.3s]" />
+                <span className="h-2 w-2 animate-bounce rounded-full bg-on-surface-variant [animation-delay:-0.15s]" />
+                <span className="h-2 w-2 animate-bounce rounded-full bg-on-surface-variant" />
+              </span>
             </div>
           ) : null}
         </div>
