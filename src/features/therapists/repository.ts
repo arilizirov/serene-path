@@ -22,7 +22,14 @@ export function findVerifiedForCatalog() {
   return prisma.therapistProfile.findMany({
     where: { status: "VERIFIED" },
     orderBy: { createdAt: "asc" },
-    select: { id: true, title: true, bio: true, skills: true, languages: true },
+    select: {
+      id: true,
+      title: true,
+      bio: true,
+      skills: true,
+      languages: true,
+      user: { select: { name: true } },
+    },
   });
 }
 

@@ -3,8 +3,8 @@ import { buildSystemPrompt, PROMPT_VERSION } from "./prompt";
 import type { CatalogEntry } from "@/features/therapists";
 
 const catalog: CatalogEntry[] = [
-  { id: "t1", title: "Psychologist", bio: "Works with anxiety.", skills: ["anxiety"], languages: ["he"] },
-  { id: "t2", title: "Counsellor", bio: "Couples therapy.", skills: ["couples"], languages: ["en"] },
+  { id: "t1", name: "Dr. A", title: "Psychologist", bio: "Works with anxiety.", skills: ["anxiety"], languages: ["he"] },
+  { id: "t2", name: "B", title: "Counsellor", bio: "Couples therapy.", skills: ["couples"], languages: ["en"] },
 ];
 
 describe("buildSystemPrompt", () => {

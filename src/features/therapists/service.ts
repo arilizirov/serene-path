@@ -35,6 +35,7 @@ import { hhmmToMinutes, minutesToHhmm } from "./availability";
  *  server resolves real slots after matching. */
 export type CatalogEntry = {
   id: string;
+  name: string;
   title: string;
   bio: string; // resolved to the requested locale
   skills: string[];
@@ -49,6 +50,7 @@ export async function getMatchingCatalog(locale: Locale): Promise<CatalogEntry[]
     const bio = (r.bio ?? {}) as Record<string, string>;
     return {
       id: r.id,
+      name: r.user.name ?? r.title,
       title: r.title,
       bio: bio[locale] ?? bio.en ?? "",
       skills: r.skills,
