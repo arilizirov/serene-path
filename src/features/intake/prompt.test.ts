@@ -8,7 +8,7 @@ const catalog: CatalogEntry[] = [
 ];
 
 describe("buildSystemPrompt", () => {
-  it("injects the catalog (ids the model may recommend)", () => {
+  it("injects the catalog (ids + bios the model may recommend)", () => {
     const p = buildSystemPrompt(catalog, "he");
     expect(p).toContain('"id":"t1"');
     expect(p).toContain('"id":"t2"');
@@ -16,15 +16,18 @@ describe("buildSystemPrompt", () => {
   });
 
   it("pins the reply language to the locale", () => {
-    expect(buildSystemPrompt(catalog, "he")).toContain("Hebrew");
-    expect(buildSystemPrompt(catalog, "fr")).toContain("French");
-    // unknown locale falls back to English, never throws
-    expect(buildSystemPrompt(catalog, "xx")).toContain("English");
+    expect(buildSystemPrompt(catalog, "he")).toContain("Reply only in he");
+    expect(buildSystemPrompt(catalog, "fr")).toContain("Reply only in fr");
   });
 
-  it("instructs JSON-only output and forbids inventing ids/prices/times", () => {
+  it("lays out the conversation framework (gather → mirror → confirm → match)", () => {
     const p = buildSystemPrompt(catalog, "en");
-    expect(p).toContain("ONLY a single JSON object");
+    for (const step of ["GATHER", "MIRROR", "CONFIRM", "MATCH"]) expect(p).toContain(step);
+  });
+
+  it("instructs JSON-only output and forbids inventing therapists/prices/times", () => {
+    const p = buildSystemPrompt(catalog, "en");
+    expect(p).toContain("ONLY this JSON");
     expect(p.toLowerCase()).toContain("never invent");
   });
 

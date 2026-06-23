@@ -1,12 +1,13 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { getMatchingCatalog } from "@/features/therapists";
 import { getNextAvailable } from "@/features/scheduling";
+import { aiProvider } from "@/server/ai";
 import { createSession, getSession, saveSession } from "./repository";
 import { runIntakeTurn } from "./service";
 
-// Mock the deps so this isolates the scripted phase machine.
 vi.mock("@/features/therapists", () => ({ getMatchingCatalog: vi.fn() }));
 vi.mock("@/features/scheduling", () => ({ getNextAvailable: vi.fn() }));
+vi.mock("@/server/ai", () => ({ aiProvider: vi.fn() }));
 vi.mock("./repository", () => ({
   createSession: vi.fn(),
   getSession: vi.fn(),
@@ -15,6 +16,7 @@ vi.mock("./repository", () => ({
 
 const mCatalog = vi.mocked(getMatchingCatalog);
 const mNext = vi.mocked(getNextAvailable);
+const mAi = vi.mocked(aiProvider);
 const mCreate = vi.mocked(createSession);
 const mGet = vi.mocked(getSession);
 const mSave = vi.mocked(saveSession);
@@ -24,24 +26,27 @@ function sessionAt(phase: string, userMsgs: string[] = []) {
     { role: "user" as const, content: m },
     { role: "assistant" as const, content: "…" },
   ]);
-  return { id: "s1", state: "GATHER" as const, messages, phase };
+  return { id: "s1", state: "GATHER" as const, messages, phase, engine: null };
 }
 const savedPhase = () => mSave.mock.calls[0][1].phase;
+const aiReplies = (raw: string) => mAi.mockReturnValue({ complete: vi.fn().mockResolvedValue(raw) });
 
 beforeEach(() => {
   vi.resetAllMocks();
+  delete process.env.OPENAI_API_KEY; // default → scripted unless a test opts into AI
   mCatalog.mockResolvedValue([
     { id: "t1", name: "Dr. A", title: "Anxiety specialist", bio: "I work with anxiety and panic.", skills: ["anxiety", "panic"], languages: ["en"] },
   ]);
   mNext.mockResolvedValue("2030-01-01T09:00:00.000Z");
-  mCreate.mockResolvedValue({ id: "s-new", state: "GREETING", messages: [], phase: null });
+  mCreate.mockResolvedValue({ id: "s-new", state: "GREETING", messages: [], phase: null, engine: null });
   mSave.mockResolvedValue();
 });
 
-describe("scripted runIntakeTurn", () => {
+describe("scripted engine", () => {
   it("a fresh session's first message → probe1 (GATHER), saves phase g2", async () => {
     mGet.mockResolvedValue(null);
     const r = await runIntakeTurn({ message: "I feel anxious", locale: "en" });
+    expect(r.engine).toBe("scripted");
     expect(r.state).toBe("GATHER");
     expect(r.sessionId).toBe("s-new");
     expect(savedPhase()).toBe("g2");
@@ -76,16 +81,47 @@ describe("scripted runIntakeTurn", () => {
     expect(r.state).toBe("PRESENT_OPTIONS");
     expect(r.matches.map((m) => m.therapistId)).toEqual(["t1"]);
     expect(r.matches[0].nextAvailable).toBe("2030-01-01T09:00:00.000Z");
-    expect(mNext).toHaveBeenCalledWith("t1", expect.any(String));
     expect(r.assistantMessage).toContain("Dr. A");
   });
 
-  it("confirm + 'yes' but nothing scores → CLARIFY, no match", async () => {
-    mCatalog.mockResolvedValue([
-      { id: "t9", name: "Z", title: "Couples", bio: "couples work", skills: ["couples"], languages: ["en"] },
-    ]);
-    mGet.mockResolvedValue(sessionAt("confirm", ["grief and loss", "a death", "months"]));
-    const r = await runIntakeTurn({ message: "yes", locale: "en", sessionId: "s1" });
+  it("stays scripted even if a request asks for ai when no key is configured", async () => {
+    mGet.mockResolvedValue(sessionAt("g1", []));
+    const r = await runIntakeTurn({ message: "hi", locale: "en", sessionId: "s1", engine: "ai" });
+    expect(r.engine).toBe("scripted");
+    expect(mAi).not.toHaveBeenCalled();
+  });
+});
+
+describe("ai engine (key present) — enforces §5 on untrusted output", () => {
+  beforeEach(() => {
+    process.env.OPENAI_API_KEY = "test-key";
+    mGet.mockResolvedValue({ id: "s1", state: "GATHER", messages: [], phase: null, engine: null });
+  });
+
+  it("accepts a catalog match and resolves the slot server-side", async () => {
+    aiReplies(JSON.stringify({ state: "MATCH", reply: "Dr. A fits.", matches: [{ therapist_id: "t1", rationale: "anxiety fit" }] }));
+    const r = await runIntakeTurn({ message: "panic", locale: "en", sessionId: "s1", engine: "ai" });
+    expect(r.engine).toBe("ai");
+    expect(r.matches.map((m) => m.therapistId)).toEqual(["t1"]);
+    expect(r.matches[0].nextAvailable).toBe("2030-01-01T09:00:00.000Z");
+    expect(mNext).toHaveBeenCalledWith("t1", expect.any(String));
+  });
+
+  it("drops a hallucinated (non-catalog) therapist id", async () => {
+    aiReplies(JSON.stringify({ state: "MATCH", reply: "x", matches: [{ therapist_id: "ghost", rationale: "y" }] }));
+    const r = await runIntakeTurn({ message: "panic", locale: "en", sessionId: "s1", engine: "ai" });
+    expect(r.matches).toEqual([]);
+  });
+
+  it("drops matches when state is not MATCH/PRESENT_OPTIONS", async () => {
+    aiReplies(JSON.stringify({ state: "GATHER", reply: "tell me more", matches: [{ therapist_id: "t1", rationale: "z" }] }));
+    const r = await runIntakeTurn({ message: "panic", locale: "en", sessionId: "s1", engine: "ai" });
+    expect(r.matches).toEqual([]);
+  });
+
+  it("falls back to a safe CLARIFY on unparseable output", async () => {
+    aiReplies("not json at all");
+    const r = await runIntakeTurn({ message: "panic", locale: "en", sessionId: "s1", engine: "ai" });
     expect(r.state).toBe("CLARIFY");
     expect(r.matches).toEqual([]);
   });

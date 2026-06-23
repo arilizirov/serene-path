@@ -5,6 +5,9 @@ export const intakeRequestSchema = z.object({
   sessionId: z.string().min(1).optional(),
   message: z.string().min(1).max(4000),
   locale: z.enum(["he", "en", "fr"]),
+  /** Which intake engine to use (lets the UI compare). Sticky per session;
+   *  "ai" only takes effect when an OpenAI key is configured, else "scripted". */
+  engine: z.enum(["ai", "scripted"]).optional(),
 });
 export type IntakeRequestInput = z.infer<typeof intakeRequestSchema>;
 
