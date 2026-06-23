@@ -3,7 +3,7 @@ import { z } from "zod";
 /** Inbound request to the intake endpoint (§5). Validated at the route boundary. */
 export const intakeRequestSchema = z.object({
   sessionId: z.string().min(1).optional(),
-  message: z.string().min(1).max(4000),
+  message: z.string().trim().min(1).max(4000),
   locale: z.enum(["he", "en", "fr"]),
   /** Which intake engine to use (lets the UI compare). Sticky per session;
    *  "ai" only takes effect when an OpenAI key is configured, else "scripted". */

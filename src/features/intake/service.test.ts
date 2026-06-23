@@ -107,10 +107,11 @@ describe("ai engine (key present) — enforces §5 on untrusted output", () => {
     expect(mNext).toHaveBeenCalledWith("t1", expect.any(String));
   });
 
-  it("drops a hallucinated (non-catalog) therapist id", async () => {
+  it("drops a hallucinated (non-catalog) id and downgrades the empty MATCH to CLARIFY", async () => {
     aiReplies(JSON.stringify({ state: "MATCH", reply: "x", matches: [{ therapist_id: "ghost", rationale: "y" }] }));
     const r = await runIntakeTurn({ message: "panic", locale: "en", sessionId: "s1", engine: "ai" });
     expect(r.matches).toEqual([]);
+    expect(r.state).toBe("CLARIFY");
   });
 
   it("drops matches when state is not MATCH/PRESENT_OPTIONS", async () => {
