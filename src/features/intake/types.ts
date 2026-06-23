@@ -27,4 +27,6 @@ export type IntakeResponse = {
   assistantMessage: string;
   state: IntakeStateName;
   matches: TherapistMatch[];
+  /** Quick-reply chips for the current turn (e.g. Yes / Not quite at CONFIRM). */
+  options?: string[];
 };

@@ -34,8 +34,8 @@ function modelReturnsRaw(raw: string) {
 beforeEach(() => {
   vi.resetAllMocks();
   mCatalog.mockResolvedValue([
-    { id: "t1", title: "Psy", bio: "anxiety", skills: ["anxiety"], languages: ["en"] },
-    { id: "t2", title: "Couns", bio: "couples", skills: ["couples"], languages: ["en"] },
+    { id: "t1", name: "Dr. A", title: "Psy", bio: "anxiety", skills: ["anxiety"], languages: ["en"] },
+    { id: "t2", name: "B", title: "Couns", bio: "couples", skills: ["couples"], languages: ["en"] },
   ]);
   mNext.mockResolvedValue("2030-01-01T09:00:00.000Z");
   mCreate.mockResolvedValue({ id: "s-new", state: "GREETING", messages: [] });
