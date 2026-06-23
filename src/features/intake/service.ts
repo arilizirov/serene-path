@@ -1,109 +1,100 @@
 import { getMatchingCatalog } from "@/features/therapists";
 import { getNextAvailable } from "@/features/scheduling";
-import { aiProvider, type ChatMessage } from "@/server/ai";
-import { buildSystemPrompt } from "./prompt";
-import { modelOutputSchema } from "./schema";
 import {
   createSession,
   getSession,
   saveSession,
   type StoredMessage,
 } from "./repository";
-import type { IntakeResponse, Locale, TherapistMatch } from "./types";
+import { detectConcerns, pickMatch } from "./concerns";
+import {
+  copy,
+  confirmOptions,
+  isConfirmNo,
+  mirrorMessage,
+  buildRationale,
+  matchMessage,
+} from "./copy";
+import type { IntakeResponse, Locale, IntakeStateName, TherapistMatch } from "./types";
 
-// Shown when the model returns unparseable / invalid output — a safe, honest
-// CLARIFY in the user's locale (never a crash, never a fabricated match).
-const FALLBACK_REPLY: Record<Locale, string> = {
-  en: "Sorry — I didn't quite follow that. Could you tell me a little more?",
-  he: "סליחה — לא הבנתי במדויק. אפשר לספר לי קצת יותר?",
-  fr: "Désolé — je n'ai pas bien saisi. Pouvez-vous m'en dire un peu plus ?",
-};
+// Deterministic scripted intake (from scriptedIntakeProvider.ts), driven by a
+// phase persisted on the anonymous session — no model call. Flow:
+//   greet (home page) → probe1 → probe2 → respect+mirror+confirm
+//   → (MATCH | regather) ; matching scores the REAL verified catalog and the
+//   server resolves nextAvailable (the §5 guarantees still hold).
+type Phase = "g1" | "g2" | "g3" | "confirm" | "regather" | "done";
 
-/** Best-effort parse of the model's raw text into JSON: tolerate code fences or
- *  surrounding prose by extracting the first {...} block. */
-function safeJson(raw: string): unknown {
-  try {
-    return JSON.parse(raw);
-  } catch {
-    const block = raw.match(/\{[\s\S]*\}/);
-    if (block) {
-      try {
-        return JSON.parse(block[0]);
-      } catch {
-        /* fall through */
-      }
-    }
-    return null;
-  }
-}
-
-/**
- * Run one intake turn (APP_SPEC §5). Loads/creates the anonymous session, appends
- * the user message, builds the verified-therapist catalog (no prices/times),
- * calls the model, then enforces the server-side contract on the UNTRUSTED output:
- *  - validate with zod (invalid → safe CLARIFY fallback);
- *  - matches only survive in MATCH/PRESENT_OPTIONS;
- *  - any therapist id not in the catalog is dropped (no hallucinated identities);
- *  - duplicates collapsed;
- *  - nextAvailable is resolved by the scheduling engine, never the model.
- * Persists the transcript/state and returns the public response.
- */
 export async function runIntakeTurn(input: {
   sessionId?: string;
   message: string;
   locale: Locale;
 }): Promise<IntakeResponse> {
+  const { locale } = input;
+  const c = copy(locale);
+
   const existing = input.sessionId ? await getSession(input.sessionId) : null;
   const session = existing ?? (await createSession());
+  const phase = (session.phase as Phase | null) ?? "g1";
+
   const messages: StoredMessage[] = [...session.messages];
-  messages.push({ role: "user", content: input.message });
+  messages.push({ role: "user", content: input.message.trim() });
+  const answers = messages.filter((m) => m.role === "user").map((m) => m.content);
 
-  const catalog = await getMatchingCatalog(input.locale);
-  const catalogIds = new Set(catalog.map((c) => c.id));
+  let reply: string;
+  let state: IntakeStateName;
+  let nextPhase: Phase;
+  let options: string[] | undefined;
+  let matches: TherapistMatch[] = [];
 
-  const chat: ChatMessage[] = [
-    { role: "system", content: buildSystemPrompt(catalog, input.locale) },
-    ...messages.map((m) => ({ role: m.role, content: m.content })),
-  ];
-  const raw = await aiProvider().complete(chat);
-
-  const parsed = modelOutputSchema.safeParse(safeJson(raw));
-  const out = parsed.success
-    ? parsed.data
-    : { state: "CLARIFY" as const, reply: FALLBACK_REPLY[input.locale], matches: [] };
-
-  const allowMatches = out.state === "MATCH" || out.state === "PRESENT_OPTIONS";
-  const accepted: { therapist_id: string; rationale: string }[] = [];
-  if (allowMatches) {
-    const seen = new Set<string>();
-    for (const m of out.matches) {
-      if (catalogIds.has(m.therapist_id) && !seen.has(m.therapist_id)) {
-        seen.add(m.therapist_id);
-        accepted.push(m);
+  if (phase === "g1") {
+    reply = c.probe1;
+    state = "GATHER";
+    nextPhase = "g2";
+  } else if (phase === "g2") {
+    reply = c.probe2;
+    state = "GATHER";
+    nextPhase = "g3";
+  } else if (phase === "g3" || phase === "regather") {
+    reply = mirrorMessage(locale, detectConcerns(answers.join(" ")));
+    state = "CONFIRM";
+    nextPhase = "confirm";
+    options = confirmOptions(locale);
+  } else if (phase === "confirm") {
+    if (isConfirmNo(locale, input.message)) {
+      reply = c.notQuite;
+      state = "GATHER";
+      nextPhase = "regather";
+    } else {
+      const concerns = detectConcerns(answers.join(" "));
+      const catalog = await getMatchingCatalog(locale);
+      const picked = pickMatch(catalog, concerns, answers.join(" "), locale);
+      if (!picked) {
+        reply = c.noMatch;
+        state = "CLARIFY";
+        nextPhase = "done";
+      } else {
+        const entry = catalog.find((e) => e.id === picked.id)!;
+        const nextAvailable = await getNextAvailable(picked.id, new Date().toISOString());
+        const rationale = buildRationale(locale, picked.concept, picked.snippet);
+        reply = matchMessage(locale, entry.name, rationale, nextAvailable);
+        state = "PRESENT_OPTIONS";
+        nextPhase = "done";
+        matches = [{ therapistId: picked.id, rationale, nextAvailable }];
       }
     }
+  } else {
+    reply = c.support;
+    state = "FOLLOWUP";
+    nextPhase = "done";
   }
 
-  const now = new Date().toISOString();
-  const matches: TherapistMatch[] = await Promise.all(
-    accepted.map(async (m) => ({
-      therapistId: m.therapist_id,
-      rationale: m.rationale,
-      nextAvailable: await getNextAvailable(m.therapist_id, now),
-    })),
-  );
-
-  messages.push({ role: "assistant", content: out.reply });
+  messages.push({ role: "assistant", content: reply });
   await saveSession(session.id, {
-    state: out.state,
+    state,
     messages,
     suggestedTherapistIds: matches.map((m) => m.therapistId),
+    phase: nextPhase,
   });
 
-  return {
-    sessionId: session.id,
-    assistantMessage: out.reply,
-    state: out.state,
-    matches,
-  };
+  return { sessionId: session.id, assistantMessage: reply, state, matches, options };
 }

@@ -28,6 +28,7 @@ export function IntakeChat({
   const [turns, setTurns] = useState<Turn[]>([]);
   const [matches, setMatches] = useState<TherapistMatch[]>([]);
   const [state, setState] = useState<IntakeStateName>("GREETING");
+  const [options, setOptions] = useState<string[]>([]);
   const [input, setInput] = useState("");
   const [pending, setPending] = useState(false);
   const sessionId = useRef<string | undefined>(undefined);
@@ -37,6 +38,7 @@ export function IntakeChat({
     const text = message.trim();
     if (!text || pending) return;
     setInput("");
+    setOptions([]);
     setTurns((t) => [...t, { role: "user", content: text }]);
     setPending(true);
     try {
@@ -50,6 +52,7 @@ export function IntakeChat({
       sessionId.current = data.sessionId;
       setState(data.state);
       setMatches(data.matches);
+      setOptions(data.options ?? []);
       setTurns((t) => [...t, { role: "assistant", content: data.assistantMessage }]);
     } catch {
       setTurns((t) => [...t, { role: "assistant", content: ERROR_REPLY[locale] }]);
@@ -92,6 +95,21 @@ export function IntakeChat({
             </div>
           ) : null}
         </div>
+
+        {options.length > 0 && !pending ? (
+          <div className="flex flex-wrap gap-2">
+            {options.map((opt) => (
+              <button
+                key={opt}
+                type="button"
+                onClick={() => void send(opt)}
+                className="rounded-full border border-accent bg-accent-soft px-4 py-1.5 text-sm font-medium text-accent-soft-ink transition hover:opacity-90"
+              >
+                {opt}
+              </button>
+            ))}
+          </div>
+        ) : null}
 
         <form
           onSubmit={(e) => {
