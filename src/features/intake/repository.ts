@@ -8,6 +8,8 @@ export type IntakeSessionRow = {
   id: string;
   state: IntakeStateName;
   messages: StoredMessage[];
+  /** Scripted-flow phase, stored in `constraints` (null on a fresh session). */
+  phase: string | null;
 };
 
 /** Create a fresh anonymous intake session. */
@@ -16,7 +18,7 @@ export async function createSession(): Promise<IntakeSessionRow> {
     data: { messages: [], state: "GREETING" },
     select: { id: true, state: true },
   });
-  return { id: s.id, state: s.state, messages: [] };
+  return { id: s.id, state: s.state, messages: [], phase: null };
 }
 
 /**
@@ -32,13 +34,15 @@ export async function createSession(): Promise<IntakeSessionRow> {
 export async function getSession(id: string): Promise<IntakeSessionRow | null> {
   const s = await prisma.intakeSession.findUnique({
     where: { id },
-    select: { id: true, state: true, messages: true },
+    select: { id: true, state: true, messages: true, constraints: true },
   });
   if (!s) return null;
+  const constraints = (s.constraints as { phase?: string } | null) ?? null;
   return {
     id: s.id,
     state: s.state,
     messages: (s.messages as StoredMessage[] | null) ?? [],
+    phase: constraints?.phase ?? null,
   };
 }
 
@@ -49,6 +53,7 @@ export async function saveSession(
     state: IntakeStateName;
     messages: StoredMessage[];
     suggestedTherapistIds: string[];
+    phase: string;
   },
 ): Promise<void> {
   await prisma.intakeSession.update({
@@ -57,6 +62,7 @@ export async function saveSession(
       state: data.state,
       messages: data.messages,
       suggestedTherapistIds: data.suggestedTherapistIds,
+      constraints: { phase: data.phase },
     },
   });
 }
