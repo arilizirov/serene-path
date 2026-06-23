@@ -4,47 +4,51 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 /* ------------------------------------------------------------------ *
- * Therapli — "Cadence" design tokens (design/cadence/HANDOFF.md).
- * Calm clinical palette: soft sage-grey canvas, white cards, a single
- * sage-green accent. Light on :root; dark under `.dark`. Components use
- * the semantic names (bg-accent, text-ink, bg-surface, …), never raw hex.
+ * Therapli brand palette — drawn from the logo (blue #4969fc + green
+ * #2de0ac + navy #1d2d4c on a clean cool-white field). Blue is the
+ * primary accent (good white-text contrast); green is the secondary
+ * accent; navy is the ink. Components use semantic names only.
  * ------------------------------------------------------------------ */
 :root {
-  --bg: #eef0ed;
+  --bg: #f5f7fb;
   --surface: #ffffff;
-  --surface-2: #f4f6f4;
-  --border: #e2e6e2;
-  --border-2: #eef1ee;
-  --ink: #1b2420;
-  --ink-2: #5a655e;
-  --ink-3: #9aa39d;
-  --accent: #4f7d67;
+  --surface-2: #eef1f8;
+  --border: #e2e7f1;
+  --border-2: #eef1f8;
+  --ink: #1d2d4c;
+  --ink-2: #5b6885;
+  --ink-3: #97a1b8;
+  --accent: #3d5be6;
   --accent-ink: #ffffff;
-  --accent-soft: #e0e9e3;
-  --accent-soft-ink: #3f6553;
+  --accent-soft: #e4e9fd;
+  --accent-soft-ink: #2f49c0;
+  --accent-2: #14b487;
+  --accent-2-soft: #d8f5ec;
   --danger: #c0584e;
-  --shadow: 0 1px 3px rgba(20, 30, 25, 0.06), 0 8px 28px rgba(20, 30, 25, 0.05);
+  --shadow: 0 1px 3px rgba(20, 30, 60, 0.06), 0 8px 28px rgba(20, 30, 60, 0.06);
 }
 
 .dark {
-  --bg: #101512;
-  --surface: #19211d;
-  --surface-2: #212a25;
-  --border: #2c352f;
-  --border-2: #222b26;
-  --ink: #e9eee9;
-  --ink-2: #a3aea7;
-  --ink-3: #6b756e;
-  --accent: #6fa389;
-  --accent-ink: #0f1512;
-  --accent-soft: #222e28;
-  --accent-soft-ink: #9ec7b1;
-  --danger: #c0584e;
-  --shadow: 0 1px 3px rgba(0, 0, 0, 0.3), 0 10px 30px rgba(0, 0, 0, 0.28);
+  --bg: #0e1322;
+  --surface: #161d30;
+  --surface-2: #1f2840;
+  --border: #2a3450;
+  --border-2: #1f2840;
+  --ink: #e9edf7;
+  --ink-2: #a6b0c8;
+  --ink-3: #6d7793;
+  --accent: #6f86ff;
+  --accent-ink: #0b1020;
+  --accent-soft: #1c2747;
+  --accent-soft-ink: #9fb2ff;
+  --accent-2: #3ee0ac;
+  --accent-2-soft: #173a30;
+  --danger: #d9655a;
+  --shadow: 0 1px 3px rgba(0, 0, 0, 0.3), 0 10px 30px rgba(0, 0, 0, 0.3);
 }
 
 @theme inline {
-  /* --- Cadence semantic colors (use these in rebuilt screens) --- */
+  /* --- Therapli semantic colors --- */
   --color-bg: var(--bg);
   --color-surface: var(--surface);
   --color-surface-2: var(--surface-2);
@@ -57,22 +61,23 @@
   --color-accent-ink: var(--accent-ink);
   --color-accent-soft: var(--accent-soft);
   --color-accent-soft-ink: var(--accent-soft-ink);
+  --color-accent-2: var(--accent-2);
+  --color-accent-2-soft: var(--accent-2-soft);
   --color-danger: var(--danger);
 
-  /* --- Back-compat: the prior Material You class names remapped onto
-     Cadence, so existing (not-yet-rebuilt) screens re-skin without edits. --- */
+  /* --- Back-compat: prior class names remapped onto the brand palette. --- */
   --color-primary: var(--accent);
   --color-on-primary: var(--accent-ink);
   --color-primary-container: var(--accent-soft);
   --color-on-primary-container: var(--accent-soft-ink);
-  --color-secondary: var(--accent);
-  --color-on-secondary: var(--accent-ink);
-  --color-secondary-container: var(--accent-soft);
-  --color-on-secondary-container: var(--accent-soft-ink);
-  --color-tertiary: var(--accent-soft-ink);
-  --color-on-tertiary: var(--accent-ink);
-  --color-tertiary-container: var(--accent-soft);
-  --color-on-tertiary-container: var(--accent-soft-ink);
+  --color-secondary: var(--accent-2);
+  --color-on-secondary: #ffffff;
+  --color-secondary-container: var(--accent-2-soft);
+  --color-on-secondary-container: var(--accent-2);
+  --color-tertiary: var(--accent-2);
+  --color-on-tertiary: #ffffff;
+  --color-tertiary-container: var(--accent-2-soft);
+  --color-on-tertiary-container: var(--accent-2);
   --color-error: var(--danger);
   --color-on-error: #ffffff;
   --color-error-container: rgba(192, 88, 78, 0.12);
@@ -90,11 +95,8 @@
   --color-surface-container-high: var(--surface-2);
   --color-surface-container-highest: var(--border);
 
-  /* Card shadow → `shadow-card`. */
   --shadow-card: var(--shadow);
 
-  /* Type: Space Grotesk (display/headings), IBM Plex Sans (body/UI),
-     IBM Plex Mono (eyebrows/labels), Noto Sans Hebrew for he. */
   --font-sans: var(--font-plex-sans), var(--font-hebrew), ui-sans-serif, system-ui, sans-serif;
   --font-heading: var(--font-space-grotesk), var(--font-hebrew), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-plex-mono), ui-monospace, monospace;
@@ -108,7 +110,6 @@
   }
 }
 
-/* Cadence motion (disabled under reduced-motion). */
 @keyframes sp-pulse {
   0%, 100% { opacity: 0.25; transform: translateY(0); }
   50% { opacity: 0.95; transform: translateY(-2px); }
