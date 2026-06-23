@@ -56,8 +56,10 @@ type Phase = "g1" | "g2" | "g3" | "confirm" | "regather" | "done";
 
 /**
  * Resolve the effective engine for a turn. Sticky: once a session has run on one
- * engine we keep it (don't swap brains mid-conversation). Otherwise the request's
- * choice, else a sensible default. "ai" only ever takes effect when an OpenAI key
+ * engine we keep it (don't swap brains mid-conversation) — so the request's
+ * `engine` is intentionally a no-op after turn 1 (don't "fix" this into a per-turn
+ * switch: it would let one session probe each engine's guardrails). Otherwise the
+ * request's choice, else a sensible default. "ai" only ever takes effect when a key
  * is configured — without it we always fall back to the deterministic scripted flow
  * rather than the dev stub, so the live experience never degrades silently.
  */
@@ -136,9 +138,15 @@ async function runAiTurn(
     })),
   );
 
+  // If the model claimed a MATCH but every id was non-catalog (all dropped), don't
+  // persist/return a match state with zero therapists — that paints an empty
+  // "Suggested therapists" panel. Fall back to a safe CLARIFY.
+  const state: IntakeStateName =
+    allowMatches && matches.length === 0 ? "CLARIFY" : out.state;
+
   messages.push({ role: "assistant", content: out.reply });
   await saveSession(session.id, {
-    state: out.state,
+    state,
     messages,
     suggestedTherapistIds: matches.map((m) => m.therapistId),
     phase: "ai",
@@ -148,7 +156,7 @@ async function runAiTurn(
   return {
     sessionId: session.id,
     assistantMessage: out.reply,
-    state: out.state,
+    state,
     matches,
     engine: "ai",
   };
