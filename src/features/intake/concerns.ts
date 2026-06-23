@@ -28,22 +28,48 @@ function firstSentenceWith(bio: string, term: string): string {
   return (found || sentences[0] || bio).trim();
 }
 
-function scoreEntry(e: CatalogEntry, concerns: string[], text: string): number {
-  const hay = (e.skills.join(" ") + " " + e.bio + " " + e.title).toLowerCase();
+/**
+ * Score a therapist against the detected concerns + free text. A concern hit in
+ * their SKILLS/TITLE (an actual specialty) weighs far more than a passing mention
+ * in the bio — that's what stops, e.g., a child therapist matching "burnout" just
+ * because their bio happens to contain the word "exhausted". `specialty` is the
+ * first concern they genuinely specialize in (null if they only coincide in prose).
+ */
+function scoreEntry(
+  e: CatalogEntry,
+  concerns: string[],
+  text: string,
+): { score: number; specialty: string | null } {
+  const expertise = (e.skills.join(" ") + " " + e.title).toLowerCase();
+  const bio = e.bio.toLowerCase();
   let score = 0;
-  for (const c of concerns) for (const kw of TAGS[c] ?? []) if (hay.includes(kw)) score += 2;
-  for (const w of text.toLowerCase().split(/\W+/).filter((w) => w.length > 4))
-    if (hay.includes(w)) score += 1;
-  return score;
+  let specialty: string | null = null;
+  for (const c of concerns) {
+    for (const kw of TAGS[c] ?? []) {
+      if (expertise.includes(kw)) {
+        score += 5; // they specialize in it
+        specialty ??= c;
+      } else if (bio.includes(kw)) {
+        score += 1; // only mentioned in passing
+      }
+    }
+  }
+  for (const w of text.toLowerCase().split(/\W+/).filter((w) => w.length > 4)) {
+    if (expertise.includes(w)) score += 2;
+    else if (bio.includes(w)) score += 0.5;
+  }
+  return { score, specialty };
 }
 
 export type Pick = { id: string; concept: string; snippet: string };
 
 /**
  * Best verified therapist for the detected concerns + free text. Prefers ones who
- * speak `locale` (falls back to all if that empties the pool). Returns the id, the
- * leading concern key, and the most relevant sentence from their (localized) bio —
- * the service builds the localized rationale from these. Null if nothing scores.
+ * speak `locale` (falls back to all if that empties the pool). Only therapists who
+ * genuinely SPECIALIZE in a stated concern qualify — a bio coincidence is not a
+ * match — so when no real fit exists we return null (honest CLARIFY) rather than
+ * forcing a weak one. Returns the id, the concern they specialize in, and the most
+ * relevant sentence from their (localized) bio for the rationale.
  */
 export function pickMatch(
   catalog: CatalogEntry[],
@@ -54,14 +80,14 @@ export function pickMatch(
   const spoken = catalog.filter((e) => e.languages.includes(locale));
   const pool = spoken.length ? spoken : catalog;
   const ranked = pool
-    .map((e) => ({ e, score: scoreEntry(e, concerns, text) }))
-    .filter((r) => r.score > 0)
+    .map((e) => ({ e, ...scoreEntry(e, concerns, text) }))
+    .filter((r) => r.specialty !== null)
     .sort((a, b) => b.score - a.score);
   if (!ranked.length) return null;
 
-  const best = ranked[0].e;
-  const concept = concerns[0] ?? "";
-  const hay = (best.skills.join(" ") + " " + best.bio).toLowerCase();
+  const best = ranked[0];
+  const concept = best.specialty as string;
+  const hay = (best.e.skills.join(" ") + " " + best.e.bio).toLowerCase();
   const term = (TAGS[concept] ?? []).find((k) => hay.includes(k)) ?? "";
-  return { id: best.id, concept, snippet: firstSentenceWith(best.bio, term) };
+  return { id: best.e.id, concept, snippet: firstSentenceWith(best.e.bio, term) };
 }
