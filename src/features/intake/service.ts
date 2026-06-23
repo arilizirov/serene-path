@@ -1,10 +1,14 @@
 import { getMatchingCatalog } from "@/features/therapists";
 import { getNextAvailable } from "@/features/scheduling";
+import { aiProvider, type ChatMessage } from "@/server/ai";
+import { buildSystemPrompt } from "./prompt";
+import { modelOutputSchema } from "./schema";
 import {
   createSession,
   getSession,
   saveSession,
   type StoredMessage,
+  type IntakeSessionRow,
 } from "./repository";
 import { detectConcerns, pickMatch } from "./concerns";
 import {
@@ -15,30 +19,152 @@ import {
   buildRationale,
   matchMessage,
 } from "./copy";
-import type { IntakeResponse, Locale, IntakeStateName, TherapistMatch } from "./types";
+import type {
+  IntakeResponse,
+  Locale,
+  IntakeStateName,
+  TherapistMatch,
+  IntakeEngine,
+} from "./types";
 
-// Deterministic scripted intake (from scriptedIntakeProvider.ts), driven by a
-// phase persisted on the anonymous session — no model call. Flow:
-//   greet (home page) → probe1 → probe2 → respect+mirror+confirm
-//   → (MATCH | regather) ; matching scores the REAL verified catalog and the
-//   server resolves nextAvailable (the §5 guarantees still hold).
+// Shown when the AI returns unparseable / invalid output — a safe, honest CLARIFY
+// in the user's locale (never a crash, never a fabricated match).
+const FALLBACK_REPLY: Record<Locale, string> = {
+  en: "Sorry — I didn't quite follow that. Could you tell me a little more?",
+  he: "סליחה — לא הבנתי במדויק. אפשר לספר לי קצת יותר?",
+  fr: "Désolé — je n'ai pas bien saisi. Pouvez-vous m'en dire un peu plus ?",
+};
+
+/** Best-effort parse of the model's raw text into JSON (tolerate fences/prose). */
+function safeJson(raw: string): unknown {
+  try {
+    return JSON.parse(raw);
+  } catch {
+    const block = raw.match(/\{[\s\S]*\}/);
+    if (block) {
+      try {
+        return JSON.parse(block[0]);
+      } catch {
+        /* fall through */
+      }
+    }
+    return null;
+  }
+}
+
 type Phase = "g1" | "g2" | "g3" | "confirm" | "regather" | "done";
 
+/**
+ * Resolve the effective engine for a turn. Sticky: once a session has run on one
+ * engine we keep it (don't swap brains mid-conversation). Otherwise the request's
+ * choice, else a sensible default. "ai" only ever takes effect when an OpenAI key
+ * is configured — without it we always fall back to the deterministic scripted flow
+ * rather than the dev stub, so the live experience never degrades silently.
+ */
+function resolveEngine(
+  session: IntakeSessionRow,
+  requested: IntakeEngine | undefined,
+): IntakeEngine {
+  const hasKey = !!process.env.OPENAI_API_KEY;
+  const choice = session.engine ?? requested ?? (hasKey ? "ai" : "scripted");
+  return choice === "ai" && hasKey ? "ai" : "scripted";
+}
+
+/**
+ * Run one intake turn (APP_SPEC §5). Loads/creates the anonymous session, appends
+ * the user message, then dispatches to the chosen engine. Both engines keep the
+ * server-side §5 guarantees: matches only ever name catalog therapists and
+ * `nextAvailable` is always resolved by the scheduling engine, never invented.
+ */
 export async function runIntakeTurn(input: {
   sessionId?: string;
   message: string;
   locale: Locale;
+  engine?: IntakeEngine;
 }): Promise<IntakeResponse> {
-  const { locale } = input;
-  const c = copy(locale);
-
   const existing = input.sessionId ? await getSession(input.sessionId) : null;
   const session = existing ?? (await createSession());
-  const phase = (session.phase as Phase | null) ?? "g1";
+  const engine = resolveEngine(session, input.engine);
 
   const messages: StoredMessage[] = [...session.messages];
   messages.push({ role: "user", content: input.message.trim() });
+
+  return engine === "ai"
+    ? runAiTurn(input.locale, session, messages)
+    : runScriptedTurn(input.locale, session, messages);
+}
+
+/** AI engine: the LLM drives the conversation; the server enforces §5 on its
+ *  UNTRUSTED output (validate, drop non-catalog ids, dedupe, resolve slots). */
+async function runAiTurn(
+  locale: Locale,
+  session: IntakeSessionRow,
+  messages: StoredMessage[],
+): Promise<IntakeResponse> {
+  const catalog = await getMatchingCatalog(locale);
+  const catalogIds = new Set(catalog.map((c) => c.id));
+
+  const chat: ChatMessage[] = [
+    { role: "system", content: buildSystemPrompt(catalog, locale) },
+    ...messages.map((m) => ({ role: m.role, content: m.content })),
+  ];
+  const raw = await aiProvider().complete(chat);
+
+  const parsed = modelOutputSchema.safeParse(safeJson(raw));
+  const out = parsed.success
+    ? parsed.data
+    : { state: "CLARIFY" as const, reply: FALLBACK_REPLY[locale], matches: [] };
+
+  const allowMatches = out.state === "MATCH" || out.state === "PRESENT_OPTIONS";
+  const accepted: { therapist_id: string; rationale: string }[] = [];
+  if (allowMatches) {
+    const seen = new Set<string>();
+    for (const m of out.matches) {
+      if (catalogIds.has(m.therapist_id) && !seen.has(m.therapist_id)) {
+        seen.add(m.therapist_id);
+        accepted.push(m);
+      }
+    }
+  }
+
+  const now = new Date().toISOString();
+  const matches: TherapistMatch[] = await Promise.all(
+    accepted.map(async (m) => ({
+      therapistId: m.therapist_id,
+      rationale: m.rationale,
+      nextAvailable: await getNextAvailable(m.therapist_id, now),
+    })),
+  );
+
+  messages.push({ role: "assistant", content: out.reply });
+  await saveSession(session.id, {
+    state: out.state,
+    messages,
+    suggestedTherapistIds: matches.map((m) => m.therapistId),
+    phase: "ai",
+    engine: "ai",
+  });
+
+  return {
+    sessionId: session.id,
+    assistantMessage: out.reply,
+    state: out.state,
+    matches,
+    engine: "ai",
+  };
+}
+
+/** Scripted engine: deterministic phase machine, no model call. Phase persisted on
+ *  the session; matching scores the real catalog; the server resolves the slot. */
+async function runScriptedTurn(
+  locale: Locale,
+  session: IntakeSessionRow,
+  messages: StoredMessage[],
+): Promise<IntakeResponse> {
+  const c = copy(locale);
+  const phase = (session.phase as Phase | null) ?? "g1";
   const answers = messages.filter((m) => m.role === "user").map((m) => m.content);
+  const lastUser = answers[answers.length - 1] ?? "";
 
   let reply: string;
   let state: IntakeStateName;
@@ -60,7 +186,7 @@ export async function runIntakeTurn(input: {
     nextPhase = "confirm";
     options = confirmOptions(locale);
   } else if (phase === "confirm") {
-    if (isConfirmNo(locale, input.message)) {
+    if (isConfirmNo(locale, lastUser)) {
       reply = c.notQuite;
       state = "GATHER";
       nextPhase = "regather";
@@ -94,7 +220,15 @@ export async function runIntakeTurn(input: {
     messages,
     suggestedTherapistIds: matches.map((m) => m.therapistId),
     phase: nextPhase,
+    engine: "scripted",
   });
 
-  return { sessionId: session.id, assistantMessage: reply, state, matches, options };
+  return {
+    sessionId: session.id,
+    assistantMessage: reply,
+    state,
+    matches,
+    options,
+    engine: "scripted",
+  };
 }

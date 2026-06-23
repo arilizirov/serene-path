@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/db";
-import type { IntakeStateName } from "./types";
+import type { IntakeStateName, IntakeEngine } from "./types";
 
 /** One stored chat turn. Mental-health content (§11) — kept minimal. */
 export type StoredMessage = { role: "user" | "assistant"; content: string };
@@ -10,6 +10,8 @@ export type IntakeSessionRow = {
   messages: StoredMessage[];
   /** Scripted-flow phase, stored in `constraints` (null on a fresh session). */
   phase: string | null;
+  /** Sticky engine for this session, stored in `constraints` (null = not chosen). */
+  engine: IntakeEngine | null;
 };
 
 /** Create a fresh anonymous intake session. */
@@ -18,7 +20,7 @@ export async function createSession(): Promise<IntakeSessionRow> {
     data: { messages: [], state: "GREETING" },
     select: { id: true, state: true },
   });
-  return { id: s.id, state: s.state, messages: [], phase: null };
+  return { id: s.id, state: s.state, messages: [], phase: null, engine: null };
 }
 
 /**
@@ -37,12 +39,14 @@ export async function getSession(id: string): Promise<IntakeSessionRow | null> {
     select: { id: true, state: true, messages: true, constraints: true },
   });
   if (!s) return null;
-  const constraints = (s.constraints as { phase?: string } | null) ?? null;
+  const constraints =
+    (s.constraints as { phase?: string; engine?: IntakeEngine } | null) ?? null;
   return {
     id: s.id,
     state: s.state,
     messages: (s.messages as StoredMessage[] | null) ?? [],
     phase: constraints?.phase ?? null,
+    engine: constraints?.engine ?? null,
   };
 }
 
@@ -54,6 +58,7 @@ export async function saveSession(
     messages: StoredMessage[];
     suggestedTherapistIds: string[];
     phase: string;
+    engine: IntakeEngine;
   },
 ): Promise<void> {
   await prisma.intakeSession.update({
@@ -62,7 +67,7 @@ export async function saveSession(
       state: data.state,
       messages: data.messages,
       suggestedTherapistIds: data.suggestedTherapistIds,
-      constraints: { phase: data.phase },
+      constraints: { phase: data.phase, engine: data.engine },
     },
   });
 }

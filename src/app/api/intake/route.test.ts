@@ -35,6 +35,7 @@ describe("POST /api/intake", () => {
       assistantMessage: "hi",
       state: "GATHER",
       matches: [],
+      engine: "scripted",
     });
     const res = await POST(post({ message: "hello", locale: "en" }));
     expect(res.status).toBe(200);

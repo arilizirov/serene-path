@@ -4,6 +4,10 @@
 
 export type Locale = "he" | "en" | "fr";
 
+/** Which conversation engine produced a turn: the LLM ("ai") or the deterministic
+ *  scripted flow ("scripted"). Lets the UI label/compare them. */
+export type IntakeEngine = "ai" | "scripted";
+
 export type IntakeStateName =
   | "GREETING"
   | "GATHER"
@@ -29,4 +33,6 @@ export type IntakeResponse = {
   matches: TherapistMatch[];
   /** Quick-reply chips for the current turn (e.g. Yes / Not quite at CONFIRM). */
   options?: string[];
+  /** The engine that actually handled this turn (after key/availability fallback). */
+  engine: IntakeEngine;
 };
