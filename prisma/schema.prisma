@@ -39,6 +39,13 @@ enum IntakeState {
   CLARIFY
   PRESENT_OPTIONS
   FOLLOWUP
+  CRISIS
+}
+
+enum Gender {
+  MALE
+  FEMALE
+  OTHER
 }
 
 model User {
@@ -69,6 +76,7 @@ model TherapistProfile {
   photoUrl     String?
   sessionPrice Decimal                 @db.Decimal(10, 2)
   status       TherapistStatus         @default(DRAFT)
+  gender       Gender? // for the intake's optional gender-preference filter (§matching)
   rating       Float                   @default(0)
   reviewCount  Int                     @default(0)
   rules        AvailabilityRule[]
