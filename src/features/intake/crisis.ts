@@ -1,13 +1,14 @@
+import { aiProvider, type ChatMessage } from "@/server/ai";
 import type { LanguageId } from "./contract";
 
 // CRISIS guardrail (INTAKE_BUILD_SPEC §Guardrails). Runs on every free-text input.
 //
-// ⚠️ RESOURCES BELOW ARE PUBLIC ISRAEL LINES, PENDING OWNER VERIFICATION — confirm
-// the current numbers before launch (the spec requires human-verified lines).
+// Resources below are the Israel lines CONFIRMED by the owner (2026-06-24).
 //
-// Detection here is an interim HIGH-RECALL keyword pass; Stage E layers a model
-// classifier on top. It is deliberately not the only safeguard: `get_help_now` is a
-// persistent secondary action on every turn, independent of whether this fires.
+// Detection is two layers: a fast HIGH-RECALL keyword pass, then a model classifier
+// (also high-recall) for phrasings the keywords miss (passive ideation, indirect
+// disclosure). It is deliberately not the only safeguard: `get_help_now` is a
+// persistent secondary action on every turn, independent of whether detection fires.
 
 const CRISIS_TERMS: Record<LanguageId, string[]> = {
   en: [
@@ -34,7 +35,33 @@ export function looksLikeCrisis(text: string, locale: LanguageId): boolean {
   return terms.some((k) => t.includes(k));
 }
 
-// ⚠️ VERIFY BEFORE LAUNCH — owner to confirm these are current Israel lines.
+const CLASSIFIER_PROMPT = `You are a safety classifier for a mental-health intake chat. Decide whether the user's message suggests they may be at risk of suicide, self-harm, or being in immediate danger. Be HIGH-RECALL: if there is any reasonable possibility, answer true — a false alarm is acceptable, a miss is not. The message may be in Hebrew, English, or French. Output ONLY JSON: {"crisis": true} or {"crisis": false}.`;
+
+/** Model classifier (high-recall) for phrasings the keywords miss. Fails to non-
+ *  crisis on error/no-key — the keyword pass already ran and get_help_now persists. */
+async function classifyCrisis(text: string): Promise<boolean> {
+  if (!process.env.OPENAI_API_KEY) return false;
+  const chat: ChatMessage[] = [
+    { role: "system", content: CLASSIFIER_PROMPT },
+    { role: "user", content: text },
+  ];
+  try {
+    const raw = await aiProvider().complete(chat);
+    const block = raw.match(/\{[\s\S]*\}/);
+    if (!block) return false;
+    return (JSON.parse(block[0]) as { crisis?: unknown }).crisis === true;
+  } catch {
+    return false;
+  }
+}
+
+/** Two-layer crisis check on a free-text input: keyword net, then the model. */
+export async function isCrisis(text: string, locale: LanguageId): Promise<boolean> {
+  if (looksLikeCrisis(text, locale)) return true;
+  return classifyCrisis(text);
+}
+
+// Israel crisis lines — CONFIRMED by the owner (2026-06-24).
 const RESOURCES: Record<LanguageId, string> = {
   en: "If you're in immediate danger, call 101 (medical) or 100 (police) right now. For emotional first aid any time, ERAN is at 1201, and Sahar offers online support at sahar.org.il. NATAL (trauma): 1-800-363-363. You don't have to carry this alone — please reach out to one of these now.",
   he: 'אם את/ה בסכנה מיידית, חייג/י עכשיו 101 (מד"א) או 100 (משטרה). לעזרה ראשונה נפשית בכל שעה — ער"ן בטלפון 1201, וסה"ר בתמיכה מקוונת באתר sahar.org.il. נט"ל (טראומה): 1-800-363-363. אינך צריך/ה לשאת את זה לבד — אנא פנה/י לאחד מהם עכשיו.',

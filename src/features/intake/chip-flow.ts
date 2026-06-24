@@ -23,8 +23,9 @@ import {
   type StoredMessage,
 } from "./repository";
 import { flowMsg } from "./flow-copy";
-import { looksLikeCrisis, crisisMessage } from "./crisis";
+import { isCrisis, crisisMessage } from "./crisis";
 import { buildConfirmMessage } from "./confirm";
+import { extractConcern } from "./extract";
 import { pickTherapist } from "./matching";
 
 // The chip-driven pre-choice intake engine (INTAKE_BUILD_SPEC). Deterministic state
@@ -117,7 +118,7 @@ export async function runChipTurn(input: IntakeInput): Promise<IntakeTurn> {
         matches: [],
       };
     }
-    if (looksLikeCrisis(text, locale)) {
+    if (await isCrisis(text, locale)) {
       return persist(session, messages, { state: "CRISIS", assistantMessage: crisisMessage(locale) }, "crisis", selection, text);
     }
     opener = text;
@@ -138,12 +139,13 @@ export async function runChipTurn(input: IntakeInput): Promise<IntakeTurn> {
 
   if (phase === "something_else") {
     const text = (input.text ?? "").trim();
-    if (looksLikeCrisis(text, locale)) {
+    if (await isCrisis(text, locale)) {
       return persist(session, messages, { state: "CRISIS", assistantMessage: crisisMessage(locale) }, "crisis", selection, opener);
     }
     if (text) messages.push({ role: "user", content: text });
-    // Stage E: extract a concern from the text via one model call. Interim: record it.
-    selection.concern = "something_else";
+    // Map the free text to a concern (one model call); unclear → "something_else",
+    // which won't match and routes to the honest no-match escape.
+    selection.concern = await extractConcern(text, locale);
     return persist(session, messages, { state: "GATHER", assistantMessage: m.styleQ, options: [...STYLE_IDS] }, "style", selection, opener);
   }
 
