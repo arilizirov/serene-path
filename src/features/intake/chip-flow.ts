@@ -8,6 +8,7 @@ import {
   type IntakeTurn,
   type IntakeSelection,
   type IntakeFlowState,
+  type IntakeMatch,
   type SecondaryAction,
   type ConcernId,
   type StyleId,
@@ -24,6 +25,7 @@ import {
 import { flowMsg } from "./flow-copy";
 import { looksLikeCrisis, crisisMessage } from "./crisis";
 import { buildConfirmMessage } from "./confirm";
+import { pickTherapist } from "./matching";
 
 // The chip-driven pre-choice intake engine (INTAKE_BUILD_SPEC). Deterministic state
 // machine: opener (free text) → concern → style → language → gender chips → CONFIRM
@@ -55,6 +57,7 @@ type StepResult = {
   state: IntakeFlowState;
   assistantMessage: string;
   options?: string[];
+  matches?: IntakeMatch[];
   done?: boolean;
 };
 
@@ -66,11 +69,12 @@ async function persist(
   selection: IntakeSelection,
   opener: string,
 ): Promise<IntakeTurn> {
+  const matches = result.matches ?? [];
   messages.push({ role: "assistant", content: result.assistantMessage });
   await saveFlowSession(session.id, {
     state: result.state,
     messages,
-    suggestedTherapistIds: [],
+    suggestedTherapistIds: matches.map((m) => m.therapistId),
     phase,
     selection,
     opener,
@@ -81,7 +85,7 @@ async function persist(
     state: result.state,
     options: result.options,
     secondaryActions: SECONDARY,
-    matches: [],
+    matches,
     done: result.done,
   };
 }
@@ -181,8 +185,20 @@ export async function runChipTurn(input: IntakeInput): Promise<IntakeTurn> {
         opener,
       );
     }
-    // "yes" → Step 7 matching (Stage D). Interim placeholder.
-    return persist(session, messages, { state: "PRESENT_OPTIONS", assistantMessage: m.support, done: true }, "matched", selection, opener);
+    // "yes" → Step 7 deterministic matching. A genuine fit → PRESENT_OPTIONS with
+    // one match; nothing scoring ≥ threshold → honest CLARIFY (no-match → escape).
+    const picked = await pickTherapist(selection, locale);
+    if (picked) {
+      return persist(
+        session,
+        messages,
+        { state: "PRESENT_OPTIONS", assistantMessage: picked.assistantMessage, matches: [picked.match], done: true },
+        "matched",
+        selection,
+        opener,
+      );
+    }
+    return persist(session, messages, { state: "CLARIFY", assistantMessage: m.noMatch, done: true }, "matched", selection, opener);
   }
 
   // matched / crisis terminal.

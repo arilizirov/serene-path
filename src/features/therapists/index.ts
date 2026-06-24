@@ -56,5 +56,9 @@ export type { SchedulingContext } from "./service";
 export { getMatchingCatalog } from "./service";
 export type { CatalogEntry } from "./service";
 
+// Deterministic chip-intake match candidates (consumed by the intake feature).
+export { getMatchCandidates } from "./service";
+export type { MatchCandidate } from "./service";
+
 // Verification.
 export { setStatusAction } from "./actions";

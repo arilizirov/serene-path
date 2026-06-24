@@ -8,6 +8,7 @@ import type {
 import {
   findVerifiedTherapists,
   findVerifiedForCatalog,
+  findVerifiedForMatching,
   createTherapist as repoCreateTherapist,
   createTherapistUser as repoCreateTherapistUser,
   updateTherapist as repoUpdateTherapist,
@@ -41,6 +42,34 @@ export type CatalogEntry = {
   skills: string[];
   languages: string[];
 };
+
+/** A verified therapist as the deterministic intake matcher sees them — full
+ *  per-locale bio (the matcher quotes the active locale), plus the structured
+ *  fields it filters/scores on. */
+export type MatchCandidate = {
+  id: string;
+  name: string;
+  languages: string[];
+  gender: "MALE" | "FEMALE" | "OTHER" | null;
+  skills: string[];
+  modalities: string[];
+  bio: Record<string, string>;
+  rating: number;
+};
+
+export async function getMatchCandidates(): Promise<MatchCandidate[]> {
+  const rows = await findVerifiedForMatching();
+  return rows.map((r) => ({
+    id: r.id,
+    name: r.user.name ?? "",
+    languages: r.languages,
+    gender: r.gender,
+    skills: r.skills,
+    modalities: r.modalities,
+    bio: (r.bio ?? {}) as Record<string, string>,
+    rating: r.rating,
+  }));
+}
 
 /** The eligible-therapist catalog for intake matching: every verified therapist,
  *  bio resolved to `locale`. */

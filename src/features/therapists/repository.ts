@@ -33,6 +33,26 @@ export function findVerifiedForCatalog() {
   });
 }
 
+/** Verified therapists with the fields the deterministic intake matcher needs
+ *  (INTAKE_BUILD_SPEC §Step 7): languages + gender + skills + modalities + bio +
+ *  rating. No availability — the scheduler resolves slots after a match. */
+export function findVerifiedForMatching() {
+  return prisma.therapistProfile.findMany({
+    where: { status: "VERIFIED" },
+    orderBy: { createdAt: "asc" },
+    select: {
+      id: true,
+      languages: true,
+      gender: true,
+      skills: true,
+      modalities: true,
+      bio: true,
+      rating: true,
+      user: { select: { name: true } },
+    },
+  });
+}
+
 /** Create a therapist: a User (role THERAPIST) with a nested profile (DRAFT). */
 export function createTherapist(input: TherapistInput) {
   return prisma.user.create({
