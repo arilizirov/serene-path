@@ -21,8 +21,9 @@ import {
   type FlowSession,
   type StoredMessage,
 } from "./repository";
-import { flowMsg, labels } from "./flow-copy";
+import { flowMsg } from "./flow-copy";
 import { looksLikeCrisis, crisisMessage } from "./crisis";
+import { buildConfirmMessage } from "./confirm";
 
 // The chip-driven pre-choice intake engine (INTAKE_BUILD_SPEC). Deterministic state
 // machine: opener (free text) → concern → style → language → gender chips → CONFIRM
@@ -56,24 +57,6 @@ type StepResult = {
   options?: string[];
   done?: boolean;
 };
-
-/** Interim templated confirm — the spec's failure-only fallback, assembled from chips
- *  (no model). Stage C replaces it on the happy path with the one model call. */
-function templatedConfirm(locale: LanguageId, selection: IntakeSelection): string {
-  const m = flowMsg(locale);
-  const l = labels(locale);
-  const concern = selection.concern ? l.concern[selection.concern] : "";
-  const style = selection.style ? l.style[selection.style] : "";
-  const mid = !concern
-    ? ""
-    : locale === "he"
-      ? `ממה ששיתפת, ${concern} מעיק/ה עליך, ואת/ה מחפש/ת ${style}.`
-      : locale === "fr"
-        ? `D'après ce que vous partagez, ${concern} pèse sur vous, et vous cherchez ${style}.`
-        : `From what you've shared, ${concern} is weighing on you, and you're looking for ${style}.`;
-  const didIGet = locale === "he" ? "הבנתי נכון?" : locale === "fr" ? "Ai-je bien compris ?" : "Did I get that right?";
-  return `${m.respect} ${mid} ${didIGet} ${m.support}`.replace(/\s+/g, " ").trim();
-}
 
 async function persist(
   session: FlowSession,
@@ -179,8 +162,9 @@ export async function runChipTurn(input: IntakeInput): Promise<IntakeTurn> {
   if (phase === "gender") {
     if (isGenderPref(input.choice)) {
       selection.genderPreference = input.choice;
-      // Step 6 CONFIRM — interim templated; Stage C swaps in the one model call.
-      return persist(session, messages, { state: "CONFIRM", assistantMessage: templatedConfirm(locale, selection), options: [...CONFIRM_IDS] }, "confirm", selection, opener);
+      // Step 6 CONFIRM — the one model call (warm reflection), templated only on failure.
+      const confirm = await buildConfirmMessage(opener, selection, locale);
+      return persist(session, messages, { state: "CONFIRM", assistantMessage: confirm, options: [...CONFIRM_IDS] }, "confirm", selection, opener);
     }
     return persist(session, messages, { state: "GATHER", assistantMessage: m.genderQ, options: [...GENDER_PREF_IDS] }, "gender", selection, opener);
   }
