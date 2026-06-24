@@ -4,7 +4,7 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 /* ------------------------------------------------------------------ *
- * Therapli brand palette — drawn from the logo (blue #4969fc + green
+ * Theraper brand palette — drawn from the logo (blue #4969fc + green
  * #2de0ac + navy #1d2d4c on a clean cool-white field). Blue is the
  * primary accent (good white-text contrast); green is the secondary
  * accent; navy is the ink. Components use semantic names only.
@@ -48,7 +48,7 @@
 }
 
 @theme inline {
-  /* --- Therapli semantic colors --- */
+  /* --- Theraper semantic colors --- */
   --color-bg: var(--bg);
   --color-surface: var(--surface);
   --color-surface-2: var(--surface-2);

@@ -35,7 +35,7 @@ const notoSansHebrew = Noto_Sans_Hebrew({
 });
 
 export const metadata: Metadata = {
-  title: "Therapli",
+  title: "Theraper",
   description: "AI-guided therapist matching & booking.",
 };
 
