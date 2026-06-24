@@ -1,5 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { createFlowSession, getFlowSession, saveFlowSession } from "./repository";
+import { buildConfirmMessage } from "./confirm";
+import { pickTherapist } from "./matching";
 import { runChipTurn } from "./chip-flow";
 import type { IntakeSelection } from "./contract";
 
@@ -8,9 +10,13 @@ vi.mock("./repository", () => ({
   getFlowSession: vi.fn(),
   saveFlowSession: vi.fn(),
 }));
+vi.mock("./confirm", () => ({ buildConfirmMessage: vi.fn() }));
+vi.mock("./matching", () => ({ pickTherapist: vi.fn() }));
 const mCreate = vi.mocked(createFlowSession);
 const mGet = vi.mocked(getFlowSession);
 const mSave = vi.mocked(saveFlowSession);
+const mConfirm = vi.mocked(buildConfirmMessage);
+const mPick = vi.mocked(pickTherapist);
 
 const at = (phase: string, selection: IntakeSelection = {}, opener = "i feel low") => ({
   id: "s1",
@@ -25,6 +31,8 @@ beforeEach(() => {
   vi.resetAllMocks();
   mCreate.mockResolvedValue({ id: "s-new", messages: [], phase: null, selection: {}, opener: "" });
   mSave.mockResolvedValue();
+  mConfirm.mockResolvedValue("CONFIRM_MSG");
+  mPick.mockResolvedValue(null);
 });
 
 describe("chip flow", () => {
@@ -88,5 +96,25 @@ describe("chip flow", () => {
     const r = await runChipTurn({ locale: "en", sessionId: "s1", choice: "bogus" });
     expect(saved().phase).toBe("style");
     expect(r.options).toEqual(expect.arrayContaining(["practical_tools"]));
+  });
+
+  it("confirm 'yes' with a fit → PRESENT_OPTIONS + one match (done)", async () => {
+    mGet.mockResolvedValue(at("confirm", { concern: "anxiety", style: "practical_tools", language: "en", genderPreference: "no_preference" }));
+    mPick.mockResolvedValue({
+      match: { therapistId: "t1", rationale: "r", rationaleSource: { field: "bio", matchedTerm: "anxiety", quote: "q" }, nextAvailable: "2030-01-01T09:00:00.000Z" },
+      assistantMessage: "Dr. A fits.",
+    });
+    const r = await runChipTurn({ locale: "en", sessionId: "s1", choice: "yes" });
+    expect(r.state).toBe("PRESENT_OPTIONS");
+    expect(r.matches.map((m) => m.therapistId)).toEqual(["t1"]);
+    expect(r.done).toBe(true);
+  });
+
+  it("confirm 'yes' with no fit → CLARIFY, no match", async () => {
+    mGet.mockResolvedValue(at("confirm", { concern: "grief", language: "en" }));
+    mPick.mockResolvedValue(null);
+    const r = await runChipTurn({ locale: "en", sessionId: "s1", choice: "yes" });
+    expect(r.state).toBe("CLARIFY");
+    expect(r.matches).toEqual([]);
   });
 });
