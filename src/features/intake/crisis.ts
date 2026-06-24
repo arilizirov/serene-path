@@ -35,7 +35,7 @@ export function looksLikeCrisis(text: string, locale: LanguageId): boolean {
   return terms.some((k) => t.includes(k));
 }
 
-const CLASSIFIER_PROMPT = `You are a safety classifier for a mental-health intake chat. Decide whether the user's message suggests they may be at risk of suicide, self-harm, or being in immediate danger. Be HIGH-RECALL: if there is any reasonable possibility, answer true — a false alarm is acceptable, a miss is not. The message may be in Hebrew, English, or French. Output ONLY JSON: {"crisis": true} or {"crisis": false}.`;
+const CLASSIFIER_PROMPT = `You are a safety classifier for a mental-health intake chat. Decide whether the user's message suggests GENUINE risk of suicide, self-harm, or being in immediate danger. Be high-recall on real signals — including indirect or passive ideation (e.g. "everyone would be better off without me", "I can't go on", "I don't see the point anymore"). A false alarm is far better than a miss. BUT do NOT flag ordinary stress or common hyperbole/idioms that are clearly not about self-harm (e.g. "this deadline is killing me", "I'm dying of boredom", "I could kill for a coffee", "my back is killing me"). The message may be in Hebrew, English, or French. Output ONLY JSON: {"crisis": true} or {"crisis": false}.`;
 
 /** Model classifier (high-recall) for phrasings the keywords miss. Fails to non-
  *  crisis on error/no-key — the keyword pass already ran and get_help_now persists. */
