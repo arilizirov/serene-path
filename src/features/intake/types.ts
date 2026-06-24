@@ -16,7 +16,8 @@ export type IntakeStateName =
   | "MATCH"
   | "CLARIFY"
   | "PRESENT_OPTIONS"
-  | "FOLLOWUP";
+  | "FOLLOWUP"
+  | "CRISIS";
 
 /** A proposed therapist. `nextAvailable` is ALWAYS server-filled (the model
  *  never invents times) — ISO-8601 UTC, or null if none upcoming. */
