@@ -79,7 +79,7 @@ export function AppShell({
       ) : null}
 
       <header className="sticky top-0 z-50 flex items-center justify-between gap-4 bg-transparent px-6 py-4">
-        <Link href="/" className="flex items-center gap-2" aria-label="Therapli">
+        <Link href="/" className="flex items-center gap-2" aria-label="Theraper">
           <Image
             src="/therapli-mark.png"
             alt=""
@@ -89,7 +89,7 @@ export function AppShell({
             className="h-[22px] w-auto"
           />
           <span className="font-heading text-[17px] font-semibold tracking-[-0.01em] text-ink">
-            Therapli
+            Theraper
           </span>
         </Link>
 
