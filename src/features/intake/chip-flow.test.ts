@@ -2,6 +2,8 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { createFlowSession, getFlowSession, saveFlowSession } from "./repository";
 import { buildConfirmMessage } from "./confirm";
 import { pickTherapist } from "./matching";
+import { isCrisis, crisisMessage } from "./crisis";
+import { extractConcern } from "./extract";
 import { runChipTurn } from "./chip-flow";
 import type { IntakeSelection } from "./contract";
 
@@ -12,11 +14,16 @@ vi.mock("./repository", () => ({
 }));
 vi.mock("./confirm", () => ({ buildConfirmMessage: vi.fn() }));
 vi.mock("./matching", () => ({ pickTherapist: vi.fn() }));
+vi.mock("./crisis", () => ({ isCrisis: vi.fn(), crisisMessage: vi.fn() }));
+vi.mock("./extract", () => ({ extractConcern: vi.fn() }));
 const mCreate = vi.mocked(createFlowSession);
 const mGet = vi.mocked(getFlowSession);
 const mSave = vi.mocked(saveFlowSession);
 const mConfirm = vi.mocked(buildConfirmMessage);
 const mPick = vi.mocked(pickTherapist);
+const mIsCrisis = vi.mocked(isCrisis);
+const mCrisisMsg = vi.mocked(crisisMessage);
+const mExtract = vi.mocked(extractConcern);
 
 const at = (phase: string, selection: IntakeSelection = {}, opener = "i feel low") => ({
   id: "s1",
@@ -33,6 +40,9 @@ beforeEach(() => {
   mSave.mockResolvedValue();
   mConfirm.mockResolvedValue("CONFIRM_MSG");
   mPick.mockResolvedValue(null);
+  mIsCrisis.mockResolvedValue(false);
+  mCrisisMsg.mockReturnValue("CRISIS_MSG");
+  mExtract.mockResolvedValue("something_else");
 });
 
 describe("chip flow", () => {
@@ -45,12 +55,22 @@ describe("chip flow", () => {
     expect(saved().phase).toBe("concern");
   });
 
-  it("crisis language in the opener → CRISIS, no matches, halts", async () => {
+  it("crisis detected in the opener → CRISIS, no matches, halts", async () => {
     mGet.mockResolvedValue(null);
+    mIsCrisis.mockResolvedValue(true);
     const r = await runChipTurn({ locale: "en", text: "honestly I just want to die" });
     expect(r.state).toBe("CRISIS");
     expect(r.matches).toEqual([]);
     expect(saved().phase).toBe("crisis");
+  });
+
+  it("something_else free text → concern extracted, advances to style", async () => {
+    mGet.mockResolvedValue(at("something_else"));
+    mExtract.mockResolvedValue("trauma");
+    const r = await runChipTurn({ locale: "en", sessionId: "s1", text: "a car accident keeps replaying" });
+    expect(saved().selection.concern).toBe("trauma");
+    expect(saved().phase).toBe("style");
+    expect(r.options).toEqual(expect.arrayContaining(["practical_tools"]));
   });
 
   it("concern chip → style chips", async () => {
