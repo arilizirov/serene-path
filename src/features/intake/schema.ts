@@ -11,6 +11,17 @@ export const intakeRequestSchema = z.object({
 });
 export type IntakeRequestInput = z.infer<typeof intakeRequestSchema>;
 
+/** Inbound request for the chip-driven flow (INTAKE_BUILD_SPEC). One of text /
+ *  choice / action carries the turn's input; a bare {locale} starts the flow. */
+export const chipIntakeRequestSchema = z.object({
+  sessionId: z.string().min(1).optional(),
+  locale: z.enum(["he", "en", "fr"]),
+  text: z.string().trim().min(1).max(4000).optional(),
+  choice: z.string().min(1).max(64).optional(),
+  action: z.enum(["browse_all", "human_followup", "get_help_now"]).optional(),
+});
+export type ChipIntakeRequestInput = z.infer<typeof chipIntakeRequestSchema>;
+
 const STATES = [
   "GREETING",
   "GATHER",

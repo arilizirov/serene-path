@@ -4,19 +4,21 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 vi.mock("@/features/intake", async () => {
   const { z } = await import("zod");
   return {
-    intakeRequestSchema: z.object({
+    chipIntakeRequestSchema: z.object({
       sessionId: z.string().min(1).optional(),
-      message: z.string().min(1).max(4000),
       locale: z.enum(["he", "en", "fr"]),
+      text: z.string().trim().min(1).max(4000).optional(),
+      choice: z.string().min(1).max(64).optional(),
+      action: z.enum(["browse_all", "human_followup", "get_help_now"]).optional(),
     }),
-    runIntakeTurn: vi.fn(),
+    runChipTurn: vi.fn(),
   };
 });
 
-import { runIntakeTurn } from "@/features/intake";
+import { runChipTurn } from "@/features/intake";
 import { POST } from "./route";
 
-const mRun = vi.mocked(runIntakeTurn);
+const mRun = vi.mocked(runChipTurn);
 
 function post(body: unknown): Request {
   return new Request("http://localhost/api/intake", {
@@ -29,22 +31,21 @@ function post(body: unknown): Request {
 beforeEach(() => vi.resetAllMocks());
 
 describe("POST /api/intake", () => {
-  it("runs the turn and returns the response for a valid request", async () => {
+  it("runs the turn and returns the response for a valid chip request", async () => {
     mRun.mockResolvedValue({
       sessionId: "s1",
       assistantMessage: "hi",
       state: "GATHER",
       matches: [],
-      engine: "scripted",
     });
-    const res = await POST(post({ message: "hello", locale: "en" }));
+    const res = await POST(post({ locale: "en", choice: "anxiety" }));
     expect(res.status).toBe(200);
     expect(await res.json()).toMatchObject({ sessionId: "s1", state: "GATHER" });
-    expect(mRun).toHaveBeenCalledWith({ message: "hello", locale: "en" });
+    expect(mRun).toHaveBeenCalledWith({ locale: "en", choice: "anxiety" });
   });
 
   it("rejects an invalid body with 400 and never calls the engine", async () => {
-    const res = await POST(post({ message: "", locale: "de" }));
+    const res = await POST(post({ locale: "de" }));
     expect(res.status).toBe(400);
     expect(mRun).not.toHaveBeenCalled();
   });
