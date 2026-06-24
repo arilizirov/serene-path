@@ -6,6 +6,7 @@ export type { IntakeRequestInput, ChipIntakeRequestInput } from "./schema";
 export { runIntakeTurn } from "./service";
 export { runChipTurn } from "./chip-flow";
 export { IntakeChat } from "./ui/intake-chat";
+export { ChipIntakeChat } from "./ui/chip-intake-chat";
 export { FeelingField } from "./ui/feeling-field";
 export type {
   IntakeResponse,

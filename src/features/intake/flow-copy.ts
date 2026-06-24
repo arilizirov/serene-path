@@ -4,6 +4,7 @@ import type {
   StyleId,
   GenderPrefId,
   ConfirmId,
+  SecondaryAction,
 } from "./contract";
 
 // Trilingual copy for the chip-driven intake (INTAKE_BUILD_SPEC §Pinned copy +
@@ -97,3 +98,22 @@ export const FLOW_MSG: Record<LanguageId, FlowMessages> = {
 
 export const labels = (locale: LanguageId) => CHIP_LABELS[locale];
 export const flowMsg = (locale: LanguageId) => FLOW_MSG[locale];
+
+/** Localized label for any chip id (ids are globally unique across the sets). */
+export function chipLabel(locale: LanguageId, id: string): string {
+  const l = CHIP_LABELS[locale];
+  return (
+    l.concern[id as ConcernId] ??
+    l.style[id as StyleId] ??
+    l.language[id as LanguageId] ??
+    l.genderPreference[id as GenderPrefId] ??
+    l.confirm[id as ConfirmId] ??
+    id
+  );
+}
+
+export const SECONDARY_LABELS: Record<LanguageId, Record<SecondaryAction, string>> = {
+  en: { get_help_now: "Get help now", browse_all: "Browse all therapists", human_followup: "Have someone reach out" },
+  he: { get_help_now: "קבלת עזרה עכשיו", browse_all: "עיון בכל המטפלים", human_followup: "שמישהו יחזור אליי" },
+  fr: { get_help_now: "Obtenir de l'aide", browse_all: "Voir tous les thérapeutes", human_followup: "Être recontacté·e" },
+};
