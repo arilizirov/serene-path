@@ -1,4 +1,5 @@
 import { listFinishedSessions } from "@/features/intake";
+import { AdminNav } from "../admin-nav";
 
 // Always reflect current DB state (transcripts arrive continuously); also avoids
 // coupling `next build` to a live database.
@@ -15,6 +16,7 @@ export default async function AdminConversationsPage({
   const rows = await listFinishedSessions(); // already newest-first
   return (
     <main className="mx-auto flex max-w-4xl flex-col gap-6 p-8">
+      <AdminNav />
       <div className="flex items-center justify-between gap-4">
         <h1 className="font-heading text-2xl font-bold text-on-background">
           Conversations
