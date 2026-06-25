@@ -7,6 +7,7 @@ import {
   createAdmin,
   setUserRole,
   resetUserPassword,
+  deleteUser,
   createAdminSchema,
   roleSchema,
   passwordSchema,
@@ -97,6 +98,32 @@ export async function resetPasswordAction(
   }
 
   await resetUserPassword(parsed.data.userId, parsed.data.password);
+
+  redirect(`/${locale}/admin/users`);
+}
+
+/**
+ * GDPR erasure: hard-delete a user and all their data (Phase 5). A per-row,
+ * confirm-on-submit plain form action. requireRole("ADMIN") is the FIRST
+ * statement (no data is touched before it). The FK-safe cascade + the LAST-ADMIN
+ * LOCKOUT both live in the accounts service (deleteUser); the lockout is surfaced
+ * here as a returned error via the redirect query string (a per-row button can't
+ * hold its own useActionState), which the users page renders — it is NOT a thrown
+ * 500. Deleting the only admin (including oneself) is refused by the count guard.
+ */
+export async function deleteUserAction(formData: FormData): Promise<void> {
+  const locale = String(formData.get("locale") ?? "en");
+  await requireRole("ADMIN", locale);
+
+  const userId = String(formData.get("userId") ?? "");
+  if (!userId) redirect(`/${locale}/admin/users`);
+
+  const result = await deleteUser(userId);
+  if (!result.ok) {
+    redirect(
+      `/${locale}/admin/users?error=${encodeURIComponent(result.error)}`,
+    );
+  }
 
   redirect(`/${locale}/admin/users`);
 }
