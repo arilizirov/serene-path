@@ -17,6 +17,7 @@ export type NavIcon =
   | "settings"
   | "appointments"
   | "find"
+  | "stats"
   | "help";
 
 export type NavItem = {
@@ -72,6 +73,40 @@ export const therapistNav: NavItem[] = [
     icon: "settings",
     soon: true,
   },
+];
+
+/** Admin portal sidebar. One item per /admin section (mirrors the old flat
+ *  AdminNav link row), in the same order. Labels resolve against the shared
+ *  `Dashboard` catalog (`nav.<labelKey>`), like the other manifests. */
+export const adminNav: NavItem[] = [
+  { key: "dashboard", href: "/admin", labelKey: "adminDashboard", icon: "overview" },
+  {
+    key: "therapists",
+    href: "/admin/therapists",
+    labelKey: "adminTherapists",
+    icon: "clients",
+  },
+  {
+    key: "schedule",
+    href: "/admin/schedule",
+    labelKey: "adminSchedule",
+    icon: "calendar",
+  },
+  {
+    key: "appointments",
+    href: "/admin/appointments",
+    labelKey: "adminAppointments",
+    icon: "appointments",
+  },
+  {
+    key: "conversations",
+    href: "/admin/conversations",
+    labelKey: "adminConversations",
+    icon: "requests",
+  },
+  { key: "users", href: "/admin/users", labelKey: "adminUsers", icon: "profile" },
+  { key: "stats", href: "/admin/stats", labelKey: "adminStats", icon: "stats" },
+  { key: "costs", href: "/admin/costs", labelKey: "adminCosts", icon: "earnings" },
 ];
 
 /** Client sidebar manifest (the client dashboard itself is a later pass). */

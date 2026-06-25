@@ -47,6 +47,14 @@
       "settings": "Paramètres",
       "appointments": "Mes rendez-vous",
       "find": "Trouver un thérapeute",
+      "adminDashboard": "Tableau de bord",
+      "adminTherapists": "Thérapeutes",
+      "adminSchedule": "Planning",
+      "adminAppointments": "Rendez-vous",
+      "adminConversations": "Conversations",
+      "adminUsers": "Utilisateurs",
+      "adminStats": "Statistiques",
+      "adminCosts": "Coûts",
       "help": "Aide"
     },
     "overview": {
@@ -88,6 +96,22 @@
       "heading": "{section} arrive bientôt",
       "body": "Cette partie de votre tableau de bord n'est pas encore prête. Elle apparaîtra ici dès sa mise en service.",
       "backToOverview": "Retour à l'aperçu"
+    }
+  },
+  "Admin": {
+    "principal": "Administrateur",
+    "title": {
+      "dashboard": "Administration",
+      "therapists": "Thérapeutes",
+      "therapistNew": "Nouveau thérapeute",
+      "therapistEdit": "Modifier le thérapeute",
+      "schedule": "Planning de tous les thérapeutes",
+      "appointments": "Rendez-vous",
+      "conversations": "Conversations",
+      "conversation": "Conversation",
+      "users": "Utilisateurs",
+      "stats": "Statistiques du site / admission",
+      "costs": "Coût et usage de l'API"
     }
   }
 }

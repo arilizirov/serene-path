@@ -47,6 +47,14 @@
       "settings": "Settings",
       "appointments": "My appointments",
       "find": "Find a therapist",
+      "adminDashboard": "Dashboard",
+      "adminTherapists": "Therapists",
+      "adminSchedule": "Schedule",
+      "adminAppointments": "Appointments",
+      "adminConversations": "Conversations",
+      "adminUsers": "Users",
+      "adminStats": "Statistics",
+      "adminCosts": "Costs",
       "help": "Help"
     },
     "overview": {
@@ -88,6 +96,22 @@
       "heading": "{section} is coming soon",
       "body": "This part of your cockpit isn't ready yet. It'll show up here once it ships.",
       "backToOverview": "Back to overview"
+    }
+  },
+  "Admin": {
+    "principal": "Admin",
+    "title": {
+      "dashboard": "Admin",
+      "therapists": "Therapists",
+      "therapistNew": "New therapist",
+      "therapistEdit": "Edit therapist",
+      "schedule": "All-therapist schedule",
+      "appointments": "Appointments",
+      "conversations": "Conversations",
+      "conversation": "Conversation",
+      "users": "Users",
+      "stats": "Website / intake statistics",
+      "costs": "API cost & usage"
     }
   }
 }

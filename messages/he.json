@@ -47,6 +47,14 @@
       "settings": "הגדרות",
       "appointments": "הפגישות שלי",
       "find": "מצא מטפל/ת",
+      "adminDashboard": "לוח בקרה",
+      "adminTherapists": "מטפלים",
+      "adminSchedule": "לוח זמנים",
+      "adminAppointments": "פגישות",
+      "adminConversations": "שיחות",
+      "adminUsers": "משתמשים",
+      "adminStats": "סטטיסטיקה",
+      "adminCosts": "עלויות",
       "help": "עזרה"
     },
     "overview": {
@@ -88,6 +96,22 @@
       "heading": "{section} בקרוב",
       "body": "החלק הזה בלוח הבקרה עדיין לא מוכן. הוא יופיע כאן ברגע שיהיה זמין.",
       "backToOverview": "חזרה לסקירה"
+    }
+  },
+  "Admin": {
+    "principal": "מנהל",
+    "title": {
+      "dashboard": "ניהול",
+      "therapists": "מטפלים",
+      "therapistNew": "מטפל/ת חדש/ה",
+      "therapistEdit": "עריכת מטפל/ת",
+      "schedule": "לוח זמנים של כל המטפלים",
+      "appointments": "פגישות",
+      "conversations": "שיחות",
+      "conversation": "שיחה",
+      "users": "משתמשים",
+      "stats": "סטטיסטיקת אתר / קליטה",
+      "costs": "עלות ושימוש ב-API"
     }
   }
 }

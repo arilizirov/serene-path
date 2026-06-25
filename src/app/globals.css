@@ -4,11 +4,12 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 /* ------------------------------------------------------------------ *
- * Theraper brand palette — a clean SaaS-dashboard look: fresh GREEN is
- * the primary brand (nav, links, charts, filled buttons), warm AMBER is
- * the accent/CTA, navy is the ink, on a cool-white field. Emerald (--accent-2)
- * stays as a secondary for chart variety. IMPORTANT: amber pairs with NAVY
- * ink (--accent-3-ink), never white. Components use semantic names only.
+ * Theraper brand palette — drawn from the logo (blue #4969fc + green
+ * #2de0ac + navy #1d2d4c on a clean cool-white field). Blue is the
+ * primary accent (good white-text contrast); green is the secondary
+ * accent; navy is the ink. --accent-3 aliases the green secondary — a
+ * distinct "accent" slot (hero CTAs) that stays within the homepage
+ * palette. Components use semantic names only.
  * ------------------------------------------------------------------ */
 :root {
   --bg: #f5f7fb;
@@ -19,16 +20,16 @@
   --ink: #1d2d4c;
   --ink-2: #5b6885;
   --ink-3: #97a1b8;
-  --accent: #16a34a;
+  --accent: #3d5be6;
   --accent-ink: #ffffff;
-  --accent-soft: #dcfce7;
-  --accent-soft-ink: #15803d;
+  --accent-soft: #e4e9fd;
+  --accent-soft-ink: #2f49c0;
   --accent-2: #14b487;
   --accent-2-soft: #d8f5ec;
-  --accent-3: #f59e0b;
-  --accent-3-ink: #1d2d4c;
-  --accent-3-soft: #fef3c7;
-  --accent-3-soft-ink: #b45309;
+  --accent-3: #14b487;
+  --accent-3-ink: #ffffff;
+  --accent-3-soft: #d8f5ec;
+  --accent-3-soft-ink: #0f6e56;
   --danger: #c0584e;
   --shadow: 0 1px 3px rgba(20, 30, 60, 0.06), 0 8px 28px rgba(20, 30, 60, 0.06);
 }
@@ -42,16 +43,16 @@
   --ink: #e9edf7;
   --ink-2: #a6b0c8;
   --ink-3: #6d7793;
-  --accent: #34d399;
-  --accent-ink: #052012;
-  --accent-soft: #14352a;
-  --accent-soft-ink: #6ee7b7;
+  --accent: #6f86ff;
+  --accent-ink: #0b1020;
+  --accent-soft: #1c2747;
+  --accent-soft-ink: #9fb2ff;
   --accent-2: #3ee0ac;
   --accent-2-soft: #173a30;
-  --accent-3: #fbbf24;
-  --accent-3-ink: #231803;
-  --accent-3-soft: #3a2c08;
-  --accent-3-soft-ink: #fcd34d;
+  --accent-3: #3ee0ac;
+  --accent-3-ink: #0b1020;
+  --accent-3-soft: #173a30;
+  --accent-3-soft-ink: #3ee0ac;
   --danger: #d9655a;
   --shadow: 0 1px 3px rgba(0, 0, 0, 0.3), 0 10px 30px rgba(0, 0, 0, 0.3);
 }
