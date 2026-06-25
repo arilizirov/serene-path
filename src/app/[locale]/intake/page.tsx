@@ -1,6 +1,6 @@
 import { getLocale } from "next-intl/server";
 import { isLocale } from "@/lib/utils";
-import { ChipIntakeChat } from "@/features/intake";
+import { IntakeChat } from "@/features/intake";
 
 export default async function IntakePage({
   searchParams,
@@ -16,7 +16,7 @@ export default async function IntakePage({
       <h1 className="font-heading text-2xl font-bold text-on-background">
         Let&apos;s find the right person
       </h1>
-      <ChipIntakeChat locale={locale} initialMessage={m} />
+      <IntakeChat locale={locale} initialMessage={m} />
     </main>
   );
 }
