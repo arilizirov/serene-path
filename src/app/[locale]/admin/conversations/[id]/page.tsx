@@ -1,6 +1,8 @@
 import { notFound } from "next/navigation";
+import { getTranslations } from "next-intl/server";
 import { getFullSession } from "@/features/intake";
-import { AdminNav } from "../../admin-nav";
+import { DashboardShell } from "@/components/dashboard-shell";
+import { adminNav } from "@/components/dashboard-nav";
 
 // Always reflect current DB state (transcripts arrive continuously) and avoid
 // coupling `next build` to a live database.
@@ -16,13 +18,19 @@ export default async function ConversationViewPage({
   params: Promise<{ locale: string; id: string }>;
 }) {
   const { locale, id } = await params;
+  const t = await getTranslations("Admin");
   const session = await getFullSession(id);
   if (!session) notFound();
 
   return (
-    <main className="mx-auto flex max-w-4xl flex-col gap-6 p-8">
-      <AdminNav />
-
+    <DashboardShell
+      nav={adminNav}
+      activeKey="conversations"
+      title={t("title.conversation")}
+      user={{ name: t("principal") }}
+      locale={locale}
+    >
+      <div className="flex flex-col gap-6">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <a
           href={`/${locale}/admin/conversations`}
@@ -105,6 +113,7 @@ export default async function ConversationViewPage({
           </ol>
         )}
       </section>
-    </main>
+      </div>
+    </DashboardShell>
   );
 }

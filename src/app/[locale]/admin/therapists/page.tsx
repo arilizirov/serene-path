@@ -1,6 +1,8 @@
+import { getTranslations } from "next-intl/server";
 import { Link } from "@/i18n/navigation";
 import { listTherapistsForAdmin, setStatusAction } from "@/features/therapists";
-import { AdminNav } from "../admin-nav";
+import { DashboardShell } from "@/components/dashboard-shell";
+import { adminNav } from "@/components/dashboard-nav";
 
 // Always reflect current DB state (never a build-time snapshot); also avoids
 // coupling `next build` to a live database.
@@ -15,22 +17,25 @@ export default async function AdminTherapistsPage({
   params: Promise<{ locale: string }>;
 }) {
   const { locale } = await params;
+  const t = await getTranslations("Admin");
   const rows = await listTherapistsForAdmin();
   return (
-    <main className="mx-auto flex max-w-4xl flex-col gap-6 p-8">
-      <AdminNav />
-      <div className="flex items-center justify-between gap-4">
-        <h1 className="font-heading text-2xl font-bold text-on-background">
-          Therapists
-        </h1>
+    <DashboardShell
+      nav={adminNav}
+      activeKey="therapists"
+      title={t("title.therapists")}
+      user={{ name: t("principal") }}
+      locale={locale}
+      headerRight={
         <Link
           href="/admin/therapists/new"
           className="rounded-full bg-primary px-4 py-2 text-sm font-medium text-on-primary"
         >
           + New therapist
         </Link>
-      </div>
-
+      }
+    >
+      <div className="flex flex-col gap-6">
       {rows.length === 0 ? (
         <p className="text-on-surface-variant">No therapists yet.</p>
       ) : (
@@ -83,6 +88,7 @@ export default async function AdminTherapistsPage({
           </tbody>
         </table>
       )}
-    </main>
+      </div>
+    </DashboardShell>
   );
 }

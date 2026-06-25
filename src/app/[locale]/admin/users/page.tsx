@@ -1,5 +1,7 @@
+import { getTranslations } from "next-intl/server";
 import { listAllUsers } from "@/features/accounts";
-import { AdminNav } from "../admin-nav";
+import { DashboardShell } from "@/components/dashboard-shell";
+import { adminNav } from "@/components/dashboard-nav";
 import { ChangeRoleForm } from "./change-role-form";
 import { ResetPasswordForm } from "./reset-password-form";
 import { CreateAdminForm } from "./create-admin-form";
@@ -31,14 +33,19 @@ export default async function AdminUsersPage({
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const { locale } = await params;
+  const t = await getTranslations("Admin");
   const error = one((await searchParams).error);
   const users = await listAllUsers();
 
   return (
-    <main className="mx-auto flex max-w-5xl flex-col gap-8 p-8">
-      <AdminNav />
-      <h1 className="font-heading text-2xl font-bold text-on-background">Users</h1>
-
+    <DashboardShell
+      nav={adminNav}
+      activeKey="users"
+      title={t("title.users")}
+      user={{ name: t("principal") }}
+      locale={locale}
+    >
+      <div className="flex flex-col gap-8">
       {error && (
         <p className="rounded-lg bg-error-container px-4 py-2 text-sm text-on-error-container">
           {error}
@@ -95,6 +102,7 @@ export default async function AdminUsersPage({
         </h2>
         <CreateAdminForm locale={locale} />
       </section>
-    </main>
+      </div>
+    </DashboardShell>
   );
 }

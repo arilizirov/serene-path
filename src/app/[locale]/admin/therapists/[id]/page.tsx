@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import { getTranslations } from "next-intl/server";
 import {
   getTherapistForEdit,
   getAvailabilityRules,
@@ -8,6 +9,8 @@ import {
   BlockedDatesEditor,
   DeleteTherapistButton,
 } from "@/features/therapists";
+import { DashboardShell } from "@/components/dashboard-shell";
+import { adminNav } from "@/components/dashboard-nav";
 
 // Always load the current profile for editing (no build-time snapshot).
 export const dynamic = "force-dynamic";
@@ -18,13 +21,21 @@ export default async function EditTherapistPage({
   params: Promise<{ locale: string; id: string }>;
 }) {
   const { locale, id } = await params;
+  const t = await getTranslations("Admin");
   const therapist = await getTherapistForEdit(id);
   if (!therapist) notFound();
   const rules = await getAvailabilityRules(id);
   const blockedDates = await getBlockedDates(id);
 
   return (
-    <main className="mx-auto flex max-w-2xl flex-col gap-8 p-8">
+    <DashboardShell
+      nav={adminNav}
+      activeKey="therapists"
+      title={t("title.therapistEdit")}
+      user={{ name: t("principal") }}
+      locale={locale}
+    >
+      <div className="mx-auto flex max-w-2xl flex-col gap-8">
       <section className="flex flex-col gap-6">
         <h1 className="font-heading text-2xl font-bold text-on-background">
           Edit therapist
@@ -57,6 +68,7 @@ export default async function EditTherapistPage({
         </p>
         <DeleteTherapistButton profileId={id} locale={locale} />
       </section>
-    </main>
+      </div>
+    </DashboardShell>
   );
 }

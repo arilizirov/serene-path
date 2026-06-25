@@ -1,17 +1,25 @@
+import { getTranslations } from "next-intl/server";
 import { Link } from "@/i18n/navigation";
 import { countTherapists } from "@/features/therapists";
 import { countFinishedSessions } from "@/features/intake";
 import { countAllAppointments } from "@/features/scheduling";
 import { getSignupStats } from "@/features/accounts";
 import { getCostStats } from "@/server/ai";
-import { AdminNav } from "./admin-nav";
+import { DashboardShell } from "@/components/dashboard-shell";
+import { adminNav } from "@/components/dashboard-nav";
 
 // Reflect current DB state (counts), not a build-time snapshot.
 export const dynamic = "force-dynamic";
 
 // Admin landing. The /admin layout already enforces requireRole("ADMIN"), so this
 // page needs no extra guard; it just links into the admin areas with counts.
-export default async function AdminDashboardPage() {
+export default async function AdminDashboardPage({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}) {
+  const { locale } = await params;
+  const t = await getTranslations("Admin");
   const [therapists, conversations, appointments, signupStats, costStats] =
     await Promise.all([
       countTherapists(),
@@ -38,32 +46,38 @@ export default async function AdminDashboardPage() {
     { href: "/admin/stats", label: "Website / intake statistics" },
   ];
   return (
-    <main className="mx-auto flex max-w-4xl flex-col gap-6 p-8">
-      <AdminNav />
-      <h1 className="font-heading text-2xl font-bold text-on-background">Admin</h1>
-      <div className="grid gap-4 sm:grid-cols-3">
-        {cards.map((c) => (
-          <Link
-            key={c.href}
-            href={c.href}
-            className="flex flex-col gap-1 rounded-2xl border border-outline-variant bg-surface-container-lowest p-6 hover:border-primary"
-          >
-            <span className="text-3xl font-bold text-on-surface">{c.count}</span>
-            <span className="text-sm font-medium text-primary">{c.label}</span>
-          </Link>
-        ))}
+    <DashboardShell
+      nav={adminNav}
+      activeKey="dashboard"
+      title={t("title.dashboard")}
+      user={{ name: t("principal") }}
+      locale={locale}
+    >
+      <div className="flex flex-col gap-6">
+        <div className="grid gap-4 sm:grid-cols-3">
+          {cards.map((c) => (
+            <Link
+              key={c.href}
+              href={c.href}
+              className="flex flex-col gap-1 rounded-2xl border border-outline-variant bg-surface-container-lowest p-6 hover:border-primary"
+            >
+              <span className="text-3xl font-bold text-on-surface">{c.count}</span>
+              <span className="text-sm font-medium text-primary">{c.label}</span>
+            </Link>
+          ))}
+        </div>
+        <div className="flex flex-wrap gap-4">
+          {links.map((l) => (
+            <Link
+              key={l.href}
+              href={l.href}
+              className="rounded-full border border-outline-variant px-4 py-2 text-sm font-medium text-primary hover:border-primary"
+            >
+              {l.label}
+            </Link>
+          ))}
+        </div>
       </div>
-      <div className="flex flex-wrap gap-4">
-        {links.map((l) => (
-          <Link
-            key={l.href}
-            href={l.href}
-            className="rounded-full border border-outline-variant px-4 py-2 text-sm font-medium text-primary hover:border-primary"
-          >
-            {l.label}
-          </Link>
-        ))}
-      </div>
-    </main>
+    </DashboardShell>
   );
 }
