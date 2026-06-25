@@ -7,8 +7,8 @@ import { registerSchema } from "./schema";
 
 /** Where each role lands after signing in. */
 function roleHome(role: Role, locale: string): string {
-  // ADMIN → /admin/therapists for now (the /admin dashboard index lands in Phase 1).
-  if (role === "ADMIN") return `/${locale}/admin/therapists`;
+  // ADMIN → the /admin dashboard (Phase 1 landing).
+  if (role === "ADMIN") return `/${locale}/admin`;
   if (role === "THERAPIST") return `/${locale}/dashboard`;
   return `/${locale}/appointments`; // CLIENT
 }
