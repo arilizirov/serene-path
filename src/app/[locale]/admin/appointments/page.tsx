@@ -1,9 +1,11 @@
+import { getTranslations } from "next-intl/server";
 import {
   getAllAppointments,
   appointmentStatusSchema,
 } from "@/features/scheduling";
 import { listTherapistsForAdmin } from "@/features/therapists";
-import { AdminNav } from "../admin-nav";
+import { DashboardShell } from "@/components/dashboard-shell";
+import { adminNav } from "@/components/dashboard-nav";
 import { adminCancelAppointment, adminMarkNoShow } from "./actions";
 import { AppointmentActionButton } from "./appointment-action-button";
 
@@ -29,6 +31,7 @@ export default async function AdminAppointmentsPage({
   searchParams: Promise<{ status?: string; therapistId?: string }>;
 }) {
   const { locale } = await params;
+  const t = await getTranslations("Admin");
   const sp = await searchParams;
 
   // Validate untrusted query input at the boundary; ignore anything invalid.
@@ -42,12 +45,14 @@ export default async function AdminAppointmentsPage({
   ]);
 
   return (
-    <main className="mx-auto flex max-w-5xl flex-col gap-6 p-8">
-      <AdminNav />
-      <h1 className="font-heading text-2xl font-bold text-on-background">
-        Appointments
-      </h1>
-
+    <DashboardShell
+      nav={adminNav}
+      activeKey="appointments"
+      title={t("title.appointments")}
+      user={{ name: t("principal") }}
+      locale={locale}
+    >
+      <div className="flex flex-col gap-6">
       <form method="get" className="flex flex-wrap items-end gap-3 text-sm">
         <label className="flex flex-col gap-1">
           <span className="text-xs text-on-surface-variant">Status</span>
@@ -145,6 +150,7 @@ export default async function AdminAppointmentsPage({
           </tbody>
         </table>
       )}
-    </main>
+      </div>
+    </DashboardShell>
   );
 }

@@ -1,8 +1,10 @@
+import { getTranslations } from "next-intl/server";
 import { getIntakeStats } from "@/features/intake";
 import { getSignupStats } from "@/features/accounts";
 import { getTherapistPipeline } from "@/features/therapists";
 import { getAppointmentStatusCounts } from "@/features/scheduling";
-import { AdminNav } from "../admin-nav";
+import { DashboardShell } from "@/components/dashboard-shell";
+import { adminNav } from "@/components/dashboard-nav";
 
 // Always reflect current DB state; also avoids coupling `next build` to a live DB.
 export const dynamic = "force-dynamic";
@@ -56,7 +58,13 @@ function Breakdown({
 // trackers, no new tables). All reads use prisma groupBy/count where possible;
 // the cross-feature composition happens here at the app layer (each feature
 // exposes its own DB-derived read through its public index).
-export default async function AdminStatsPage() {
+export default async function AdminStatsPage({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}) {
+  const { locale } = await params;
+  const t = await getTranslations("Admin");
   const [intake, signups, pipeline, bookings] = await Promise.all([
     getIntakeStats(),
     getSignupStats(),
@@ -67,12 +75,14 @@ export default async function AdminStatsPage() {
   const matchPct = `${Math.round(intake.matchRate * 100)}%`;
 
   return (
-    <main className="mx-auto flex max-w-4xl flex-col gap-8 p-8">
-      <AdminNav />
-      <h1 className="font-heading text-2xl font-bold text-on-background">
-        Website / intake statistics
-      </h1>
-
+    <DashboardShell
+      nav={adminNav}
+      activeKey="stats"
+      title={t("title.stats")}
+      user={{ name: t("principal") }}
+      locale={locale}
+    >
+      <div className="flex flex-col gap-8">
       <div className="grid gap-4 sm:grid-cols-3">
         <StatCard label="Intake sessions" value={intake.total} />
         <StatCard label="Matched sessions" value={intake.matched} />
@@ -95,6 +105,7 @@ export default async function AdminStatsPage() {
       <Breakdown title="Signups (by role)" counts={signups.byRole} />
       <Breakdown title="Therapist pipeline (by status)" counts={pipeline} />
       <Breakdown title="Bookings (by status)" counts={bookings} />
-    </main>
+      </div>
+    </DashboardShell>
   );
 }

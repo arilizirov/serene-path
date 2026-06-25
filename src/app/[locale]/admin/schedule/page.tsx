@@ -1,6 +1,8 @@
+import { getTranslations } from "next-intl/server";
 import { Link } from "@/i18n/navigation";
 import { getAllTherapistsSchedules } from "@/features/scheduling";
-import { AdminNav } from "../admin-nav";
+import { DashboardShell } from "@/components/dashboard-shell";
+import { adminNav } from "@/components/dashboard-nav";
 
 // Always reflect current DB state (rules / blocked dates / live slots change
 // continuously); also avoids coupling `next build` to a live database.
@@ -27,14 +29,22 @@ function formatSlot(iso: string): string {
 // Editing is reused via the existing per-therapist editor (/admin/therapists/[id]),
 // where the admin-scoped saveAvailabilityAction (requireRole ADMIN, keyed by
 // therapistId) already lets an admin change any therapist's availability.
-export default async function AdminSchedulePage() {
+export default async function AdminSchedulePage({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}) {
+  const { locale } = await params;
+  const t = await getTranslations("Admin");
   const schedules = await getAllTherapistsSchedules();
   return (
-    <main className="mx-auto flex max-w-4xl flex-col gap-6 p-8">
-      <AdminNav />
-      <h1 className="font-heading text-2xl font-bold text-on-background">
-        All-therapist schedule
-      </h1>
+    <DashboardShell
+      nav={adminNav}
+      activeKey="schedule"
+      title={t("title.schedule")}
+      user={{ name: t("principal") }}
+      locale={locale}
+    >
       {schedules.length === 0 ? (
         <p className="text-on-surface-variant">No therapists yet.</p>
       ) : (
@@ -114,6 +124,6 @@ export default async function AdminSchedulePage() {
           })}
         </div>
       )}
-    </main>
+    </DashboardShell>
   );
 }

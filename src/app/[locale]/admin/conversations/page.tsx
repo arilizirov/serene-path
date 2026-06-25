@@ -1,5 +1,7 @@
+import { getTranslations } from "next-intl/server";
 import { listFinishedSessions } from "@/features/intake";
-import { AdminNav } from "../admin-nav";
+import { DashboardShell } from "@/components/dashboard-shell";
+import { adminNav } from "@/components/dashboard-nav";
 import { ConversationsTable } from "./conversations-table";
 import { PurgeForm } from "./purge-form";
 
@@ -24,28 +26,31 @@ export default async function AdminConversationsPage({
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const { locale } = await params;
+  const t = await getTranslations("Admin");
   const sp = await searchParams;
   const purged = one(sp.purged);
   const purgedDays = one(sp.days);
   const error = one(sp.error);
   const rows = await listFinishedSessions(); // already newest-first
   return (
-    <main className="mx-auto flex max-w-4xl flex-col gap-6 p-8">
-      <AdminNav />
-      <div className="flex items-center justify-between gap-4">
-        <h1 className="font-heading text-2xl font-bold text-on-background">
-          Conversations
-        </h1>
-        {rows.length > 0 && (
+    <DashboardShell
+      nav={adminNav}
+      activeKey="conversations"
+      title={t("title.conversations")}
+      user={{ name: t("principal") }}
+      locale={locale}
+      headerRight={
+        rows.length > 0 ? (
           <a
             href={`/${locale}/admin/conversations/download-all`}
             className="rounded-full bg-primary px-4 py-2 text-sm font-medium text-on-primary"
           >
             Download all (.md)
           </a>
-        )}
-      </div>
-
+        ) : undefined
+      }
+    >
+      <div className="flex flex-col gap-6">
       {purged !== undefined && (
         <p className="rounded-lg bg-surface-container px-4 py-2 text-sm text-on-surface">
           Deleted {purged} conversation{purged === "1" ? "" : "s"} older than{" "}
@@ -84,6 +89,7 @@ export default async function AdminConversationsPage({
           }))}
         />
       )}
-    </main>
+      </div>
+    </DashboardShell>
   );
 }
