@@ -12,8 +12,9 @@ export {
   registerClient,
   startSessionFor,
   normalizeEmail,
+  getSignupStats,
 } from "./service";
-export type { AuthedUser, Role, UserContact } from "./service";
+export type { AuthedUser, Role, UserContact, SignupStats } from "./service";
 export { hashPassword } from "./password";
 export { loginAction, logoutAction, registerAction } from "./actions";
 export type { LoginState, RegisterState } from "./actions";

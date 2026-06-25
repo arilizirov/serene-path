@@ -18,6 +18,7 @@ import {
   requestVerificationByUser as repoRequestVerificationByUser,
   listAllTherapists as repoListAllTherapists,
   countTherapists as repoCountTherapists,
+  therapistCountsByStatus as repoTherapistCountsByStatus,
   getAvailabilityRules as repoGetAvailabilityRules,
   replaceAvailabilityRules as repoReplaceAvailabilityRules,
   setTherapistStatus as repoSetTherapistStatus,
@@ -297,6 +298,13 @@ export async function deleteTherapist(profileId: string): Promise<void> {
 /** Total number of therapist profiles (any status) — for the admin dashboard. */
 export async function countTherapists(): Promise<number> {
   return repoCountTherapists();
+}
+
+/** Therapist pipeline for the admin stats page: profile counts keyed by
+ *  verification status (DRAFT / PENDING / VERIFIED / SUSPENDED), via groupBy. */
+export async function getTherapistPipeline(): Promise<Record<string, number>> {
+  const rows = await repoTherapistCountsByStatus();
+  return Object.fromEntries(rows.map((r) => [r.status, r._count._all]));
 }
 
 /** The public profile of a VERIFIED therapist, localized; null if not found. */

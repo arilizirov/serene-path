@@ -176,6 +176,15 @@ export function countTherapists() {
   return prisma.therapistProfile.count();
 }
 
+/** Therapist-profile counts grouped by verification status (the pipeline) —
+ *  via groupBy, no table load. For the admin stats page. */
+export function therapistCountsByStatus() {
+  return prisma.therapistProfile.groupBy({
+    by: ["status"],
+    _count: { _all: true },
+  });
+}
+
 /** Every therapist (any status) for the admin list. */
 export function listAllTherapists() {
   return prisma.therapistProfile.findMany({

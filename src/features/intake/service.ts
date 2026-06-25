@@ -287,3 +287,46 @@ export function conversationToMarkdown(session: FullSession): string {
 export function conversationsToMarkdown(sessions: FullSession[]): string {
   return sessions.map(conversationToMarkdown).join("\n\n---\n\n");
 }
+
+// --- Admin: intake statistics (Phase 2, DB-derived) --------------------------
+
+import {
+  sessionCountsByState,
+  countSessions,
+  countMatchedSessions,
+  listSessionConstraints,
+} from "./repository";
+import { tallyEngines, matchRate } from "./stats";
+
+/** The intake metrics the admin stats page renders, all derived from the DB. */
+export type IntakeStats = {
+  total: number;
+  byState: Record<string, number>;
+  matched: number;
+  matchRate: number; // 0..1
+  engines: { ai: number; scripted: number; none: number };
+};
+
+/**
+ * Intake funnel + match rate + engine breakdown, purely from the DB. Counts/funnel
+ * use prisma groupBy/count (no table load); the engine breakdown reduces the
+ * `constraints` blobs in app code via the pure tallyEngines helper.
+ */
+export async function getIntakeStats(): Promise<IntakeStats> {
+  const [stateRows, total, matched, constraintRows] = await Promise.all([
+    sessionCountsByState(),
+    countSessions(),
+    countMatchedSessions(),
+    listSessionConstraints(),
+  ]);
+  const byState = Object.fromEntries(
+    stateRows.map((r) => [r.state, r._count._all]),
+  );
+  return {
+    total,
+    byState,
+    matched,
+    matchRate: matchRate(matched, total),
+    engines: tallyEngines(constraintRows),
+  };
+}

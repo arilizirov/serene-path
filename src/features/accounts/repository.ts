@@ -42,3 +42,15 @@ export function createUser(input: {
     select: { id: true },
   });
 }
+
+// --- Admin: signup statistics (Phase 2, DB-derived) --------------------------
+
+/** User counts grouped by role — via groupBy, no table load. */
+export function userCountsByRole() {
+  return prisma.user.groupBy({ by: ["role"], _count: { _all: true } });
+}
+
+/** Count of users created on/after `since` — recent-signups metric. */
+export function countUsersSince(since: Date): Promise<number> {
+  return prisma.user.count({ where: { createdAt: { gte: since } } });
+}

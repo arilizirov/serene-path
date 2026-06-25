@@ -5,6 +5,8 @@ import {
   createUser,
   findUserRole,
   findUserContactById,
+  userCountsByRole,
+  countUsersSince,
 } from "./repository";
 import { verifyPassword, hashPassword } from "./password";
 import type { RegisterInput } from "./schema";
@@ -148,4 +150,32 @@ export async function requireRole(
     redirect(`/${locale}/login`);
   }
   return user;
+}
+
+// --- Admin: signup statistics (Phase 2, DB-derived) --------------------------
+
+/** Signup metrics for the admin stats page: user counts by role + recent signups.
+ *  All derived from the DB via groupBy/count (no table load). */
+export type SignupStats = {
+  byRole: Record<string, number>;
+  recent: number; // users created in the last `recentDays`
+  recentDays: number;
+};
+
+/** Default lookback window for the "recent signups" metric. */
+const RECENT_SIGNUP_DAYS = 30;
+
+export async function getSignupStats(
+  recentDays: number = RECENT_SIGNUP_DAYS,
+): Promise<SignupStats> {
+  const since = new Date(Date.now() - recentDays * 86_400_000);
+  const [roleRows, recent] = await Promise.all([
+    userCountsByRole(),
+    countUsersSince(since),
+  ]);
+  return {
+    byRole: Object.fromEntries(roleRows.map((r) => [r.role, r._count._all])),
+    recent,
+    recentDays,
+  };
 }
