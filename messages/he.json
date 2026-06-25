@@ -29,5 +29,65 @@
   },
   "Theme": {
     "toggle": "מעבר בין מצב בהיר לכהה"
+  },
+  "Dashboard": {
+    "menu": "תפריט",
+    "close": "סגירה",
+    "signOut": "התנתקות",
+    "there": "שלום",
+    "soon": "בקרוב",
+    "nav": {
+      "overview": "סקירה",
+      "calendar": "יומן",
+      "clients": "מטופלים",
+      "requests": "בקשות",
+      "availability": "זמינות",
+      "profile": "פרופיל",
+      "earnings": "הכנסות",
+      "settings": "הגדרות",
+      "appointments": "הפגישות שלי",
+      "find": "מצא מטפל/ת",
+      "help": "עזרה"
+    },
+    "overview": {
+      "title": "סקירה",
+      "nextSession": "הפגישה הבאה",
+      "noNextSession": "אין פגישות מאושרות קרובות.",
+      "join": "הצטרפות",
+      "aClient": "מטופל/ת",
+      "israelTime": "שעון ישראל",
+      "pendingActions": "פעולות ממתינות",
+      "allClear": "הכול מעודכן — אין דבר שדורש את תשומת לבך."
+    },
+    "stats": {
+      "upcoming": "פגישות קרובות",
+      "upcomingHint": "מאושרות וממתינות",
+      "requests": "בקשות חדשות",
+      "requestsHint": "ממתינות לאישורך",
+      "completeness": "שלמות הפרופיל"
+    },
+    "actions": {
+      "pendingBookings": "{count, plural, one {הזמנה אחת ממתינה לאישור} two {# הזמנות ממתינות לאישור} many {# הזמנות ממתינות לאישור} other {# הזמנות ממתינות לאישור}}",
+      "incompleteProfile": "השלם את הפרופיל כדי להופיע בחיפוש."
+    },
+    "profile": {
+      "title": "הפרופיל שלך",
+      "notFound": "הפרופיל לא נמצא.",
+      "status": "סטטוס",
+      "completeness": "שלמות הפרופיל",
+      "stillNeeded": "עדיין נדרש",
+      "requestVerification": "בקשת אימות",
+      "completeToVerify": "השלם את הפרופיל כדי לבקש אימות.",
+      "awaiting": "ממתין לאימות מנהל.",
+      "live": "הפרופיל שלך מופיע בחיפוש.",
+      "suspended": "הפרופיל שלך הושעה — אנא פנה לתמיכה.",
+      "editHeading": "עריכת פרופיל",
+      "availabilityHeading": "זמינות שבועית"
+    },
+    "stub": {
+      "heading": "{section} בקרוב",
+      "body": "החלק הזה בלוח הבקרה עדיין לא מוכן. הוא יופיע כאן ברגע שיהיה זמין.",
+      "backToOverview": "חזרה לסקירה"
+    }
   }
 }
