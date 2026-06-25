@@ -253,6 +253,7 @@ async function runScriptedTurn(
 export {
   listFinishedSessions,
   getFullSession,
+  getFullSessionsByIds,
   listFinishedSessionsFull,
   countFinishedSessions,
   deleteSession,
@@ -292,6 +293,11 @@ export function conversationToMarkdown(session: FullSession): string {
 export function conversationsToMarkdown(sessions: FullSession[]): string {
   return sessions.map(conversationToMarkdown).join("\n\n---\n\n");
 }
+
+// Pure id-parsing/validation for the "download selected" route (no DB) — caps the
+// selection so the route never issues an unbounded `id: { in: [...] }` query.
+export { parseSelectedIds, MAX_SELECTED_IDS } from "./select-ids";
+export type { ParseIdsResult } from "./select-ids";
 
 // --- Admin: intake statistics (Phase 2, DB-derived) --------------------------
 
