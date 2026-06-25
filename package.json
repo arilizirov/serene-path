@@ -10,6 +10,7 @@
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
+    "eval": "tsx --env-file=.env eval/run.ts",
     "boundaries": "python bigbrainBoundaryGuard/check_boundaries.py check",
     "verify": "python bigbrain_verify.py",
     "postinstall": "prisma generate",

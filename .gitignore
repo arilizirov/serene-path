@@ -32,3 +32,6 @@ __pycache__/
 .claude/
 
 /src/generated/prisma
+
+# eval harness output (transcripts/reports)
+eval/out/
