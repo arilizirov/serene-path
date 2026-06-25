@@ -17,9 +17,11 @@ import {
   updateProfileByUserId as repoUpdateProfileByUserId,
   requestVerificationByUser as repoRequestVerificationByUser,
   listAllTherapists as repoListAllTherapists,
+  countTherapists as repoCountTherapists,
   getAvailabilityRules as repoGetAvailabilityRules,
   replaceAvailabilityRules as repoReplaceAvailabilityRules,
   setTherapistStatus as repoSetTherapistStatus,
+  deleteTherapist as repoDeleteTherapist,
   getVerifiedTherapistById as repoGetVerifiedTherapistById,
   searchVerifiedTherapists as repoSearchVerifiedTherapists,
   getSchedulingContext as repoGetSchedulingContext,
@@ -285,6 +287,16 @@ export async function setTherapistStatus(
   status: TherapistStatusValue,
 ): Promise<void> {
   await repoSetTherapistStatus(id, status);
+}
+
+/** Hard-delete a therapist and all of their dependent rows (FK-safe, atomic). */
+export async function deleteTherapist(profileId: string): Promise<void> {
+  await repoDeleteTherapist(profileId);
+}
+
+/** Total number of therapist profiles (any status) — for the admin dashboard. */
+export async function countTherapists(): Promise<number> {
+  return repoCountTherapists();
 }
 
 /** The public profile of a VERIFIED therapist, localized; null if not found. */

@@ -171,6 +171,11 @@ export function getTherapistById(id: string) {
   });
 }
 
+/** Count of all therapist profiles (any status) — for the admin dashboard. */
+export function countTherapists() {
+  return prisma.therapistProfile.count();
+}
+
 /** Every therapist (any status) for the admin list. */
 export function listAllTherapists() {
   return prisma.therapistProfile.findMany({
@@ -229,6 +234,30 @@ export function addAvailabilityException(therapistId: string, date: Date) {
  *  another therapist's row by raw id (IDOR) once admin auth lands in Stage 4. */
 export function removeAvailabilityException(id: string, therapistId: string) {
   return prisma.availabilityException.deleteMany({ where: { id, therapistId } });
+}
+
+/**
+ * Hard-delete a therapist (FK-safe). The profile's children all FK to
+ * TherapistProfile.id (Appointment.therapistId, AvailabilityRule.therapistId,
+ * AvailabilityException.therapistId) and the profile itself FKs to User.id, so
+ * the rows must be removed children-first inside a single transaction (no
+ * onDelete: Cascade in the schema). Order: appointments → rules → exceptions →
+ * profile → user. No-op if the profile doesn't exist.
+ */
+export async function deleteTherapist(profileId: string): Promise<void> {
+  const profile = await prisma.therapistProfile.findUnique({
+    where: { id: profileId },
+    select: { userId: true },
+  });
+  if (!profile) return;
+
+  await prisma.$transaction([
+    prisma.appointment.deleteMany({ where: { therapistId: profileId } }),
+    prisma.availabilityRule.deleteMany({ where: { therapistId: profileId } }),
+    prisma.availabilityException.deleteMany({ where: { therapistId: profileId } }),
+    prisma.therapistProfile.delete({ where: { id: profileId } }),
+    prisma.user.delete({ where: { id: profile.userId } }),
+  ]);
 }
 
 /** Update a therapist's verification status. */

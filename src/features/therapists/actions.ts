@@ -13,6 +13,7 @@ import {
   updateTherapist,
   saveAvailabilityRules,
   setTherapistStatus,
+  deleteTherapist,
   addBlockedDate,
   removeBlockedDate,
   saveMyProfile,
@@ -133,6 +134,22 @@ export async function removeBlockedDateAction(
   await requireRole("ADMIN", locale);
   await removeBlockedDate(id, therapistId);
   redirect(`/${locale}/admin/therapists/${therapistId}`);
+}
+
+/**
+ * Admin hard-delete of a therapist (plain form action). Re-checks
+ * requireRole("ADMIN") at the action boundary (same rationale as the other
+ * mutating actions above), then deletes the profile + all dependent rows and
+ * redirects back to the list. The form-supplied `id` is the profile id.
+ */
+export async function deleteTherapistAction(formData: FormData): Promise<void> {
+  const id = String(formData.get("id") ?? "");
+  const locale = String(formData.get("locale") ?? "en");
+  await requireRole("ADMIN", locale);
+  if (id) {
+    await deleteTherapist(id);
+  }
+  redirect(`/${locale}/admin/therapists`);
 }
 
 // --- Therapist self-service (dashboard) — owner-scoped to the session user ---
