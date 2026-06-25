@@ -20,3 +20,17 @@ export { computeNextAvailable } from "./next-available";
 export type { WeeklySlot } from "./next-available";
 export { generateSlots } from "./generate-slots";
 export type { SlotRule } from "./generate-slots";
+
+// Admin (Phase 2) — all-therapist schedule overview, appointment management,
+// and DB-derived counts. The admin-scoped status writes are gated by
+// requireRole("ADMIN") in the app-layer action; the service just runs the query.
+export {
+  getAllTherapistsSchedules,
+  getAllAppointments,
+  countAllAppointments,
+  getAppointmentStatusCounts,
+  adminSetStatus,
+} from "./service";
+export type { TherapistSchedule, AdminAppointment } from "./service";
+export { appointmentStatusSchema } from "./schema";
+export type { AppointmentStatusValue } from "./schema";
