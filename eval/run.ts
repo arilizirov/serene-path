@@ -13,6 +13,7 @@ import { SCENARIOS, type Scenario } from "./scenarios";
 // Run:  npx tsx --env-file=.env eval/run.ts [scenarioId]   (env: EVAL_RUNS, EVAL_JUDGE_MODEL, EVAL_SIM_MODEL)
 
 const RUNS = Number(process.env.EVAL_RUNS || 3); // N runs/scenario — report a pass RATE
+const CONCURRENCY = Number(process.env.EVAL_CONCURRENCY || 4); // parallel conversations
 const SIM_MODEL = process.env.EVAL_SIM_MODEL || "gpt-5.5";
 const JUDGE_MODEL = process.env.EVAL_JUDGE_MODEL || "gpt-5.5";
 
@@ -123,9 +124,23 @@ async function judge(ai: OpenAI, groundTruth: string, history: Turn[]): Promise<
 
 type RunResult = { run: number; history: Turn[]; checks: Check[]; judge: Judge };
 
-async function runScenario(ai: OpenAI, s: Scenario, catalogIds: Set<string>): Promise<RunResult[]> {
-  const out: RunResult[] = [];
-  for (let run = 1; run <= RUNS; run++) {
+// Run a fixed-size worker pool over items (keeps the API request rate sane).
+async function pool<T>(items: T[], limit: number, fn: (t: T) => Promise<void>): Promise<void> {
+  let i = 0;
+  await Promise.all(
+    Array.from({ length: Math.min(limit, items.length) }, async () => {
+      while (i < items.length) {
+        const idx = i++;
+        await fn(items[idx]);
+      }
+    }),
+  );
+}
+
+// One conversation + its grading. Resilient: a transient failure records an
+// "error" result instead of killing the whole batch.
+async function runOnce(ai: OpenAI, s: Scenario, catalogIds: Set<string>, run: number): Promise<RunResult> {
+  try {
     const history: Turn[] = [];
     const send = makeIntake(s.locale);
     for (let i = 0; i < s.maxTurns; i++) {
@@ -136,11 +151,19 @@ async function runScenario(ai: OpenAI, s: Scenario, catalogIds: Set<string>): Pr
     }
     const checks = deterministicChecks(history, catalogIds, s.locale);
     const j = await judge(ai, s.groundTruth, history);
-    out.push({ run, history, checks, judge: j });
     const fails = checks.filter((c) => !c.pass).map((c) => c.id);
     console.log(`  ${s.id} run ${run}: overall=${j.overall ?? "?"} felt=${j.felt_understood?.score ?? "?"} codeFails=[${fails.join(",")}]`);
+    return { run, history, checks, judge: j };
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    console.log(`  ${s.id} run ${run}: ERROR ${msg}`);
+    return {
+      run,
+      history: [],
+      checks: [],
+      judge: { safety: [], felt_understood: { score: 0, evidence: "", user_reaction: "" }, supporting: [], overall: "error", summary: `harness error: ${msg}` },
+    };
   }
-  return out;
 }
 
 function writeReport(all: { scenario: Scenario; runs: RunResult[] }[]) {
@@ -184,11 +207,16 @@ async function main() {
   const scenarios = only ? SCENARIOS.filter((s) => s.id === only) : SCENARIOS;
   if (!scenarios.length) throw new Error(`no scenario matches "${only}"`);
 
-  const all: { scenario: Scenario; runs: RunResult[] }[] = [];
-  for (const s of scenarios) {
-    console.log(`\n=== ${s.id} (${s.locale}) x${RUNS} ===`);
-    all.push({ scenario: s, runs: await runScenario(ai, s, catalogIds) });
-  }
+  const tasks = scenarios.flatMap((s) => Array.from({ length: RUNS }, (_, r) => ({ s, run: r + 1 })));
+  console.log(`Running ${scenarios.length} scenario(s) x${RUNS} = ${tasks.length} conversations (concurrency ${CONCURRENCY})\n`);
+  const byScenario = new Map<string, RunResult[]>();
+  await pool(tasks, CONCURRENCY, async ({ s, run }) => {
+    const r = await runOnce(ai, s, catalogIds, run);
+    const arr = byScenario.get(s.id) ?? [];
+    arr.push(r);
+    byScenario.set(s.id, arr);
+  });
+  const all = scenarios.map((s) => ({ scenario: s, runs: (byScenario.get(s.id) ?? []).sort((a, b) => a.run - b.run) }));
   writeReport(all);
   console.log(`\nwrote eval/out/{results.json,report.md,results.csv}`);
 }
