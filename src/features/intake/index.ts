@@ -5,6 +5,17 @@ export { intakeRequestSchema, chipIntakeRequestSchema } from "./schema";
 export type { IntakeRequestInput, ChipIntakeRequestInput } from "./schema";
 export { runIntakeTurn } from "./service";
 export { runChipTurn } from "./chip-flow";
+
+// Admin (transcripts review + .md export, §11 admin-only) — reads + pure builders.
+export {
+  listFinishedSessions,
+  getFullSession,
+  listFinishedSessionsFull,
+  countFinishedSessions,
+  conversationToMarkdown,
+  conversationsToMarkdown,
+} from "./service";
+export type { FinishedSessionRow, FullSession } from "./service";
 export { IntakeChat } from "./ui/intake-chat";
 export { ChipIntakeChat } from "./ui/chip-intake-chat";
 export { FeelingField } from "./ui/feeling-field";

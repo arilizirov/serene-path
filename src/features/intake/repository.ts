@@ -73,6 +73,153 @@ export async function saveSession(
   });
 }
 
+// --- Admin: finished-conversation read model (transcripts review) ------------
+// "Finished" = no activity for ≥30 min AND at least one stored message. There is
+// no explicit end-of-conversation marker on IntakeSession, so we infer it from
+// inactivity (updatedAt older than the cutoff) plus a non-empty transcript (skip
+// sessions that were created but never spoken to). These transcripts are
+// sensitive (§11) and are only ever read by an authenticated ADMIN.
+
+/** Minutes of inactivity after which a session is considered finished. */
+export const FINISHED_AFTER_MIN = 30;
+
+/** Cutoff instant: a session is finished if updatedAt is strictly before this. */
+function finishedCutoff(now: Date): Date {
+  return new Date(now.getTime() - FINISHED_AFTER_MIN * 60_000);
+}
+
+/** Engine sniffed from the stored `constraints` blob (chip flow or AI/scripted). */
+function engineFromConstraints(constraints: unknown): IntakeEngine | null {
+  const c = (constraints as { engine?: IntakeEngine; flow?: unknown } | null) ?? null;
+  if (c?.engine) return c.engine;
+  if (c?.flow) return "scripted"; // chip-driven flow is the deterministic engine
+  return null;
+}
+
+/** A finished intake session as the admin conversations list needs it. */
+export type FinishedSessionRow = {
+  id: string;
+  createdAt: Date;
+  updatedAt: Date;
+  state: IntakeStateName;
+  engine: IntakeEngine | null;
+  turns: number;
+  matched: number;
+};
+
+/**
+ * Finished intake sessions, newest first. Filters in the DB on the inactivity
+ * cutoff; the empty-transcript guard is applied in app code because `messages`
+ * is a Json column (no portable "array length ≥ 1" predicate across providers).
+ */
+export async function listFinishedSessions(
+  now: Date = new Date(),
+): Promise<FinishedSessionRow[]> {
+  const rows = await prisma.intakeSession.findMany({
+    where: { updatedAt: { lt: finishedCutoff(now) } },
+    orderBy: { updatedAt: "desc" },
+    select: {
+      id: true,
+      createdAt: true,
+      updatedAt: true,
+      state: true,
+      constraints: true,
+      messages: true,
+      suggestedTherapistIds: true,
+    },
+  });
+  return rows
+    .map((s) => {
+      const messages = (s.messages as StoredMessage[] | null) ?? [];
+      return {
+        id: s.id,
+        createdAt: s.createdAt,
+        updatedAt: s.updatedAt,
+        state: s.state,
+        engine: engineFromConstraints(s.constraints),
+        turns: messages.length,
+        matched: s.suggestedTherapistIds.length,
+        _empty: messages.length === 0,
+      };
+    })
+    .filter((s) => !s._empty)
+    .map(({ _empty: _drop, ...row }) => row);
+}
+
+/** A single finished session with its full transcript, for the .md export. */
+export type FullSession = {
+  id: string;
+  createdAt: Date;
+  updatedAt: Date;
+  state: IntakeStateName;
+  engine: IntakeEngine | null;
+  messages: StoredMessage[];
+  matched: string[];
+};
+
+/** Load one full session (transcript included) by id, or null. */
+export async function getFullSession(id: string): Promise<FullSession | null> {
+  const s = await prisma.intakeSession.findUnique({
+    where: { id },
+    select: {
+      id: true,
+      createdAt: true,
+      updatedAt: true,
+      state: true,
+      constraints: true,
+      messages: true,
+      suggestedTherapistIds: true,
+    },
+  });
+  if (!s) return null;
+  return {
+    id: s.id,
+    createdAt: s.createdAt,
+    updatedAt: s.updatedAt,
+    state: s.state,
+    engine: engineFromConstraints(s.constraints),
+    messages: (s.messages as StoredMessage[] | null) ?? [],
+    matched: s.suggestedTherapistIds,
+  };
+}
+
+/** Every finished session with full transcripts (for the download-all export). */
+export async function listFinishedSessionsFull(
+  now: Date = new Date(),
+): Promise<FullSession[]> {
+  const rows = await prisma.intakeSession.findMany({
+    where: { updatedAt: { lt: finishedCutoff(now) } },
+    orderBy: { updatedAt: "desc" },
+    select: {
+      id: true,
+      createdAt: true,
+      updatedAt: true,
+      state: true,
+      constraints: true,
+      messages: true,
+      suggestedTherapistIds: true,
+    },
+  });
+  return rows
+    .map((s) => ({
+      id: s.id,
+      createdAt: s.createdAt,
+      updatedAt: s.updatedAt,
+      state: s.state,
+      engine: engineFromConstraints(s.constraints),
+      messages: (s.messages as StoredMessage[] | null) ?? [],
+      matched: s.suggestedTherapistIds,
+    }))
+    .filter((s) => s.messages.length > 0);
+}
+
+/** Count of finished intake sessions — for the admin dashboard. */
+export async function countFinishedSessions(
+  now: Date = new Date(),
+): Promise<number> {
+  return (await listFinishedSessions(now)).length;
+}
+
 // --- Chip-driven flow (INTAKE_BUILD_SPEC) ------------------------------------
 // Same IntakeSession table; the flow state (phase + chip selection + opener) lives
 // in `constraints.flow`. Anonymous bearer-token session (same caveat as getSession).

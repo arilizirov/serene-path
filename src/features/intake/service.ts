@@ -9,6 +9,7 @@ import {
   saveSession,
   type StoredMessage,
   type IntakeSessionRow,
+  type FullSession,
 } from "./repository";
 import { detectConcerns, pickMatch } from "./concerns";
 import {
@@ -239,4 +240,50 @@ async function runScriptedTurn(
     options,
     engine: "scripted",
   };
+}
+
+// --- Admin: finished-conversation reads + .md export -------------------------
+// The admin conversations page / download routes read finished transcripts (§11,
+// admin-only). The reads are pure repository pass-throughs (re-exported so the
+// app reaches them through the feature's public surface); the markdown builders
+// below are pure, so they're unit-testable without a DB.
+export {
+  listFinishedSessions,
+  getFullSession,
+  listFinishedSessionsFull,
+  countFinishedSessions,
+} from "./repository";
+export type { FinishedSessionRow, FullSession } from "./repository";
+
+/** One transcript turn rendered as a labelled markdown block. */
+function turnToMarkdown(m: StoredMessage): string {
+  const speaker = m.role === "user" ? "User" : "Assistant";
+  return `**${speaker}:**\n\n${m.content}`;
+}
+
+/**
+ * Render one finished session as a standalone `.md` document: YAML frontmatter
+ * (id / created / finished / state / engine / matched count / turns) followed by
+ * the transcript as alternating **User:** / **Assistant:** blocks.
+ */
+export function conversationToMarkdown(session: FullSession): string {
+  const frontmatter = [
+    "---",
+    `id: ${session.id}`,
+    `created: ${session.createdAt.toISOString()}`,
+    `finished: ${session.updatedAt.toISOString()}`,
+    `state: ${session.state}`,
+    `engine: ${session.engine ?? "unknown"}`,
+    `matched: ${session.matched.length}`,
+    `turns: ${session.messages.length}`,
+    "---",
+  ].join("\n");
+  const transcript = session.messages.map(turnToMarkdown).join("\n\n");
+  // Keep a trailing blank line between frontmatter and an empty transcript tidy.
+  return transcript ? `${frontmatter}\n\n${transcript}\n` : `${frontmatter}\n`;
+}
+
+/** Render many finished sessions into one `.md`, separated by horizontal rules. */
+export function conversationsToMarkdown(sessions: FullSession[]): string {
+  return sessions.map(conversationToMarkdown).join("\n\n---\n\n");
 }
