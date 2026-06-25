@@ -31,6 +31,14 @@ describe("buildSystemPrompt", () => {
     expect(p.toLowerCase()).toContain("never invent");
   });
 
+  it("carries the safety rules (passive ideation check + bypass resistance)", () => {
+    const p = buildSystemPrompt(catalog, "en").toLowerCase();
+    expect(p).toContain("safety");
+    expect(p).toContain("passive ideation");
+    expect(p).toContain("self-harm");
+    expect(p).toContain("bypass");
+  });
+
   it("exposes a prompt version for traceability", () => {
     expect(PROMPT_VERSION).toMatch(/\d{4}-\d{2}-\d{2}/);
   });
