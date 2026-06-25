@@ -1,6 +1,6 @@
 import { listFinishedSessions } from "@/features/intake";
 import { AdminNav } from "../admin-nav";
-import { DeleteConversationButton } from "./delete-conversation-button";
+import { ConversationsTable } from "./conversations-table";
 import { PurgeForm } from "./purge-form";
 
 // Always reflect current DB state (transcripts arrive continuously); also avoids
@@ -72,40 +72,17 @@ export default async function AdminConversationsPage({
       {rows.length === 0 ? (
         <p className="text-on-surface-variant">No finished conversations yet.</p>
       ) : (
-        <table className="w-full border-collapse text-start text-sm">
-          <thead>
-            <tr className="border-b border-outline-variant text-on-surface-variant">
-              <th className="py-2 text-start">Date</th>
-              <th className="py-2 text-start">State</th>
-              <th className="py-2 text-start">Engine</th>
-              <th className="py-2 text-start">Turns</th>
-              <th className="py-2 text-start">Matched</th>
-              <th className="py-2" />
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((r) => (
-              <tr key={r.id} className="border-b border-outline-variant/40 text-on-surface">
-                <td className="py-2">{r.updatedAt.toISOString().slice(0, 10)}</td>
-                <td className="py-2">{r.state}</td>
-                <td className="py-2">{r.engine ?? "—"}</td>
-                <td className="py-2">{r.turns}</td>
-                <td className="py-2">{r.matched}</td>
-                <td className="py-2 text-end">
-                  <div className="flex items-center justify-end gap-3">
-                    <a
-                      href={`/${locale}/admin/conversations/${r.id}/download`}
-                      className="text-primary underline"
-                    >
-                      Download
-                    </a>
-                    <DeleteConversationButton id={r.id} locale={locale} />
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <ConversationsTable
+          locale={locale}
+          rows={rows.map((r) => ({
+            id: r.id,
+            updatedAt: r.updatedAt.toISOString(),
+            state: r.state,
+            engine: r.engine,
+            turns: r.turns,
+            matched: r.matched,
+          }))}
+        />
       )}
     </main>
   );
