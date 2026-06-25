@@ -39,6 +39,12 @@ describe("buildSystemPrompt", () => {
     expect(p).toContain("bypass");
   });
 
+  it("warms the gather cadence (don't always end on a question; reflect actual words)", () => {
+    const p = buildSystemPrompt(catalog, "en");
+    expect(p).toContain("Don't end every turn with a question");
+    expect(p.toLowerCase()).toContain("actual words");
+  });
+
   it("sells the match (introduce by name + concrete highlights, not a flat suggestion)", () => {
     const p = buildSystemPrompt(catalog, "en");
     expect(p.toLowerCase()).toContain("sell the fit");
