@@ -255,6 +255,8 @@ export {
   getFullSession,
   listFinishedSessionsFull,
   countFinishedSessions,
+  deleteSession,
+  purgeSessionsOlderThan,
 } from "./repository";
 export type { FinishedSessionRow, FullSession } from "./repository";
 

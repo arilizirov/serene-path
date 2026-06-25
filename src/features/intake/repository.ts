@@ -220,6 +220,36 @@ export async function countFinishedSessions(
   return (await listFinishedSessions(now)).length;
 }
 
+// --- Admin: manual data deletion (Phase 5, retention & GDPR) -----------------
+// All admin-triggered (no scheduled auto-purge — the owner chose KEEP-INDEFINITELY).
+// IntakeSession has NO child rows (userId is a nullable String with no FK, and no
+// other table references it), so a plain delete/deleteMany is FK-safe — no
+// transaction or children-first ordering is needed here. Authorization is enforced
+// at the action boundary (requireRole("ADMIN")), never in the repository.
+
+/** Hard-delete one intake session (transcript) by id. No child rows to cascade.
+ *  Uses deleteMany (not delete) so a missing id is a no-op (count 0), not a throw. */
+export async function deleteSession(id: string): Promise<void> {
+  await prisma.intakeSession.deleteMany({ where: { id } });
+}
+
+/**
+ * Manual bulk purge: hard-delete every intake session not touched in the last
+ * `days` days (updatedAt strictly before the cutoff). Returns the number of rows
+ * deleted. On-demand only — there is NO cron/timer. `days` is validated as a
+ * positive integer at the action boundary (zod); the cutoff is computed here.
+ */
+export async function purgeSessionsOlderThan(
+  days: number,
+  now: Date = new Date(),
+): Promise<number> {
+  const cutoff = new Date(now.getTime() - days * 86_400_000);
+  const { count } = await prisma.intakeSession.deleteMany({
+    where: { updatedAt: { lt: cutoff } },
+  });
+  return count;
+}
+
 // --- Admin: intake statistics (Phase 2, DB-derived; no new tables) -----------
 
 /** Intake-session counts grouped by state (the funnel) — via groupBy, no load. */
