@@ -68,12 +68,16 @@ export async function getUserContact(
   return u ? { email: u.email, name: u.name ?? "" } : null;
 }
 
-/** Verify credentials and, on success, start a session. Returns whether it worked. */
-export async function login(email: string, password: string): Promise<boolean> {
+/** Verify credentials and, on success, start a session. Returns the authenticated
+ *  principal (so the caller can route by role), or null if the credentials fail. */
+export async function login(
+  email: string,
+  password: string,
+): Promise<AuthedUser | null> {
   const principal = await verifyCredentials(email, password);
-  if (!principal) return false;
+  if (!principal) return null;
   await startSession({ id: principal.id, role: principal.role });
-  return true;
+  return principal;
 }
 
 /** End the current session (sign out). */
