@@ -153,3 +153,21 @@ enum AppointmentStatus {
   COMPLETED
   NO_SHOW
 }
+
+// API COST & USAGE TRACKING (Phase 4): one row per real (paid) model call,
+// recorded fire-and-forget by the AI adapter. estCostUsd is an ESTIMATE derived
+// from a configurable per-model price map (see src/server/ai/usage.ts) — it is
+// not a billed amount. The stub (no OPENAI_API_KEY) records nothing.
+model ApiUsage {
+  id               String   @id @default(cuid())
+  model            String
+  callType         String
+  promptTokens     Int
+  completionTokens Int
+  totalTokens      Int
+  estCostUsd       Float
+  createdAt        DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([callType])
+}

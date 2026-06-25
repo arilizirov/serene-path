@@ -15,15 +15,17 @@ describe("runOpenAi", () => {
     create.mockReset();
     create.mockResolvedValue({
       choices: [{ message: { content: '{"state":"MIRROR","reply":"ok","matches":[]}' } }],
+      usage: { prompt_tokens: 12, completion_tokens: 8, total_tokens: 20 },
     });
   });
 
-  it("forwards model + messages, requests JSON mode, and returns the content", async () => {
+  it("forwards model + messages, requests JSON mode, and returns the content + usage", async () => {
     const out = await runOpenAi("sk-test", "gpt-5.4", [
       { role: "system", content: "sys" },
       { role: "user", content: "hi" },
     ]);
-    expect(out).toBe('{"state":"MIRROR","reply":"ok","matches":[]}');
+    expect(out.text).toBe('{"state":"MIRROR","reply":"ok","matches":[]}');
+    expect(out.usage).toEqual({ promptTokens: 12, completionTokens: 8, totalTokens: 20 });
     expect(create).toHaveBeenCalledWith(
       expect.objectContaining({
         model: "gpt-5.4",
@@ -36,8 +38,10 @@ describe("runOpenAi", () => {
     );
   });
 
-  it("returns an empty string if the model returns no content", async () => {
+  it("returns an empty string + null usage if the model returns no content/usage", async () => {
     create.mockResolvedValue({ choices: [{ message: { content: null } }] });
-    expect(await runOpenAi("sk-test", "gpt-5.4", [])).toBe("");
+    const out = await runOpenAi("sk-test", "gpt-5.4", []);
+    expect(out.text).toBe("");
+    expect(out.usage).toBeNull();
   });
 });

@@ -1,4 +1,4 @@
-import { aiProvider, type ChatMessage } from "@/server/ai";
+import { aiProvider, recordUsage, type ChatMessage } from "@/server/ai";
 import { labels, flowMsg } from "./flow-copy";
 import type { IntakeSelection, LanguageId } from "./contract";
 
@@ -85,7 +85,9 @@ export async function buildConfirmMessage(
   ];
   for (let attempt = 0; attempt < 2; attempt++) {
     try {
-      const raw = await aiProvider().complete(chat);
+      const { text: raw, usage } = await aiProvider().complete(chat);
+      // Fire-and-forget cost tracking (Phase 4); recordUsage can't break this path.
+      if (usage) void recordUsage("confirm", process.env.OPENAI_MODEL || "gpt-5.4", usage);
       const reply = parseReply(raw);
       if (reply && looksRightLanguage(reply, locale)) return reply;
     } catch {

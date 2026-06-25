@@ -1,4 +1,4 @@
-import { aiProvider, type ChatMessage } from "@/server/ai";
+import { aiProvider, recordUsage, type ChatMessage } from "@/server/ai";
 import { CONCERN_IDS, type ConcernId, type LanguageId } from "./contract";
 
 // The `something_else` escape valve (INTAKE_BUILD_SPEC §Escape hatch): the one place
@@ -17,7 +17,9 @@ export async function extractConcern(text: string, _locale: LanguageId): Promise
     { role: "user", content: text },
   ];
   try {
-    const raw = await aiProvider().complete(chat);
+    const { text: raw, usage } = await aiProvider().complete(chat);
+    // Fire-and-forget cost tracking (Phase 4); recordUsage can't break this path.
+    if (usage) void recordUsage("extract", process.env.OPENAI_MODEL || "gpt-5.4", usage);
     const block = raw.match(/\{[\s\S]*\}/);
     if (block) {
       const concern = (JSON.parse(block[0]) as { concern?: unknown }).concern;

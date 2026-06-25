@@ -7,7 +7,7 @@ import { runIntakeTurn } from "./service";
 
 vi.mock("@/features/therapists", () => ({ getMatchingCatalog: vi.fn() }));
 vi.mock("@/features/scheduling", () => ({ getNextAvailable: vi.fn() }));
-vi.mock("@/server/ai", () => ({ aiProvider: vi.fn() }));
+vi.mock("@/server/ai", () => ({ aiProvider: vi.fn(), recordUsage: vi.fn() }));
 vi.mock("./repository", () => ({
   createSession: vi.fn(),
   getSession: vi.fn(),
@@ -29,7 +29,10 @@ function sessionAt(phase: string, userMsgs: string[] = []) {
   return { id: "s1", state: "GATHER" as const, messages, phase, engine: null };
 }
 const savedPhase = () => mSave.mock.calls[0][1].phase;
-const aiReplies = (raw: string) => mAi.mockReturnValue({ complete: vi.fn().mockResolvedValue(raw) });
+// Mocks now resolve the {text, usage} completion shape; usage null keeps
+// recordUsage out of the unit path (the real provider would carry usage).
+const aiReplies = (raw: string) =>
+  mAi.mockReturnValue({ complete: vi.fn().mockResolvedValue({ text: raw, usage: null }) });
 
 beforeEach(() => {
   vi.resetAllMocks();

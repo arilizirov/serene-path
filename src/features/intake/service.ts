@@ -1,6 +1,6 @@
 import { getMatchingCatalog } from "@/features/therapists";
 import { getNextAvailable } from "@/features/scheduling";
-import { aiProvider, type ChatMessage } from "@/server/ai";
+import { aiProvider, recordUsage, type ChatMessage } from "@/server/ai";
 import { buildSystemPrompt } from "./prompt";
 import { modelOutputSchema } from "./schema";
 import {
@@ -111,7 +111,10 @@ async function runAiTurn(
     { role: "system", content: buildSystemPrompt(catalog, locale) },
     ...messages.map((m) => ({ role: m.role, content: m.content })),
   ];
-  const raw = await aiProvider().complete(chat);
+  const { text: raw, usage } = await aiProvider().complete(chat);
+  // Fire-and-forget cost tracking (Phase 4): only the real provider reports usage;
+  // recordUsage is wrapped so it can never break this turn. Stub path → usage null.
+  if (usage) void recordUsage("intake", process.env.OPENAI_MODEL || "gpt-5.4", usage);
 
   const parsed = modelOutputSchema.safeParse(safeJson(raw));
   const out = parsed.success

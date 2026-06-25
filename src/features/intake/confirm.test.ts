@@ -3,9 +3,11 @@ import { aiProvider } from "@/server/ai";
 import { buildConfirmMessage, templatedConfirm } from "./confirm";
 import type { IntakeSelection } from "./contract";
 
-vi.mock("@/server/ai", () => ({ aiProvider: vi.fn() }));
+vi.mock("@/server/ai", () => ({ aiProvider: vi.fn(), recordUsage: vi.fn() }));
 const mAi = vi.mocked(aiProvider);
-const replies = (raw: string) => mAi.mockReturnValue({ complete: vi.fn().mockResolvedValue(raw) });
+// {text, usage} completion shape; usage null → recordUsage stays out of the unit path.
+const replies = (raw: string) =>
+  mAi.mockReturnValue({ complete: vi.fn().mockResolvedValue({ text: raw, usage: null }) });
 
 const sel: IntakeSelection = {
   concern: "anxiety",

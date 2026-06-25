@@ -1,4 +1,10 @@
-import { describe, it, expect, beforeAll } from "vitest";
+import { describe, it, expect, beforeAll, vi } from "vitest";
+
+// ./index re-exports the Phase 4 usage helpers, which import @/lib/db (Prisma →
+// env). Stub that leaf so the stub-provider test stays DB/env-free (the stub
+// path records nothing anyway). Same convention as the intake unit tests.
+vi.mock("@/lib/db", () => ({ prisma: {} }));
+
 import { aiProvider, type ChatMessage } from "./index";
 
 // These exercise the STUB path, so guarantee no real key leaks in from the env.
@@ -15,8 +21,10 @@ const sys = (catalogIds: string[]): ChatMessage => ({
 const user = (content: string): ChatMessage => ({ role: "user", content });
 
 async function run(messages: ChatMessage[]) {
-  const raw = await aiProvider().complete(messages);
-  return JSON.parse(raw) as {
+  const { text, usage } = await aiProvider().complete(messages);
+  // Stub path reports no usage (unpaid) — callers record nothing.
+  expect(usage).toBeNull();
+  return JSON.parse(text) as {
     state: string;
     reply: string;
     matches: { therapist_id: string; rationale: string }[];
