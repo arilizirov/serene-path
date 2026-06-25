@@ -55,8 +55,13 @@ export function ConversationsTable({
   }
 
   return (
-    <div className="flex flex-col gap-3">
-      <div className="flex items-center justify-end">
+    <div className="flex flex-col gap-3 rounded-2xl border border-outline-variant bg-surface-container-lowest p-6">
+      <div className="flex items-center justify-between gap-4">
+        <p className="text-sm text-on-surface-variant">
+          {selectedIds.length > 0
+            ? `${selectedIds.length} selected`
+            : `${rows.length} conversation${rows.length === 1 ? "" : "s"}`}
+        </p>
         <button
           type="button"
           onClick={downloadSelected}
