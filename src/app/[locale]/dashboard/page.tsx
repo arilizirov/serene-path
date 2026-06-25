@@ -1,116 +1,143 @@
-import { requireRole, logoutAction } from "@/features/accounts";
-import {
-  getMyProfileForEdit,
-  getAvailabilityRules,
-  saveMyProfileAction,
-  saveMyAvailabilityAction,
-  requestVerificationAction,
-  profileCompleteness,
-  TherapistForm,
-  AvailabilityEditor,
-} from "@/features/therapists";
+import { getTranslations } from "next-intl/server";
+import { DateTime } from "luxon";
+import { requireRole } from "@/features/accounts";
+import { getMyProfileForEdit, profileCompleteness } from "@/features/therapists";
+import { getTherapistAppointments } from "@/features/scheduling";
+import { DashboardShell } from "@/components/dashboard-shell";
+import { Card, StatCard, ProgressBar, PillLink } from "@/components/ui";
+import { therapistNav } from "@/components/dashboard-nav";
 
-// Therapist-only; reflects the live profile/status on each load.
+// Times shown in Israel time for now (matches the rest of the app); per-viewer
+// tz rendering is a later refinement.
+const DISPLAY_TZ = "Asia/Jerusalem";
+
+// Therapist cockpit home — live data, never cached.
 export const dynamic = "force-dynamic";
 
-export default async function DashboardPage({
+export default async function OverviewPage({
   params,
 }: {
   params: Promise<{ locale: string }>;
 }) {
   const { locale } = await params;
+  // Auth gate FIRST — therapist-only, unchanged boundary.
   const { id: userId } = await requireRole("THERAPIST", locale);
+  const t = await getTranslations("Dashboard");
+
   const profile = await getMyProfileForEdit(userId);
-  if (!profile) {
-    return <main className="p-8 text-on-surface-variant">Profile not found.</main>;
+  const completeness = profile ? profileCompleteness(profile) : null;
+
+  // All upcoming (non-cancelled) appointments for this therapist, soonest first.
+  const upcoming = await getTherapistAppointments(userId);
+  const confirmed = upcoming.filter((a) => a.status === "CONFIRMED");
+  const pending = upcoming.filter((a) => a.status === "PENDING");
+  const next = confirmed[0] ?? null;
+
+  const fmt = (iso: string) =>
+    DateTime.fromISO(iso, { zone: "utc" })
+      .setZone(DISPLAY_TZ)
+      .setLocale(locale)
+      .toFormat("ccc d LLL HH:mm");
+
+  // Pending actions the therapist should attend to (empty = all clear).
+  const actions: string[] = [];
+  if (pending.length > 0) {
+    actions.push(t("actions.pendingBookings", { count: pending.length }));
   }
-  const completeness = profileCompleteness(profile);
-  const rules = await getAvailabilityRules(profile.id);
+  if (completeness && !completeness.isComplete) {
+    actions.push(t("actions.incompleteProfile"));
+  }
 
   return (
-    <main className="mx-auto flex max-w-2xl flex-col gap-8 p-8">
-      <div className="flex items-center justify-between">
-        <h1 className="font-heading text-2xl font-bold text-on-background">
-          Your profile
-        </h1>
-        <form action={logoutAction}>
-          <input type="hidden" name="locale" defaultValue={locale} />
-          <button type="submit" className="text-sm text-primary">
-            Sign out
-          </button>
-        </form>
-      </div>
-
-      <section className="flex flex-col gap-3 rounded-2xl bg-surface-container p-5">
-        <div className="flex items-center justify-between text-sm text-on-surface-variant">
-          <span>
-            Status: <strong className="text-on-surface">{profile.status}</strong>
-          </span>
-          <span>{completeness.percent}% complete</span>
-        </div>
-        <div className="h-2 w-full rounded-full bg-surface-container-highest">
-          <div
-            className="h-2 rounded-full bg-primary"
-            style={{ width: `${completeness.percent}%` }}
-          />
-        </div>
-        {completeness.missing.length > 0 ? (
-          <p className="text-sm text-on-surface-variant">
-            Still needed: {completeness.missing.join(", ")}
-          </p>
-        ) : null}
-
-        {profile.status === "DRAFT" ? (
-          completeness.isComplete ? (
-            <form action={requestVerificationAction}>
-              <input type="hidden" name="locale" defaultValue={locale} />
-              <button
-                type="submit"
-                className="self-start rounded-full bg-primary px-5 py-2 text-sm font-medium text-on-primary"
+    <DashboardShell
+      nav={therapistNav}
+      activeKey="overview"
+      title={t("overview.title")}
+      user={{ name: profile?.name ?? "" }}
+      locale={locale}
+    >
+      <div className="flex flex-col gap-6">
+        {/* Next session — the hero card. */}
+        <Card className="flex flex-col gap-4">
+          <div className="flex items-center justify-between">
+            <h2 className="font-heading text-lg font-semibold text-ink">
+              {t("overview.nextSession")}
+            </h2>
+          </div>
+          {next ? (
+            <div className="flex flex-wrap items-center justify-between gap-4">
+              <div className="flex flex-col gap-1">
+                <span className="text-xl font-bold text-ink">
+                  {next.clientName || t("overview.aClient")}
+                </span>
+                <span className="text-sm text-ink-2">{fmt(next.startIso)}</span>
+                <span className="text-xs text-ink-3">{t("overview.israelTime")}</span>
+              </div>
+              {/* Reuses the existing owner-scoped + time-gated join route. */}
+              <PillLink
+                variant="accent"
+                href={`/appointments/${next.id}/session`}
               >
-                Request verification
-              </button>
-            </form>
+                {t("overview.join")}
+              </PillLink>
+            </div>
           ) : (
-            <p className="text-sm text-on-surface-variant">
-              Complete your profile to request verification.
-            </p>
-          )
-        ) : profile.status === "PENDING" ? (
-          <p className="text-sm text-on-surface-variant">
-            Awaiting admin verification.
-          </p>
-        ) : profile.status === "VERIFIED" ? (
-          <p className="text-sm text-tertiary">Your profile is live in search.</p>
-        ) : (
-          <p className="text-sm text-error">
-            Your profile is suspended — please contact support.
-          </p>
-        )}
-      </section>
+            <p className="text-sm text-ink-2">{t("overview.noNextSession")}</p>
+          )}
+        </Card>
 
-      <section className="flex flex-col gap-3">
-        <h2 className="font-heading text-xl font-semibold text-on-background">
-          Edit profile
-        </h2>
-        <TherapistForm
-          locale={locale}
-          initial={profile}
-          action={saveMyProfileAction}
-        />
-      </section>
+        {/* Metric tiles. */}
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <StatCard
+            label={t("stats.upcoming")}
+            value={upcoming.length}
+            hint={t("stats.upcomingHint")}
+          />
+          <StatCard
+            label={t("stats.requests")}
+            value={pending.length}
+            hint={t("stats.requestsHint")}
+          />
+          <Card className="flex flex-col gap-3 text-start">
+            <span className="text-sm text-ink-2">{t("stats.completeness")}</span>
+            {completeness ? (
+              <>
+                <span className="text-3xl font-bold text-ink">
+                  {completeness.percent}%
+                </span>
+                <ProgressBar value={completeness.percent} showLabel={false} />
+              </>
+            ) : (
+              <span className="text-3xl font-bold text-ink-3">—</span>
+            )}
+          </Card>
+        </div>
 
-      <section className="flex flex-col gap-3">
-        <h2 className="font-heading text-xl font-semibold text-on-background">
-          Weekly availability
-        </h2>
-        <AvailabilityEditor
-          therapistId={profile.id}
-          locale={locale}
-          initialRules={rules}
-          action={saveMyAvailabilityAction}
-        />
-      </section>
-    </main>
+        {/* Pending actions. */}
+        <Card className="flex flex-col gap-3">
+          <h2 className="font-heading text-lg font-semibold text-ink">
+            {t("overview.pendingActions")}
+          </h2>
+          {actions.length > 0 ? (
+            <ul className="flex flex-col gap-2">
+              {actions.map((a) => (
+                <li
+                  key={a}
+                  className="flex items-center gap-3 rounded-xl bg-accent-3-soft px-4 py-3 text-sm text-accent-3-soft-ink"
+                >
+                  <span
+                    className="h-1.5 w-1.5 shrink-0 rounded-full bg-accent-3"
+                    aria-hidden
+                  />
+                  {a}
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="text-sm text-ink-2">{t("overview.allClear")}</p>
+          )}
+        </Card>
+      </div>
+    </DashboardShell>
   );
 }
