@@ -16,6 +16,11 @@ export {
   conversationsToMarkdown,
 } from "./service";
 export type { FinishedSessionRow, FullSession } from "./service";
+
+// Admin statistics (Phase 2, DB-derived intake funnel / match rate / engines).
+export { getIntakeStats } from "./service";
+export type { IntakeStats } from "./service";
+
 export { IntakeChat } from "./ui/intake-chat";
 export { ChipIntakeChat } from "./ui/chip-intake-chat";
 export { FeelingField } from "./ui/feeling-field";

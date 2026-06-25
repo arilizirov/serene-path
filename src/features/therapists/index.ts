@@ -18,6 +18,7 @@ export {
   listTherapistsForAdmin,
   getTherapistForEdit,
   countTherapists,
+  getTherapistPipeline,
 } from "./service";
 export type { AdminTherapistRow, TherapistForEdit } from "./service";
 export { therapistInputSchema } from "./schema";

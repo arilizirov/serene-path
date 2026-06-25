@@ -220,6 +220,35 @@ export async function countFinishedSessions(
   return (await listFinishedSessions(now)).length;
 }
 
+// --- Admin: intake statistics (Phase 2, DB-derived; no new tables) -----------
+
+/** Intake-session counts grouped by state (the funnel) — via groupBy, no load. */
+export function sessionCountsByState() {
+  return prisma.intakeSession.groupBy({
+    by: ["state"],
+    _count: { _all: true },
+  });
+}
+
+/** Total intake sessions. */
+export function countSessions(): Promise<number> {
+  return prisma.intakeSession.count();
+}
+
+/** Sessions that produced at least one suggested therapist (match-rate numerator).
+ *  `isEmpty: false` filters the String[] column in the DB — no table load. */
+export function countMatchedSessions(): Promise<number> {
+  return prisma.intakeSession.count({
+    where: { suggestedTherapistIds: { isEmpty: false } },
+  });
+}
+
+/** Just the `constraints` blob of every session — for the engine breakdown,
+ *  which is reduced in app code (JSON has no portable groupBy). Minimal columns. */
+export function listSessionConstraints() {
+  return prisma.intakeSession.findMany({ select: { constraints: true } });
+}
+
 // --- Chip-driven flow (INTAKE_BUILD_SPEC) ------------------------------------
 // Same IntakeSession table; the flow state (phase + chip selection + opener) lives
 // in `constraints.flow`. Anonymous bearer-token session (same caveat as getSession).
