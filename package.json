@@ -11,6 +11,7 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "eval": "tsx --env-file=.env eval/run.ts",
+    "export:convos": "tsx scripts/export-conversations.ts",
     "boundaries": "python bigbrainBoundaryGuard/check_boundaries.py check",
     "verify": "python bigbrain_verify.py",
     "postinstall": "prisma generate",
