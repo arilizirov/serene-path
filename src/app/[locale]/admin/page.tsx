@@ -2,6 +2,7 @@ import { Link } from "@/i18n/navigation";
 import { countTherapists } from "@/features/therapists";
 import { countFinishedSessions } from "@/features/intake";
 import { countAllAppointments } from "@/features/scheduling";
+import { getSignupStats } from "@/features/accounts";
 import { AdminNav } from "./admin-nav";
 
 // Reflect current DB state (counts), not a build-time snapshot.
@@ -10,15 +11,19 @@ export const dynamic = "force-dynamic";
 // Admin landing. The /admin layout already enforces requireRole("ADMIN"), so this
 // page needs no extra guard; it just links into the admin areas with counts.
 export default async function AdminDashboardPage() {
-  const [therapists, conversations, appointments] = await Promise.all([
-    countTherapists(),
-    countFinishedSessions(),
-    countAllAppointments(),
-  ]);
+  const [therapists, conversations, appointments, signupStats] =
+    await Promise.all([
+      countTherapists(),
+      countFinishedSessions(),
+      countAllAppointments(),
+      getSignupStats(),
+    ]);
+  const userCount = Object.values(signupStats.byRole).reduce((a, b) => a + b, 0);
   const cards = [
     { href: "/admin/therapists", label: "Therapists", count: therapists },
     { href: "/admin/conversations", label: "Conversations", count: conversations },
     { href: "/admin/appointments", label: "Appointments", count: appointments },
+    { href: "/admin/users", label: "Users", count: userCount },
   ];
   const links = [
     { href: "/admin/schedule", label: "All-therapist schedule" },
