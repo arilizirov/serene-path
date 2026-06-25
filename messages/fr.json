@@ -29,5 +29,65 @@
   },
   "Theme": {
     "toggle": "Basculer le thème clair/sombre"
+  },
+  "Dashboard": {
+    "menu": "Menu",
+    "close": "Fermer",
+    "signOut": "Se déconnecter",
+    "there": "vous",
+    "soon": "Bientôt",
+    "nav": {
+      "overview": "Aperçu",
+      "calendar": "Agenda",
+      "clients": "Patients",
+      "requests": "Demandes",
+      "availability": "Disponibilités",
+      "profile": "Profil",
+      "earnings": "Revenus",
+      "settings": "Paramètres",
+      "appointments": "Mes rendez-vous",
+      "find": "Trouver un thérapeute",
+      "help": "Aide"
+    },
+    "overview": {
+      "title": "Aperçu",
+      "nextSession": "Prochaine séance",
+      "noNextSession": "Aucune séance confirmée à venir.",
+      "join": "Rejoindre",
+      "aClient": "Un patient",
+      "israelTime": "Heure d'Israël",
+      "pendingActions": "Actions en attente",
+      "allClear": "Tout est à jour — rien ne requiert votre attention."
+    },
+    "stats": {
+      "upcoming": "Séances à venir",
+      "upcomingHint": "Confirmées et en attente",
+      "requests": "Nouvelles demandes",
+      "requestsHint": "En attente de votre confirmation",
+      "completeness": "Complétude du profil"
+    },
+    "actions": {
+      "pendingBookings": "{count, plural, one {# réservation en attente de confirmation} other {# réservations en attente de confirmation}}",
+      "incompleteProfile": "Complétez votre profil pour apparaître dans la recherche."
+    },
+    "profile": {
+      "title": "Votre profil",
+      "notFound": "Profil introuvable.",
+      "status": "Statut",
+      "completeness": "Complétude du profil",
+      "stillNeeded": "Encore nécessaire",
+      "requestVerification": "Demander la vérification",
+      "completeToVerify": "Complétez votre profil pour demander la vérification.",
+      "awaiting": "En attente de la vérification de l'administrateur.",
+      "live": "Votre profil est visible dans la recherche.",
+      "suspended": "Votre profil est suspendu — veuillez contacter le support.",
+      "editHeading": "Modifier le profil",
+      "availabilityHeading": "Disponibilités hebdomadaires"
+    },
+    "stub": {
+      "heading": "{section} arrive bientôt",
+      "body": "Cette partie de votre tableau de bord n'est pas encore prête. Elle apparaîtra ici dès sa mise en service.",
+      "backToOverview": "Retour à l'aperçu"
+    }
   }
 }

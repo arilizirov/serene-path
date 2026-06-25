@@ -29,5 +29,65 @@
   },
   "Theme": {
     "toggle": "Toggle light/dark theme"
+  },
+  "Dashboard": {
+    "menu": "Menu",
+    "close": "Close",
+    "signOut": "Sign out",
+    "there": "there",
+    "soon": "Soon",
+    "nav": {
+      "overview": "Overview",
+      "calendar": "Calendar",
+      "clients": "Clients",
+      "requests": "Requests",
+      "availability": "Availability",
+      "profile": "Profile",
+      "earnings": "Earnings",
+      "settings": "Settings",
+      "appointments": "My appointments",
+      "find": "Find a therapist",
+      "help": "Help"
+    },
+    "overview": {
+      "title": "Overview",
+      "nextSession": "Next session",
+      "noNextSession": "No confirmed sessions coming up.",
+      "join": "Join",
+      "aClient": "A client",
+      "israelTime": "Israel time",
+      "pendingActions": "Pending actions",
+      "allClear": "You're all caught up — nothing needs your attention."
+    },
+    "stats": {
+      "upcoming": "Upcoming sessions",
+      "upcomingHint": "Confirmed and pending",
+      "requests": "New requests",
+      "requestsHint": "Awaiting your confirmation",
+      "completeness": "Profile completeness"
+    },
+    "actions": {
+      "pendingBookings": "{count, plural, one {# booking awaiting confirmation} other {# bookings awaiting confirmation}}",
+      "incompleteProfile": "Complete your profile to appear in search."
+    },
+    "profile": {
+      "title": "Your profile",
+      "notFound": "Profile not found.",
+      "status": "Status",
+      "completeness": "Profile completeness",
+      "stillNeeded": "Still needed",
+      "requestVerification": "Request verification",
+      "completeToVerify": "Complete your profile to request verification.",
+      "awaiting": "Awaiting admin verification.",
+      "live": "Your profile is live in search.",
+      "suspended": "Your profile is suspended — please contact support.",
+      "editHeading": "Edit profile",
+      "availabilityHeading": "Weekly availability"
+    },
+    "stub": {
+      "heading": "{section} is coming soon",
+      "body": "This part of your cockpit isn't ready yet. It'll show up here once it ships.",
+      "backToOverview": "Back to overview"
+    }
   }
 }
