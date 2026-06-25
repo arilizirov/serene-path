@@ -11,6 +11,7 @@ import {
   getBookedSlots,
   bookSlot,
   getClientAppointments,
+  getTherapistAppointmentsByUser,
   cancelOwnAppointment,
   getAppointmentForParty as getAppointmentForPartyRepo,
   listAllAppointments,
@@ -121,6 +122,37 @@ export async function getMyAppointments(userId: string): Promise<MyAppointment[]
     status: r.status,
     therapistName: r.therapist.user.name ?? "",
     therapistTitle: r.therapist.title,
+  }));
+}
+
+/** One of a therapist's upcoming appointments, shaped for the cockpit. */
+export type TherapistAppointment = {
+  id: string;
+  startIso: string;
+  status: string;
+  clientName: string;
+};
+
+/** Options for {@link getTherapistAppointments}. `fromIso` defaults to now. */
+export type TherapistAppointmentsOpts = { fromIso?: string };
+
+/**
+ * A therapist's own upcoming appointments (UTC instants), soonest first. Owner-
+ * scoped: `therapistUserId` is the session user, and the repository resolves the
+ * therapist profile from it (no therapistId is trusted from input). Mirrors
+ * {@link getMyAppointments} for the client side — same shaping/ordering.
+ */
+export async function getTherapistAppointments(
+  therapistUserId: string,
+  opts: TherapistAppointmentsOpts = {},
+): Promise<TherapistAppointment[]> {
+  const from = opts.fromIso ?? new Date().toISOString();
+  const rows = await getTherapistAppointmentsByUser(therapistUserId, from);
+  return rows.map((r) => ({
+    id: r.id,
+    startIso: r.startUtc.toISOString(),
+    status: r.status,
+    clientName: r.client.name ?? "",
   }));
 }
 
