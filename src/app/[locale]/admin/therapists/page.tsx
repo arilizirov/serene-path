@@ -1,5 +1,6 @@
 import { Link } from "@/i18n/navigation";
 import { listTherapistsForAdmin, setStatusAction } from "@/features/therapists";
+import { AdminNav } from "../admin-nav";
 
 // Always reflect current DB state (never a build-time snapshot); also avoids
 // coupling `next build` to a live database.
@@ -17,6 +18,7 @@ export default async function AdminTherapistsPage({
   const rows = await listTherapistsForAdmin();
   return (
     <main className="mx-auto flex max-w-4xl flex-col gap-6 p-8">
+      <AdminNav />
       <div className="flex items-center justify-between gap-4">
         <h1 className="font-heading text-2xl font-bold text-on-background">
           Therapists
