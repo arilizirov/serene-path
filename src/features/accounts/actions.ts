@@ -2,8 +2,23 @@
 
 import { redirect } from "next/navigation";
 import { z } from "zod";
-import { login, logout, registerClient } from "./service";
+import { login, logout, registerClient, type Role } from "./service";
 import { registerSchema } from "./schema";
+
+/** Where each role lands after signing in. */
+function roleHome(role: Role, locale: string): string {
+  if (role === "ADMIN") return `/${locale}/admin`;
+  if (role === "THERAPIST") return `/${locale}/dashboard`;
+  return `/${locale}/appointments`; // CLIENT
+}
+
+/** Guard the role-restricted areas so honoring a ?next= can't bounce someone into
+ *  a page their role can't reach (which would loop back to login). */
+function roleMayAccess(role: Role, path: string): boolean {
+  if (/^\/[^/]+\/admin(\/|$)/.test(path)) return role === "ADMIN";
+  if (/^\/[^/]+\/dashboard(\/|$)/.test(path)) return role === "THERAPIST";
+  return true;
+}
 
 const loginSchema = z.object({
   email: z.email(),
@@ -32,12 +47,14 @@ export async function loginAction(
   });
   if (!parsed.success) return { error: "Enter a valid email and password." };
 
-  const ok = await login(parsed.data.email, parsed.data.password);
-  if (!ok) return { error: "Invalid email or password." };
+  const principal = await login(parsed.data.email, parsed.data.password);
+  if (!principal) return { error: "Invalid email or password." };
 
-  redirect(
-    safeNext(String(formData.get("next") ?? ""), `/${locale}/admin/therapists`),
-  );
+  // Route by role: a CLIENT must not be sent to the ADMIN area (the old hardcoded
+  // /admin/therapists fallback bounced every non-admin into a redirect loop).
+  const home = roleHome(principal.role, locale);
+  const dest = safeNext(String(formData.get("next") ?? ""), home);
+  redirect(roleMayAccess(principal.role, dest) ? dest : home);
 }
 
 export async function logoutAction(formData: FormData): Promise<void> {
