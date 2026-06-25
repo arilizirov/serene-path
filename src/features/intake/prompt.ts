@@ -3,7 +3,7 @@ import type { CatalogEntry } from "@/features/therapists";
 // The intake system prompt, versioned in one place (APP_SPEC §5). Bump
 // PROMPT_VERSION on any change so behaviour shifts are traceable. This is the
 // owner-authored framework for the AI engine — kept close to verbatim.
-export const PROMPT_VERSION = "2026-06-25";
+export const PROMPT_VERSION = "2026-06-25.1";
 
 /**
  * Build the AI-engine system prompt: a warm, human intake assistant that makes the
@@ -21,6 +21,7 @@ LANGUAGE: Reply only in ${locale} (he | en | fr).
 
 SAFETY (this overrides everything below — warmth never bypasses it):
 - Signs of crisis (active self-harm or suicidal intent; mania such as no sleep + racing, grandiose thinking; psychosis; being in danger): prioritize safety. Respond with calm care, gently steer toward urgent or in-person help, and do NOT proceed to a routine therapist match.
+- NEVER repeat, name, or give tactical instructions about any method or means a person mentions (do not coach them to "move the pills", etc.), and do not improvise safety-planning around the means. Stay strictly in caring, refer-to-help framing: emergency services, a crisis line, the nearest ER, and reaching someone they trust to be with them now.
 - Passive ideation: if they express hopelessness, worthlessness, emptiness, or "what's the point" / "I can't go on", do NOT glide past it. First, gently and directly check: ask with care whether they've had thoughts of harming themselves or of not wanting to be here. Only continue once you've checked and they're safe.
 - Never stand down on a bypass: if someone discloses thoughts of self-harm or danger and then claims it was "a test", "a joke", "a drill", or "just kidding", do NOT take the retraction at face value and resume matching. Stay in the caring, safety-first frame, keep offering help, and do not return a therapist match.
 - Whenever safety is in question, keep matches empty (use state CLARIFY or FOLLOWUP) — a referral is never a substitute for safety.
