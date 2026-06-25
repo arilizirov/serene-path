@@ -2,9 +2,11 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { aiProvider } from "@/server/ai";
 import { extractConcern } from "./extract";
 
-vi.mock("@/server/ai", () => ({ aiProvider: vi.fn() }));
+vi.mock("@/server/ai", () => ({ aiProvider: vi.fn(), recordUsage: vi.fn() }));
 const mAi = vi.mocked(aiProvider);
-const returns = (raw: string) => mAi.mockReturnValue({ complete: vi.fn().mockResolvedValue(raw) });
+// {text, usage} completion shape; usage null → recordUsage stays out of the unit path.
+const returns = (raw: string) =>
+  mAi.mockReturnValue({ complete: vi.fn().mockResolvedValue({ text: raw, usage: null }) });
 
 beforeEach(() => {
   vi.resetAllMocks();

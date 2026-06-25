@@ -9,8 +9,20 @@
 // server-side matching rules) is built + tested against this seam now, and the
 // real model plugs in here without any caller changing.
 
-export type { ChatRole, ChatMessage, AiProvider } from "./types";
+export type {
+  ChatRole,
+  ChatMessage,
+  AiProvider,
+  TokenUsage,
+  Completion,
+} from "./types";
 import type { AiProvider } from "./types";
+
+// Phase 4 — API cost & usage tracking: fire-and-forget recording of paid model
+// calls, plus the admin reads the costs dashboard renders. Re-exported here so
+// the seam (`@/server/ai`) is the one public surface callers and the admin use.
+export { recordUsage, estimateCostUsd, PRICING } from "./usage";
+export type { CallType } from "./usage";
 
 const ID_IN_SYSTEM = /"id"\s*:\s*"([^"]+)"/g;
 
@@ -30,34 +42,45 @@ const stubProvider: AiProvider = {
     const userTurns = messages.filter((m) => m.role === "user").length;
     const catalogIds = [...system.matchAll(ID_IN_SYSTEM)].map((m) => m[1]);
 
+    // The stub is unpaid, so it reports no usage (usage: null) — callers record
+    // nothing on this path. Only the real provider carries token usage.
     if (userTurns <= 1) {
-      return JSON.stringify({
-        state: "MIRROR",
-        reply:
-          "If I understand correctly, you're going through something that's weighing on you. Did I get that right?",
-        matches: [],
-      });
+      return {
+        text: JSON.stringify({
+          state: "MIRROR",
+          reply:
+            "If I understand correctly, you're going through something that's weighing on you. Did I get that right?",
+          matches: [],
+        }),
+        usage: null,
+      };
     }
 
     if (catalogIds.length === 0) {
-      return JSON.stringify({
-        state: "CLARIFY",
-        reply:
-          "I don't have someone who's a genuine fit for this yet. Could you tell me a bit more about what you're looking for?",
-        matches: [],
-      });
+      return {
+        text: JSON.stringify({
+          state: "CLARIFY",
+          reply:
+            "I don't have someone who's a genuine fit for this yet. Could you tell me a bit more about what you're looking for?",
+          matches: [],
+        }),
+        usage: null,
+      };
     }
 
-    return JSON.stringify({
-      state: "MATCH",
-      reply:
-        "Thank you for sharing. Based on what you've told me, here are a couple of therapists who may be a good fit.",
-      matches: catalogIds.slice(0, 2).map((id) => ({
-        therapist_id: id,
-        rationale:
-          "Their background and stated specialties line up with what you described.",
-      })),
-    });
+    return {
+      text: JSON.stringify({
+        state: "MATCH",
+        reply:
+          "Thank you for sharing. Based on what you've told me, here are a couple of therapists who may be a good fit.",
+        matches: catalogIds.slice(0, 2).map((id) => ({
+          therapist_id: id,
+          rationale:
+            "Their background and stated specialties line up with what you described.",
+        })),
+      }),
+      usage: null,
+    };
   },
 };
 
