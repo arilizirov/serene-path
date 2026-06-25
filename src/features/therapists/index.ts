@@ -17,11 +17,16 @@ export {
   updateTherapist,
   listTherapistsForAdmin,
   getTherapistForEdit,
+  countTherapists,
 } from "./service";
 export type { AdminTherapistRow, TherapistForEdit } from "./service";
 export { therapistInputSchema } from "./schema";
 export type { TherapistInput } from "./schema";
 export { TherapistForm } from "./ui/therapist-form";
+
+// Admin delete (hard delete, FK-safe) — action + confirm-gated control.
+export { deleteTherapistAction } from "./actions";
+export { DeleteTherapistButton } from "./ui/delete-therapist-button";
 
 // Therapist self-onboarding (Stage 5).
 export { selfRegisterTherapist } from "./service";

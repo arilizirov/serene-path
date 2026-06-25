@@ -6,6 +6,7 @@ import {
   TherapistForm,
   AvailabilityEditor,
   BlockedDatesEditor,
+  DeleteTherapistButton,
 } from "@/features/therapists";
 
 // Always load the current profile for editing (no build-time snapshot).
@@ -45,6 +46,16 @@ export default async function EditTherapistPage({
           locale={locale}
           blockedDates={blockedDates}
         />
+      </section>
+      <section className="flex flex-col gap-3 border-t border-outline-variant pt-6">
+        <h2 className="font-heading text-xl font-semibold text-error">
+          Danger zone
+        </h2>
+        <p className="text-sm text-on-surface-variant">
+          Permanently delete this therapist, including their availability and
+          appointments. This cannot be undone.
+        </p>
+        <DeleteTherapistButton profileId={id} locale={locale} />
       </section>
     </main>
   );
