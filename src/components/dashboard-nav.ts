@@ -1,0 +1,86 @@
+// Per-role sidebar manifests for the dashboard shell. Each item names a message
+// key (resolved against the `Dashboard` catalog) and an icon key (mapped to a
+// dependency-free inline SVG in dashboard-shell). `soon` marks present-but-
+// stubbed items so the shell can render a muted "soon" badge.
+//
+// This pass only Overview and Profile are real; the rest are present-but-stubbed
+// links (a shared "coming soon" stub page) so the sidebar reads complete.
+
+export type NavIcon =
+  | "overview"
+  | "calendar"
+  | "clients"
+  | "requests"
+  | "availability"
+  | "profile"
+  | "earnings"
+  | "settings"
+  | "appointments"
+  | "find"
+  | "help";
+
+export type NavItem = {
+  key: string;
+  href: string;
+  labelKey: string;
+  icon: NavIcon;
+  soon?: boolean;
+};
+
+/** Therapist cockpit sidebar (T1). Overview + Profile work this pass. */
+export const therapistNav: NavItem[] = [
+  { key: "overview", href: "/dashboard", labelKey: "overview", icon: "overview" },
+  {
+    key: "calendar",
+    href: "/dashboard/calendar",
+    labelKey: "calendar",
+    icon: "calendar",
+    soon: true,
+  },
+  {
+    key: "clients",
+    href: "/dashboard/clients",
+    labelKey: "clients",
+    icon: "clients",
+    soon: true,
+  },
+  {
+    key: "requests",
+    href: "/dashboard/requests",
+    labelKey: "requests",
+    icon: "requests",
+    soon: true,
+  },
+  {
+    key: "availability",
+    href: "/dashboard/profile",
+    labelKey: "availability",
+    icon: "availability",
+  },
+  { key: "profile", href: "/dashboard/profile", labelKey: "profile", icon: "profile" },
+  {
+    key: "earnings",
+    href: "/dashboard/earnings",
+    labelKey: "earnings",
+    icon: "earnings",
+    soon: true,
+  },
+  {
+    key: "settings",
+    href: "/dashboard/settings",
+    labelKey: "settings",
+    icon: "settings",
+    soon: true,
+  },
+];
+
+/** Client sidebar manifest (the client dashboard itself is a later pass). */
+export const clientNav: NavItem[] = [
+  {
+    key: "appointments",
+    href: "/appointments",
+    labelKey: "appointments",
+    icon: "appointments",
+  },
+  { key: "find", href: "/therapists", labelKey: "find", icon: "find" },
+];
