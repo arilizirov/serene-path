@@ -94,6 +94,81 @@ export async function cancelOwnAppointment(
   return res.count;
 }
 
+// --- Admin appointment management (read + admin-scoped writes) ---------------
+// These are NOT owner-scoped: an ADMIN operates over every appointment. The
+// requireRole("ADMIN") check is enforced at the action boundary (actions.ts);
+// the repository just runs the query. Kept distinct from the owner-scoped
+// cancelOwnAppointment, which trusts only the session user's own rows.
+
+import type { AppointmentStatus } from "@/generated/prisma/enums";
+
+/** Filters for the admin appointments table — all optional, AND-combined. */
+export type AdminAppointmentFilters = {
+  status?: AppointmentStatus;
+  therapistId?: string;
+  from?: string; // inclusive lower bound on startUtc (UTC ISO)
+  to?: string; // inclusive upper bound on startUtc (UTC ISO)
+};
+
+/**
+ * Every appointment (any status), newest-first, joined to therapist + client
+ * display names. Admin-only read — the WHERE narrows by the optional filters
+ * only, never by an owner. Returns minimal columns for the table.
+ */
+export async function listAllAppointments(filters: AdminAppointmentFilters = {}) {
+  const startUtc =
+    filters.from || filters.to
+      ? {
+          ...(filters.from ? { gte: new Date(filters.from) } : {}),
+          ...(filters.to ? { lte: new Date(filters.to) } : {}),
+        }
+      : undefined;
+  return prisma.appointment.findMany({
+    where: {
+      ...(filters.status ? { status: filters.status } : {}),
+      ...(filters.therapistId ? { therapistId: filters.therapistId } : {}),
+      ...(startUtc ? { startUtc } : {}),
+    },
+    orderBy: { startUtc: "desc" },
+    select: {
+      id: true,
+      startUtc: true,
+      endUtc: true,
+      status: true,
+      therapistId: true,
+      therapist: { select: { title: true, user: { select: { name: true } } } },
+      client: { select: { name: true, email: true } },
+    },
+  });
+}
+
+/** Count of all appointments (any status) — for the admin dashboard. */
+export function countAppointments(): Promise<number> {
+  return prisma.appointment.count();
+}
+
+/** Appointment counts grouped by status — for the stats page (no full load). */
+export function appointmentCountsByStatus() {
+  return prisma.appointment.groupBy({ by: ["status"], _count: { _all: true } });
+}
+
+/**
+ * Admin-scoped status change for any appointment by id (e.g. CANCELLED /
+ * NO_SHOW). NOT owner-scoped — the admin acts over all rows, so the only gate is
+ * the requireRole("ADMIN") in the action. updateMany returns the affected count
+ * (0 = no such id). Distinct from cancelOwnAppointment which is session-scoped.
+ */
+export async function adminSetAppointmentStatus(
+  appointmentId: string,
+  status: AppointmentStatus,
+): Promise<number> {
+  const res = await prisma.appointment.updateMany({
+    where: { id: appointmentId },
+    data: { status },
+  });
+  return res.count;
+}
+
 function isP2002(e: unknown): boolean {
   return typeof e === "object" && e !== null && "code" in e && e.code === "P2002";
 }

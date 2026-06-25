@@ -1,4 +1,10 @@
-import { getSchedulingContext, getBlockedDates } from "@/features/therapists";
+import {
+  getSchedulingContext,
+  getBlockedDates,
+  getAvailabilityRules,
+  listTherapistsForAdmin,
+  type AvailabilityRuleInput,
+} from "@/features/therapists";
 import { computeNextAvailable } from "./next-available";
 import { generateSlots } from "./generate-slots";
 import {
@@ -7,7 +13,13 @@ import {
   getClientAppointments,
   cancelOwnAppointment,
   getAppointmentForParty as getAppointmentForPartyRepo,
+  listAllAppointments,
+  countAppointments,
+  appointmentCountsByStatus,
+  adminSetAppointmentStatus,
+  type AdminAppointmentFilters,
 } from "./repository";
+import type { AppointmentStatus } from "@/generated/prisma/enums";
 
 /** Session length in minutes — one fixed duration for v1 (§9). */
 const SESSION_MINUTES = 60;
@@ -145,4 +157,117 @@ export async function getAppointmentForParty(
   userId: string,
 ): Promise<AppointmentParty | null> {
   return getAppointmentForPartyRepo(appointmentId, userId);
+}
+
+// --- Admin: all-therapist schedule overview (Phase 2, read-mostly) -----------
+
+/** One therapist's schedule as the admin overview page renders it: identity +
+ *  weekly rules + blocked dates + the next few upcoming bookable slots. */
+export type TherapistSchedule = {
+  therapistId: string;
+  name: string;
+  title: string;
+  status: string;
+  rules: AvailabilityRuleInput[];
+  blockedDates: string[];
+  upcomingSlots: string[]; // UTC ISO instants
+};
+
+/** How far ahead to look for "next few" slots, and how many to show. */
+const SCHEDULE_LOOKAHEAD_DAYS = 30;
+const SCHEDULE_SLOT_PREVIEW = 3;
+
+/**
+ * Every therapist's schedule in one place (admin overview). Composes the
+ * therapists read-model (rules + blocked dates, reused) with this feature's slot
+ * engine (next few bookable slots). Read-only — editing is reused via the
+ * existing per-therapist editor. Per-therapist reads run concurrently.
+ */
+export async function getAllTherapistsSchedules(): Promise<TherapistSchedule[]> {
+  const therapists = await listTherapistsForAdmin();
+  const now = new Date().toISOString();
+  const horizon = new Date(
+    Date.now() + SCHEDULE_LOOKAHEAD_DAYS * 86_400_000,
+  ).toISOString();
+  return Promise.all(
+    therapists.map(async (t) => {
+      const [rules, blocked, slots] = await Promise.all([
+        getAvailabilityRules(t.id),
+        getBlockedDates(t.id),
+        getBookableSlots(t.id, now, horizon),
+      ]);
+      return {
+        therapistId: t.id,
+        name: t.name,
+        title: t.title,
+        status: t.status,
+        rules,
+        blockedDates: blocked.map((b) => b.date),
+        upcomingSlots: slots.slice(0, SCHEDULE_SLOT_PREVIEW),
+      };
+    }),
+  );
+}
+
+// --- Admin: appointment management (Phase 2) ---------------------------------
+
+/** One appointment row in the admin appointments table. */
+export type AdminAppointment = {
+  id: string;
+  startIso: string;
+  endIso: string;
+  status: string;
+  therapistId: string;
+  therapistName: string;
+  therapistTitle: string;
+  clientName: string;
+  clientEmail: string;
+};
+
+/**
+ * Every appointment for the admin table (newest-first), with therapist + client
+ * names resolved. Admin read — narrowed only by the optional filters, never by an
+ * owner. The status filter is passed through as the prisma enum.
+ */
+export async function getAllAppointments(
+  filters: AdminAppointmentFilters = {},
+): Promise<AdminAppointment[]> {
+  const rows = await listAllAppointments(filters);
+  return rows.map((r) => ({
+    id: r.id,
+    startIso: r.startUtc.toISOString(),
+    endIso: r.endUtc.toISOString(),
+    status: r.status,
+    therapistId: r.therapistId,
+    therapistName: r.therapist.user.name ?? "",
+    therapistTitle: r.therapist.title,
+    clientName: r.client.name ?? "",
+    clientEmail: r.client.email,
+  }));
+}
+
+/** Total appointments (any status) — admin dashboard count. */
+export async function countAllAppointments(): Promise<number> {
+  return countAppointments();
+}
+
+/** Appointment counts keyed by status (for the stats page), via groupBy. */
+export async function getAppointmentStatusCounts(): Promise<
+  Record<string, number>
+> {
+  const rows = await appointmentCountsByStatus();
+  return Object.fromEntries(rows.map((r) => [r.status, r._count._all]));
+}
+
+/**
+ * Admin sets an appointment's status by id (e.g. CANCELLED / NO_SHOW). Admin-
+ * scoped (operates over any row) — the requireRole("ADMIN") gate lives in the
+ * action. Returns whether a row was changed (false = no such appointment).
+ */
+export async function adminSetStatus(
+  appointmentId: string,
+  status: AppointmentStatus,
+): Promise<boolean> {
+  const count = await adminSetAppointmentStatus(appointmentId, status);
+  return count > 0;
 }
