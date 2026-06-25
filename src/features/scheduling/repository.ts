@@ -42,6 +42,31 @@ export async function getClientAppointments(userId: string, fromIso: string) {
   });
 }
 
+/** A therapist's own upcoming appointments, soonest first, with the client's
+ * display name for rendering. Owner-scoped through the nested `therapist.userId`
+ * filter — the row's therapist profile must belong to this session user (no
+ * therapistId is trusted from input). Mirrors getClientAppointments; excludes
+ * cancelled ones. */
+export async function getTherapistAppointmentsByUser(
+  therapistUserId: string,
+  fromIso: string,
+) {
+  return prisma.appointment.findMany({
+    where: {
+      therapist: { userId: therapistUserId },
+      status: { not: "CANCELLED" },
+      startUtc: { gte: new Date(fromIso) },
+    },
+    orderBy: { startUtc: "asc" },
+    select: {
+      id: true,
+      startUtc: true,
+      status: true,
+      client: { select: { name: true } },
+    },
+  });
+}
+
 /**
  * An appointment the given user is a party to (the CLIENT or the THERAPIST),
  * owner-scoped in the WHERE — no other id is trusted. Excludes cancelled rows.

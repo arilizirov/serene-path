@@ -8,12 +8,15 @@ export {
   getBookableSlots,
   createBooking,
   getMyAppointments,
+  getTherapistAppointments,
   cancelAppointment,
   getAppointmentForParty,
 } from "./service";
 export type {
   BookingResult,
   MyAppointment,
+  TherapistAppointment,
+  TherapistAppointmentsOpts,
   AppointmentParty,
 } from "./service";
 export { computeNextAvailable } from "./next-available";
