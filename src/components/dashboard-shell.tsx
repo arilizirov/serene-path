@@ -243,6 +243,14 @@ function icons(): Record<NavIcon, ReactNode> {
         <path d="M21 21l-4.3-4.3" />
       </>,
     ),
+    stats: svg(
+      <>
+        <path d="M3 3v18h18" />
+        <rect x="7" y="11" width="3" height="6" rx="0.5" />
+        <rect x="12" y="7" width="3" height="10" rx="0.5" />
+        <rect x="17" y="13" width="3" height="4" rx="0.5" />
+      </>,
+    ),
     help: svg(
       <>
         <circle cx="12" cy="12" r="9" />
