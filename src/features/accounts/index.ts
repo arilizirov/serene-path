@@ -13,9 +13,22 @@ export {
   startSessionFor,
   normalizeEmail,
   getSignupStats,
+  listAllUsers,
+  createAdmin,
+  setUserRole,
+  resetUserPassword,
 } from "./service";
-export type { AuthedUser, Role, UserContact, SignupStats } from "./service";
+export type {
+  AuthedUser,
+  Role,
+  UserContact,
+  SignupStats,
+  AdminUser,
+  SetRoleResult,
+} from "./service";
 export { hashPassword } from "./password";
+export { passwordSchema, roleSchema, createAdminSchema } from "./schema";
+export type { CreateAdminInput } from "./schema";
 export { loginAction, logoutAction, registerAction } from "./actions";
 export type { LoginState, RegisterState } from "./actions";
 export { LoginForm } from "./ui/login-form";

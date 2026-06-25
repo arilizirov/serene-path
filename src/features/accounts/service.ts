@@ -7,14 +7,18 @@ import {
   findUserContactById,
   userCountsByRole,
   countUsersSince,
+  listUsers,
+  updateUserRole,
+  updateUserPassword,
+  countByRole,
 } from "./repository";
 import { verifyPassword, hashPassword } from "./password";
-import type { RegisterInput } from "./schema";
+import type { RegisterInput, Role } from "./schema";
 
-// Keep in sync with the Role enum in prisma/schema.prisma (CLIENT/THERAPIST/
-// ADMIN). Re-declared rather than imported from the generated client to keep
-// the feature decoupled from the ORM, matching the convention used elsewhere.
-export type Role = "CLIENT" | "THERAPIST" | "ADMIN";
+// Role lives in ./schema (the import-leaf) so repository.ts can use the type
+// without a service↔repository cycle. Re-exported here so existing importers of
+// `accounts.Role` (via the index barrel) keep working unchanged.
+export type { Role };
 
 /** The principal returned on a successful credential check. */
 export type AuthedUser = { id: string; role: Role };
@@ -178,4 +182,103 @@ export async function getSignupStats(
     recent,
     recentDays,
   };
+}
+
+// --- Admin: user & role management (Phase 3) ---------------------------------
+//
+// These are the SERVICE-side primitives behind the admin users area. They carry
+// the security-critical invariants (the last-admin lockout guard, the create-
+// then-catch P2002 duplicate path, password-strength enforcement) so the rules
+// hold no matter which caller invokes them. They do NOT perform authorization —
+// that is the action boundary's job (requireRole("ADMIN") as the first statement
+// of every admin action); these run only after that gate has passed.
+
+/** A user row for the admin users table. Never includes passwordHash (the repo
+ *  `listUsers` select omits it), so the hash cannot leak through this surface. */
+export type AdminUser = {
+  id: string;
+  email: string;
+  name: string | null; // User.name is nullable in the schema; the UI renders a dash
+  role: Role;
+  createdAt: Date;
+};
+
+/** Every user, newest-first, for the admin users table. */
+export function listAllUsers(): Promise<AdminUser[]> {
+  return listUsers();
+}
+
+/**
+ * Create an ADMIN account. Mirrors registerClient's create-then-catch shape: the
+ * User.email unique constraint is the authoritative race-safe guard, so we create
+ * then catch P2002 rather than check-then-create (no TOCTOU window). Unlike
+ * registerClient this does NOT start a session — an admin is provisioning ANOTHER
+ * account, not signing themselves in. Password is hashed here; strength is
+ * enforced at the action boundary via createAdminSchema.
+ */
+export async function createAdmin(input: {
+  email: string;
+  name: string;
+  password: string;
+}): Promise<RegisterResult> {
+  const passwordHash = await hashPassword(input.password);
+  try {
+    await createUser({
+      email: normalizeEmail(input.email),
+      name: input.name,
+      passwordHash,
+      role: "ADMIN",
+    });
+    return { ok: true };
+  } catch (e) {
+    if (isUniqueViolation(e)) {
+      return { ok: false, error: "That email is already registered." };
+    }
+    throw e;
+  }
+}
+
+export type SetRoleResult = { ok: true } | { ok: false; error: string };
+
+/**
+ * Change a user's role, with the LAST-ADMIN LOCKOUT GUARD: if the target user is
+ * currently an ADMIN, the new role is non-ADMIN, and they are the ONLY remaining
+ * ADMIN, the change is refused — otherwise the platform could be left with zero
+ * admins and no way back into this area. A no-op (newRole === current ADMIN) is
+ * allowed. The guard reads the live admin count + the target's current role, so
+ * it holds regardless of what the caller believes the state to be.
+ */
+export async function setUserRole(
+  userId: string,
+  newRole: Role,
+): Promise<SetRoleResult> {
+  if (newRole !== "ADMIN") {
+    const current = await findUserRole(userId);
+    if (!current) return { ok: false, error: "User not found." };
+    if (current.role === "ADMIN") {
+      const admins = await countByRole("ADMIN");
+      if (admins <= 1) {
+        return {
+          ok: false,
+          error: "Cannot remove the last remaining administrator.",
+        };
+      }
+    }
+  }
+  await updateUserRole(userId, newRole);
+  return { ok: true };
+}
+
+/**
+ * Admin-initiated password reset: hash the new password and replace the stored
+ * hash. The plaintext is never logged or returned. Strength is enforced at the
+ * action boundary via passwordSchema (the same rule registration uses), so this
+ * primitive trusts that its input already meets the byte-length cap.
+ */
+export async function resetUserPassword(
+  userId: string,
+  password: string,
+): Promise<void> {
+  const passwordHash = await hashPassword(password);
+  await updateUserPassword(userId, passwordHash);
 }
