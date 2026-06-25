@@ -47,6 +47,10 @@
       "settings": "הגדרות",
       "appointments": "הפגישות שלי",
       "find": "מצא מטפל/ת",
+      "myTherapist": "המטפל/ת שלי",
+      "forms": "טפסים",
+      "billing": "תשלומים",
+      "accountSettings": "חשבון",
       "adminDashboard": "לוח בקרה",
       "adminTherapists": "מטפלים",
       "adminSchedule": "לוח זמנים",
@@ -95,6 +99,39 @@
     "stub": {
       "heading": "{section} בקרוב",
       "body": "החלק הזה בלוח הבקרה עדיין לא מוכן. הוא יופיע כאן ברגע שיהיה זמין.",
+      "backToOverview": "חזרה לסקירה"
+    }
+  },
+  "Client": {
+    "overview": {
+      "title": "סקירה",
+      "greeting": "שלום {name}",
+      "greetingPlain": "שמחים לראותך שוב",
+      "nextAppointment": "הפגישה הבאה שלך",
+      "with": "עם",
+      "israelTime": "שעון ישראל",
+      "join": "הצטרפות לפגישה",
+      "startsIn": "מתחילה בעוד {label}",
+      "inProgress": "מתקיימת כעת",
+      "countdownDays": "{count, plural, one {יום אחד} two {יומיים} many {# ימים} other {# ימים}}",
+      "countdownHours": "{count, plural, one {שעה אחת} two {שעתיים} many {# שעות} other {# שעות}}",
+      "countdownMinutes": "{count, plural, one {דקה אחת} two {שתי דקות} many {# דקות} other {# דקות}}",
+      "yourTherapist": "המטפל/ת שלך",
+      "viewAppointments": "לכל הפגישות",
+      "emptyTitle": "בואו נמצא את המטפל/ת המתאים/ה לך",
+      "emptyBody": "ספרו לנו איך אתם מרגישים ונתאים לכם מטפל/ת — ואז תוכלו לקבוע את הפגישה הראשונה.",
+      "emptyCta": "מצא מטפל/ת",
+      "resumeIntake": "התחלת קליטה"
+    },
+    "stats": {
+      "upcoming": "פגישות קרובות",
+      "upcomingHint": "מאושרות וממתינות",
+      "awaiting": "ממתינות לאישור",
+      "awaitingHint": "בהמתנה לתשובת המטפל/ת"
+    },
+    "stub": {
+      "heading": "{section} בקרוב",
+      "body": "החלק הזה בחשבון שלך עדיין לא מוכן. הוא יופיע כאן ברגע שיהיה זמין.",
       "backToOverview": "חזרה לסקירה"
     }
   },

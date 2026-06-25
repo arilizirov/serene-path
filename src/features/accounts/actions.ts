@@ -10,7 +10,7 @@ function roleHome(role: Role, locale: string): string {
   // ADMIN → the /admin dashboard (Phase 1 landing).
   if (role === "ADMIN") return `/${locale}/admin`;
   if (role === "THERAPIST") return `/${locale}/dashboard`;
-  return `/${locale}/appointments`; // CLIENT
+  return `/${locale}/account`; // CLIENT → the account overview (client home)
 }
 
 /** Guard the role-restricted areas so honoring a ?next= can't bounce someone into
@@ -18,6 +18,7 @@ function roleHome(role: Role, locale: string): string {
 function roleMayAccess(role: Role, path: string): boolean {
   if (/^\/[^/]+\/admin(\/|$)/.test(path)) return role === "ADMIN";
   if (/^\/[^/]+\/dashboard(\/|$)/.test(path)) return role === "THERAPIST";
+  if (/^\/[^/]+\/account(\/|$)/.test(path)) return role === "CLIENT";
   return true;
 }
 

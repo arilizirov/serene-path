@@ -109,8 +109,11 @@ export const adminNav: NavItem[] = [
   { key: "costs", href: "/admin/costs", labelKey: "adminCosts", icon: "earnings" },
 ];
 
-/** Client sidebar manifest (the client dashboard itself is a later pass). */
+/** Client account sidebar. Overview + Appointments work this pass; the rest are
+ *  present-but-stubbed links (a shared "coming soon" stub) so the sidebar reads
+ *  complete. Find a therapist points at the existing public directory. */
 export const clientNav: NavItem[] = [
+  { key: "overview", href: "/account", labelKey: "overview", icon: "overview" },
   {
     key: "appointments",
     href: "/appointments",
@@ -118,4 +121,32 @@ export const clientNav: NavItem[] = [
     icon: "appointments",
   },
   { key: "find", href: "/therapists", labelKey: "find", icon: "find" },
+  {
+    key: "therapist",
+    href: "/account/therapist",
+    labelKey: "myTherapist",
+    icon: "clients",
+    soon: true,
+  },
+  {
+    key: "forms",
+    href: "/account/forms",
+    labelKey: "forms",
+    icon: "requests",
+    soon: true,
+  },
+  {
+    key: "billing",
+    href: "/account/billing",
+    labelKey: "billing",
+    icon: "earnings",
+    soon: true,
+  },
+  {
+    key: "settings",
+    href: "/account/settings",
+    labelKey: "accountSettings",
+    icon: "settings",
+    soon: true,
+  },
 ];

@@ -47,6 +47,10 @@
       "settings": "Settings",
       "appointments": "My appointments",
       "find": "Find a therapist",
+      "myTherapist": "My therapist",
+      "forms": "Forms",
+      "billing": "Billing",
+      "accountSettings": "Account",
       "adminDashboard": "Dashboard",
       "adminTherapists": "Therapists",
       "adminSchedule": "Schedule",
@@ -95,6 +99,39 @@
     "stub": {
       "heading": "{section} is coming soon",
       "body": "This part of your cockpit isn't ready yet. It'll show up here once it ships.",
+      "backToOverview": "Back to overview"
+    }
+  },
+  "Client": {
+    "overview": {
+      "title": "Overview",
+      "greeting": "Hi {name}",
+      "greetingPlain": "Welcome back",
+      "nextAppointment": "Your next appointment",
+      "with": "with",
+      "israelTime": "Israel time",
+      "join": "Join session",
+      "startsIn": "Starts in {label}",
+      "inProgress": "Happening now",
+      "countdownDays": "{count, plural, one {# day} other {# days}}",
+      "countdownHours": "{count, plural, one {# hour} other {# hours}}",
+      "countdownMinutes": "{count, plural, one {# minute} other {# minutes}}",
+      "yourTherapist": "Your therapist",
+      "viewAppointments": "View all appointments",
+      "emptyTitle": "Let's find the right therapist for you",
+      "emptyBody": "Tell us how you're feeling and we'll match you with a therapist — then book your first session.",
+      "emptyCta": "Find a therapist",
+      "resumeIntake": "Start intake"
+    },
+    "stats": {
+      "upcoming": "Upcoming sessions",
+      "upcomingHint": "Confirmed and pending",
+      "awaiting": "Awaiting confirmation",
+      "awaitingHint": "Pending the therapist's reply"
+    },
+    "stub": {
+      "heading": "{section} is coming soon",
+      "body": "This part of your account isn't ready yet. It'll show up here once it ships.",
       "backToOverview": "Back to overview"
     }
   },

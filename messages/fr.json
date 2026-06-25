@@ -47,6 +47,10 @@
       "settings": "Paramètres",
       "appointments": "Mes rendez-vous",
       "find": "Trouver un thérapeute",
+      "myTherapist": "Mon thérapeute",
+      "forms": "Formulaires",
+      "billing": "Facturation",
+      "accountSettings": "Compte",
       "adminDashboard": "Tableau de bord",
       "adminTherapists": "Thérapeutes",
       "adminSchedule": "Planning",
@@ -95,6 +99,39 @@
     "stub": {
       "heading": "{section} arrive bientôt",
       "body": "Cette partie de votre tableau de bord n'est pas encore prête. Elle apparaîtra ici dès sa mise en service.",
+      "backToOverview": "Retour à l'aperçu"
+    }
+  },
+  "Client": {
+    "overview": {
+      "title": "Aperçu",
+      "greeting": "Bonjour {name}",
+      "greetingPlain": "Content de vous revoir",
+      "nextAppointment": "Votre prochain rendez-vous",
+      "with": "avec",
+      "israelTime": "Heure d'Israël",
+      "join": "Rejoindre la séance",
+      "startsIn": "Commence dans {label}",
+      "inProgress": "En cours",
+      "countdownDays": "{count, plural, one {# jour} other {# jours}}",
+      "countdownHours": "{count, plural, one {# heure} other {# heures}}",
+      "countdownMinutes": "{count, plural, one {# minute} other {# minutes}}",
+      "yourTherapist": "Votre thérapeute",
+      "viewAppointments": "Voir tous les rendez-vous",
+      "emptyTitle": "Trouvons le thérapeute qu'il vous faut",
+      "emptyBody": "Dites-nous comment vous vous sentez et nous vous proposerons un thérapeute — puis réservez votre première séance.",
+      "emptyCta": "Trouver un thérapeute",
+      "resumeIntake": "Commencer l'admission"
+    },
+    "stats": {
+      "upcoming": "Séances à venir",
+      "upcomingHint": "Confirmées et en attente",
+      "awaiting": "En attente de confirmation",
+      "awaitingHint": "En attente de la réponse du thérapeute"
+    },
+    "stub": {
+      "heading": "{section} arrive bientôt",
+      "body": "Cette partie de votre compte n'est pas encore prête. Elle apparaîtra ici dès sa mise en service.",
       "backToOverview": "Retour à l'aperçu"
     }
   },
