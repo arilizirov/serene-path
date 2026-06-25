@@ -23,6 +23,8 @@ import type { AiProvider } from "./types";
 // the seam (`@/server/ai`) is the one public surface callers and the admin use.
 export { recordUsage, estimateCostUsd, PRICING } from "./usage";
 export type { CallType } from "./usage";
+export { getCostStats, recentCalls } from "./usage-reads";
+export type { CostStats, RecentCall, CostWindow } from "./usage-reads";
 
 const ID_IN_SYSTEM = /"id"\s*:\s*"([^"]+)"/g;
 

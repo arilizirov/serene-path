@@ -11,6 +11,7 @@ const LINKS: { href: string; label: string }[] = [
   { href: "/admin/conversations", label: "Conversations" },
   { href: "/admin/users", label: "Users" },
   { href: "/admin/stats", label: "Stats" },
+  { href: "/admin/costs", label: "Costs" },
 ];
 
 export function AdminNav() {
