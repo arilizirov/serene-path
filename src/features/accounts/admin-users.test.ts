@@ -6,8 +6,16 @@ import {
   updateUserPassword,
   countByRole,
   listUsers,
+  findUserForDeletion,
+  deleteUserCascade,
 } from "./repository";
-import { createAdmin, setUserRole, resetUserPassword, listAllUsers } from "./service";
+import {
+  createAdmin,
+  setUserRole,
+  resetUserPassword,
+  listAllUsers,
+  deleteUser,
+} from "./service";
 
 // Factory mocks so the real repository (@/lib/db → env) and server/auth never
 // load — same convention as service.test.ts (pure unit test, no DB/cookies).
@@ -18,6 +26,8 @@ vi.mock("./repository", () => ({
   updateUserPassword: vi.fn(),
   countByRole: vi.fn(),
   listUsers: vi.fn(),
+  findUserForDeletion: vi.fn(),
+  deleteUserCascade: vi.fn(),
   // unused by these tests but imported by service.ts at module load:
   findUserByEmail: vi.fn(),
   findUserContactById: vi.fn(),
@@ -36,6 +46,8 @@ const mockUpdateRole = vi.mocked(updateUserRole);
 const mockUpdatePassword = vi.mocked(updateUserPassword);
 const mockCountByRole = vi.mocked(countByRole);
 const mockList = vi.mocked(listUsers);
+const mockFindForDeletion = vi.mocked(findUserForDeletion);
+const mockCascade = vi.mocked(deleteUserCascade);
 
 describe("createAdmin", () => {
   beforeEach(() => vi.resetAllMocks());
@@ -142,5 +154,66 @@ describe("listAllUsers", () => {
     mockList.mockResolvedValue(rows);
     expect(await listAllUsers()).toBe(rows);
     expect(mockList).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("deleteUser — GDPR erasure + last-admin lockout", () => {
+  beforeEach(() => vi.resetAllMocks());
+
+  it("refuses to delete the LAST remaining admin (no cascade runs)", async () => {
+    mockFindForDeletion.mockResolvedValue({ id: "admin-1", role: "ADMIN", therapist: null });
+    mockCountByRole.mockResolvedValue(1);
+
+    const r = await deleteUser("admin-1");
+
+    expect(r.ok).toBe(false);
+    expect(mockCascade).not.toHaveBeenCalled();
+  });
+
+  it("deletes an admin when other admins remain", async () => {
+    mockFindForDeletion.mockResolvedValue({ id: "admin-1", role: "ADMIN", therapist: null });
+    mockCountByRole.mockResolvedValue(2);
+    mockCascade.mockResolvedValue();
+
+    const r = await deleteUser("admin-1");
+
+    expect(r).toEqual({ ok: true });
+    // no owned profile → cascade is told profileId === null
+    expect(mockCascade).toHaveBeenCalledWith("admin-1", null);
+  });
+
+  it("deletes a CLIENT without consulting the admin count", async () => {
+    mockFindForDeletion.mockResolvedValue({ id: "c1", role: "CLIENT", therapist: null });
+    mockCascade.mockResolvedValue();
+
+    const r = await deleteUser("c1");
+
+    expect(r).toEqual({ ok: true });
+    expect(mockCountByRole).not.toHaveBeenCalled();
+    expect(mockCascade).toHaveBeenCalledWith("c1", null);
+  });
+
+  it("passes the owned therapist-profile id to the cascade (therapist user)", async () => {
+    mockFindForDeletion.mockResolvedValue({
+      id: "t-user",
+      role: "THERAPIST",
+      therapist: { id: "profile-9" },
+    });
+    mockCascade.mockResolvedValue();
+
+    const r = await deleteUser("t-user");
+
+    expect(r).toEqual({ ok: true });
+    expect(mockCascade).toHaveBeenCalledWith("t-user", "profile-9");
+  });
+
+  it("is a no-op (ok) when the user is already gone", async () => {
+    mockFindForDeletion.mockResolvedValue(null);
+
+    const r = await deleteUser("ghost");
+
+    expect(r).toEqual({ ok: true });
+    expect(mockCountByRole).not.toHaveBeenCalled();
+    expect(mockCascade).not.toHaveBeenCalled();
   });
 });

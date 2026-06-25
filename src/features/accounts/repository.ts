@@ -84,6 +84,63 @@ export function countByRole(role: Role): Promise<number> {
   return prisma.user.count({ where: { role } });
 }
 
+// --- Admin: GDPR user erasure (Phase 5) --------------------------------------
+
+/** A user's role + owned therapist-profile id (if any) — the shape deleteUser
+ *  needs to decide which child rows to cascade. Null if the user doesn't exist. */
+export function findUserForDeletion(userId: string) {
+  return prisma.user.findUnique({
+    where: { id: userId },
+    select: { id: true, role: true, therapist: { select: { id: true } } },
+  });
+}
+
+/**
+ * Hard-delete a user and every row that FKs to them, FK-safe and atomic.
+ *
+ * The schema has NO `onDelete: Cascade`, so the children must be removed
+ * children-first inside one $transaction or the final User delete would hit a
+ * foreign-key violation. References to a User / their TherapistProfile:
+ *   - Appointment.clientId     → User.id            (the user's bookings as a client)
+ *   - TherapistProfile.userId  → User.id            (1:1, only if they are a therapist)
+ *   - Appointment.therapistId  → TherapistProfile.id
+ *   - AvailabilityRule.therapistId / AvailabilityException.therapistId
+ *       → TherapistProfile.id
+ * IntakeSession.userId is a nullable String with NO FK relation, so it never
+ * blocks the delete and is intentionally left untouched (today every session is
+ * anonymous; see repository getSession). `profileId` is passed only when the user
+ * owns a TherapistProfile.
+ *
+ * Order (children-first): client appointments → [therapist profile's appointments
+ * → availability rules → availability exceptions → the profile] → the user.
+ * No-op safety is the caller's job (it checks existence before calling); a
+ * deleteMany-based cascade is itself idempotent on absent children.
+ */
+export async function deleteUserCascade(
+  userId: string,
+  profileId: string | null,
+): Promise<void> {
+  await prisma.$transaction(async (tx) => {
+    // 1. Appointments the user booked as a CLIENT.
+    await tx.appointment.deleteMany({ where: { clientId: userId } });
+
+    // 2. If the user owns a therapist profile, cascade that profile's children
+    //    (mirrors therapists.deleteTherapist): appointments → rules → exceptions
+    //    → the profile itself, before deleting the user it FKs to.
+    if (profileId) {
+      await tx.appointment.deleteMany({ where: { therapistId: profileId } });
+      await tx.availabilityRule.deleteMany({ where: { therapistId: profileId } });
+      await tx.availabilityException.deleteMany({
+        where: { therapistId: profileId },
+      });
+      await tx.therapistProfile.delete({ where: { id: profileId } });
+    }
+
+    // 3. Finally the user (now free of every FK reference).
+    await tx.user.delete({ where: { id: userId } });
+  });
+}
+
 // --- Admin: signup statistics (Phase 2, DB-derived) --------------------------
 
 /** User counts grouped by role — via groupBy, no table load. */

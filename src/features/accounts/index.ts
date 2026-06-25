@@ -17,6 +17,7 @@ export {
   createAdmin,
   setUserRole,
   resetUserPassword,
+  deleteUser,
 } from "./service";
 export type {
   AuthedUser,
@@ -25,7 +26,13 @@ export type {
   SignupStats,
   AdminUser,
   SetRoleResult,
+  DeleteUserResult,
 } from "./service";
+
+// Role/identity lookups other features and admin actions read through the public
+// surface (countByRole feeds the last-admin lockout; findUserRole reads a stored
+// role). Re-exported from the repository leaf so the boundary stays intact.
+export { countByRole, findUserRole } from "./repository";
 export { hashPassword } from "./password";
 export { passwordSchema, roleSchema, createAdminSchema } from "./schema";
 export type { CreateAdminInput } from "./schema";

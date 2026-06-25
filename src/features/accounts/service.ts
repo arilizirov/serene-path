@@ -11,6 +11,8 @@ import {
   updateUserRole,
   updateUserPassword,
   countByRole,
+  findUserForDeletion,
+  deleteUserCascade,
 } from "./repository";
 import { verifyPassword, hashPassword } from "./password";
 import type { RegisterInput, Role } from "./schema";
@@ -281,4 +283,40 @@ export async function resetUserPassword(
 ): Promise<void> {
   const passwordHash = await hashPassword(password);
   await updateUserPassword(userId, passwordHash);
+}
+
+export type DeleteUserResult = { ok: true } | { ok: false; error: string };
+
+/**
+ * GDPR right-to-erasure: hard-delete a user and everything that FKs to them
+ * (their client appointments and, if they are a therapist, their whole profile
+ * cascade). FK-safe + atomic — the repository removes child rows children-first
+ * inside one transaction.
+ *
+ * LAST-ADMIN LOCKOUT: refuse to delete the only remaining ADMIN — otherwise the
+ * platform could be left with zero admins and no way back into this area. The
+ * guard reads the live admin count + the target's stored role, so it holds
+ * regardless of what the caller believes the state to be (and it equally blocks
+ * an admin deleting THEMSELVES into lockout — the count is what matters, not who
+ * is acting). This guard + the role lookup live in accounts (the owner of User
+ * identity), per the module boundaries.
+ *
+ * No-op (returns ok) if the user doesn't exist — nothing to erase.
+ */
+export async function deleteUser(userId: string): Promise<DeleteUserResult> {
+  const target = await findUserForDeletion(userId);
+  if (!target) return { ok: true }; // already gone — erasure is idempotent
+
+  if (target.role === "ADMIN") {
+    const admins = await countByRole("ADMIN");
+    if (admins <= 1) {
+      return {
+        ok: false,
+        error: "Cannot delete the last remaining administrator.",
+      };
+    }
+  }
+
+  await deleteUserCascade(userId, target.therapist?.id ?? null);
+  return { ok: true };
 }

@@ -17,6 +17,9 @@ export {
 } from "./service";
 export type { FinishedSessionRow, FullSession } from "./service";
 
+// Admin manual data deletion (Phase 5, retention & GDPR) — admin-triggered only.
+export { deleteSession, purgeSessionsOlderThan } from "./service";
+
 // Admin statistics (Phase 2, DB-derived intake funnel / match rate / engines).
 export { getIntakeStats } from "./service";
 export type { IntakeStats } from "./service";
