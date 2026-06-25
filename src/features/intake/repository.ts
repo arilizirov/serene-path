@@ -183,6 +183,38 @@ export async function getFullSession(id: string): Promise<FullSession | null> {
   };
 }
 
+/**
+ * Load several full sessions (transcripts included) by id, newest-finished first.
+ * For the admin "download selected" export. The caller validates/caps `ids`
+ * before reaching here; an empty list returns `[]` without a query. Same select
+ * and FullSession mapping as `getFullSession`.
+ */
+export async function getFullSessionsByIds(ids: string[]): Promise<FullSession[]> {
+  if (ids.length === 0) return [];
+  const rows = await prisma.intakeSession.findMany({
+    where: { id: { in: ids } },
+    orderBy: { updatedAt: "desc" },
+    select: {
+      id: true,
+      createdAt: true,
+      updatedAt: true,
+      state: true,
+      constraints: true,
+      messages: true,
+      suggestedTherapistIds: true,
+    },
+  });
+  return rows.map((s) => ({
+    id: s.id,
+    createdAt: s.createdAt,
+    updatedAt: s.updatedAt,
+    state: s.state,
+    engine: engineFromConstraints(s.constraints),
+    messages: (s.messages as StoredMessage[] | null) ?? [],
+    matched: s.suggestedTherapistIds,
+  }));
+}
+
 /** Every finished session with full transcripts (for the download-all export). */
 export async function listFinishedSessionsFull(
   now: Date = new Date(),

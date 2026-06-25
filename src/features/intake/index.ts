@@ -10,12 +10,15 @@ export { runChipTurn } from "./chip-flow";
 export {
   listFinishedSessions,
   getFullSession,
+  getFullSessionsByIds,
   listFinishedSessionsFull,
   countFinishedSessions,
   conversationToMarkdown,
   conversationsToMarkdown,
+  parseSelectedIds,
+  MAX_SELECTED_IDS,
 } from "./service";
-export type { FinishedSessionRow, FullSession } from "./service";
+export type { FinishedSessionRow, FullSession, ParseIdsResult } from "./service";
 
 // Admin manual data deletion (Phase 5, retention & GDPR) — admin-triggered only.
 export { deleteSession, purgeSessionsOlderThan } from "./service";
