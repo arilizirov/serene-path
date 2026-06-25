@@ -4,21 +4,20 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 vi.mock("@/features/intake", async () => {
   const { z } = await import("zod");
   return {
-    chipIntakeRequestSchema: z.object({
+    intakeRequestSchema: z.object({
       sessionId: z.string().min(1).optional(),
+      message: z.string().trim().min(1).max(4000),
       locale: z.enum(["he", "en", "fr"]),
-      text: z.string().trim().min(1).max(4000).optional(),
-      choice: z.string().min(1).max(64).optional(),
-      action: z.enum(["browse_all", "human_followup", "get_help_now"]).optional(),
+      engine: z.enum(["ai", "scripted"]).optional(),
     }),
-    runChipTurn: vi.fn(),
+    runIntakeTurn: vi.fn(),
   };
 });
 
-import { runChipTurn } from "@/features/intake";
+import { runIntakeTurn } from "@/features/intake";
 import { POST } from "./route";
 
-const mRun = vi.mocked(runChipTurn);
+const mRun = vi.mocked(runIntakeTurn);
 
 function post(body: unknown): Request {
   return new Request("http://localhost/api/intake", {
@@ -31,17 +30,18 @@ function post(body: unknown): Request {
 beforeEach(() => vi.resetAllMocks());
 
 describe("POST /api/intake", () => {
-  it("runs the turn and returns the response for a valid chip request", async () => {
+  it("runs the turn and returns the response for a valid request", async () => {
     mRun.mockResolvedValue({
       sessionId: "s1",
       assistantMessage: "hi",
       state: "GATHER",
       matches: [],
+      engine: "ai",
     });
-    const res = await POST(post({ locale: "en", choice: "anxiety" }));
+    const res = await POST(post({ message: "hello", locale: "en" }));
     expect(res.status).toBe(200);
     expect(await res.json()).toMatchObject({ sessionId: "s1", state: "GATHER" });
-    expect(mRun).toHaveBeenCalledWith({ locale: "en", choice: "anxiety" });
+    expect(mRun).toHaveBeenCalledWith({ message: "hello", locale: "en" });
   });
 
   it("rejects an invalid body with 400 and never calls the engine", async () => {

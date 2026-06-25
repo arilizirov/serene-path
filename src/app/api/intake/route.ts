@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { chipIntakeRequestSchema, runChipTurn } from "@/features/intake";
+import { intakeRequestSchema, runIntakeTurn } from "@/features/intake";
 import { rateLimit, clientIp } from "./rate-limit";
 
 // POST /api/intake — one anonymous intake turn (APP_SPEC §5). The locale travels
@@ -18,12 +18,12 @@ export async function POST(request: Request): Promise<Response> {
   }
 
   const body = await request.json().catch(() => null);
-  const parsed = chipIntakeRequestSchema.safeParse(body);
+  const parsed = intakeRequestSchema.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json({ error: "invalid_request" }, { status: 400 });
   }
   try {
-    const result = await runChipTurn(parsed.data);
+    const result = await runIntakeTurn(parsed.data);
     return NextResponse.json(result);
   } catch {
     // The engine awaits the model + DB + scheduling; on any failure return a clean
