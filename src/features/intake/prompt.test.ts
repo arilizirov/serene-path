@@ -16,8 +16,8 @@ describe("buildSystemPrompt", () => {
   });
 
   it("pins the reply language to the locale", () => {
-    expect(buildSystemPrompt(catalog, "he")).toContain("Reply only in he");
-    expect(buildSystemPrompt(catalog, "fr")).toContain("Reply only in fr");
+    expect(buildSystemPrompt(catalog, "he")).toContain("ENTIRELY in he");
+    expect(buildSystemPrompt(catalog, "fr")).toContain("ENTIRELY in fr");
   });
 
   it("lays out the conversation framework (gather → mirror → confirm → match)", () => {
@@ -37,6 +37,17 @@ describe("buildSystemPrompt", () => {
     expect(p).toContain("passive ideation");
     expect(p).toContain("self-harm");
     expect(p).toContain("bypass");
+  });
+
+  it("sells the match (introduce by name + concrete highlights, not a flat suggestion)", () => {
+    const p = buildSystemPrompt(catalog, "en");
+    expect(p.toLowerCase()).toContain("sell the fit");
+    expect(p.toLowerCase()).toContain("by name");
+    expect(p.toLowerCase()).toContain("highlights");
+  });
+
+  it("pins the WHOLE reply to the locale (no language mixing)", () => {
+    expect(buildSystemPrompt(catalog, "he")).toContain("ENTIRELY in he");
   });
 
   it("exposes a prompt version for traceability", () => {
