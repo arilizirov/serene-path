@@ -9,7 +9,6 @@ import type {
   Locale,
   IntakeEngine,
 } from "../types";
-import { crisisMessage } from "../crisis";
 import {
   ERROR_REPLY,
   TEXT_PLACEHOLDER as PLACEHOLDER,
@@ -33,9 +32,13 @@ const nowMs = () => Date.now();
 export function IntakeChat({
   locale,
   initialMessage,
+  crisisText,
 }: {
   locale: Locale;
   initialMessage?: string;
+  // The human-authored crisis resources, computed server-side and passed in — so this
+  // client component never imports crisis.ts (which pulls in @/server/ai / Node-only deps).
+  crisisText: string;
 }) {
   const [turns, setTurns] = useState<Turn[]>([]);
   const [matches, setMatches] = useState<TherapistMatch[]>([]);
@@ -222,7 +225,7 @@ export function IntakeChat({
           </button>
           {showCrisis ? (
             <p className="whitespace-pre-wrap rounded-2xl bg-surface-container-high px-4 py-2 text-sm text-on-surface">
-              {crisisMessage(locale)}
+              {crisisText}
             </p>
           ) : null}
         </div>
