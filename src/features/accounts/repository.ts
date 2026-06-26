@@ -152,3 +152,14 @@ export function userCountsByRole() {
 export function countUsersSince(since: Date): Promise<number> {
   return prisma.user.count({ where: { createdAt: { gte: since } } });
 }
+
+/** createdAt for every user created on/after `since`, oldest-first — the raw
+ *  timestamps the service buckets into a per-day signups series. Selects ONLY
+ *  createdAt (no identity/hash leak through this read). */
+export function listUserSignupDates(since: Date): Promise<{ createdAt: Date }[]> {
+  return prisma.user.findMany({
+    where: { createdAt: { gte: since } },
+    select: { createdAt: true },
+    orderBy: { createdAt: "asc" },
+  });
+}
