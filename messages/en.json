@@ -69,7 +69,8 @@
       "aClient": "A client",
       "israelTime": "Israel time",
       "pendingActions": "Pending actions",
-      "allClear": "You're all caught up — nothing needs your attention."
+      "allClear": "You're all caught up — nothing needs your attention.",
+      "thisWeek": "This week"
     },
     "stats": {
       "upcoming": "Upcoming sessions",
@@ -203,10 +204,24 @@
       "mindfulness": "Mindfulness",
       "faith_aligned": "Faith-aligned"
     },
-    "languageChip": { "he": "עברית", "en": "English", "fr": "Français" },
-    "confirm": { "yes": "Yes, that's right", "not_quite": "Not quite" },
-    "fitGate": { "sure": "Sure", "skip": "Skip" },
-    "therapistGender": { "no_preference": "No preference", "female": "A woman", "male": "A man" },
+    "languageChip": {
+      "he": "עברית",
+      "en": "English",
+      "fr": "Français"
+    },
+    "confirm": {
+      "yes": "Yes, that's right",
+      "not_quite": "Not quite"
+    },
+    "fitGate": {
+      "sure": "Sure",
+      "skip": "Skip"
+    },
+    "therapistGender": {
+      "no_preference": "No preference",
+      "female": "A woman",
+      "male": "A man"
+    },
     "therapistReligion": {
       "no_preference": "No preference",
       "secular": "Secular",
