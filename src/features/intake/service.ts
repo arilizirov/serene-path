@@ -1,4 +1,4 @@
-import { getMatchingCatalog } from "@/features/therapists";
+import { getMatchingCatalog, getMatchCandidates } from "@/features/therapists";
 import { getNextAvailable } from "@/features/scheduling";
 import { aiProvider, recordUsage, type ChatMessage } from "@/server/ai";
 import { buildSystemPrompt } from "./prompt";
@@ -12,6 +12,7 @@ import {
   type FullSession,
 } from "./repository";
 import { detectConcerns, pickMatch } from "./concerns";
+import { isCrisis, crisisMessage } from "./crisis";
 import {
   copy,
   confirmOptions,
@@ -89,8 +90,32 @@ export async function runIntakeTurn(input: {
   const session = existing ?? (await createSession());
   const engine = resolveEngine(session, input.engine);
 
+  const text = input.message.trim();
   const messages: StoredMessage[] = [...session.messages];
-  messages.push({ role: "user", content: input.message.trim() });
+  messages.push({ role: "user", content: text });
+
+  // CRISIS guardrail (INTAKE_BUILD_SPEC §Guardrails) — runs FIRST, on every free-text
+  // turn, before any model/matcher dispatch. This single gate covers BOTH engines (AI
+  // and scripted): on a crisis turn we halt to the human-authored resources, never
+  // calling the model or the matcher, and force `matches: []` so no match can ever be
+  // surfaced on a crisis turn. crisis.ts is reused verbatim (owner-verified lines).
+  if (await isCrisis(text, input.locale)) {
+    messages.push({ role: "assistant", content: crisisMessage(input.locale) });
+    await saveSession(session.id, {
+      state: "CRISIS",
+      messages,
+      suggestedTherapistIds: [],
+      phase: "crisis",
+      engine,
+    });
+    return {
+      sessionId: session.id,
+      assistantMessage: crisisMessage(input.locale),
+      state: "CRISIS",
+      matches: [],
+      engine,
+    };
+  }
 
   return engine === "ai"
     ? runAiTurn(input.locale, session, messages)
@@ -106,6 +131,17 @@ async function runAiTurn(
 ): Promise<IntakeResponse> {
   const catalog = await getMatchingCatalog(locale);
   const catalogIds = new Set(catalog.map((c) => c.id));
+
+  // HARD FILTERS for the AI flow (parity with the chip flow's matcher): the model
+  // may only surface a therapist who is verified-and-accepting AND speaks the
+  // conversation language. Gender/fee aren't structurally collected in the AI flow,
+  // so we filter only on what's known — but accepting-clients + language are the
+  // safety-critical ones (never recommend a closed roster or an unreachable language).
+  const eligibleIds = new Set(
+    (await getMatchCandidates())
+      .filter((c) => c.acceptingNewClients && c.languages.includes(locale))
+      .map((c) => c.id),
+  );
 
   const chat: ChatMessage[] = [
     { role: "system", content: buildSystemPrompt(catalog, locale) },
@@ -126,7 +162,11 @@ async function runAiTurn(
   if (allowMatches) {
     const seen = new Set<string>();
     for (const m of out.matches) {
-      if (catalogIds.has(m.therapist_id) && !seen.has(m.therapist_id)) {
+      if (
+        catalogIds.has(m.therapist_id) &&
+        eligibleIds.has(m.therapist_id) &&
+        !seen.has(m.therapist_id)
+      ) {
         seen.add(m.therapist_id);
         accepted.push(m);
       }

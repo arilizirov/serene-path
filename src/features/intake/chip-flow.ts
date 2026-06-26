@@ -2,8 +2,12 @@ import {
   CONCERN_IDS,
   STYLE_IDS,
   LANGUAGE_IDS,
-  GENDER_PREF_IDS,
   CONFIRM_IDS,
+  FIT_GATE_IDS,
+  THERAPIST_GENDER_IDS,
+  THERAPIST_RELIGION_IDS,
+  AVAILABILITY_IDS,
+  FEE_IDS,
   type IntakeInput,
   type IntakeTurn,
   type IntakeSelection,
@@ -13,7 +17,10 @@ import {
   type ConcernId,
   type StyleId,
   type LanguageId,
-  type GenderPrefId,
+  type TherapistGenderId,
+  type TherapistReligionId,
+  type AvailabilityId,
+  type FeeId,
 } from "./contract";
 import {
   createFlowSession,
@@ -29,10 +36,11 @@ import { extractConcern } from "./extract";
 import { pickTherapist } from "./matching";
 
 // The chip-driven pre-choice intake engine (INTAKE_BUILD_SPEC). Deterministic state
-// machine: opener (free text) → concern → style → language → gender chips → CONFIRM
-// → matching. The CONFIRM reflection (Stage C, one model call) and the MATCH (Stage
-// D, deterministic) are wired in later slices; here CONFIRM uses the spec's templated
-// fallback and "yes" returns a placeholder. Phase + chip selection persist per session.
+// machine: opener (free text, $0) → concern → style → language chips ($0) → CONFIRM
+// (the ONE model call, step 6) → fit form (step 6b, tap-only $0: gate → gender →
+// religion → availability → fee) → MATCH (step 7, deterministic $0). Gender is asked
+// ONCE, in the fit form (spec §6b "supersedes the inline Step-5 chip"). Phase + chip
+// selection persist per session.
 
 type Phase =
   | "opener"
@@ -40,8 +48,13 @@ type Phase =
   | "something_else"
   | "style"
   | "language"
-  | "gender"
   | "confirm"
+  // Step 6b fit form (tap-only, between confirm and match).
+  | "fit_gate"
+  | "fit_gender"
+  | "fit_religion"
+  | "fit_availability"
+  | "fit_fee"
   | "matched"
   | "crisis";
 
@@ -52,7 +65,11 @@ const SECONDARY: SecondaryAction[] = ["get_help_now", "browse_all", "human_follo
 const isConcern = (v: unknown): v is ConcernId => (CONCERN_IDS as readonly string[]).includes(v as string);
 const isStyle = (v: unknown): v is StyleId => (STYLE_IDS as readonly string[]).includes(v as string);
 const isLanguage = (v: unknown): v is LanguageId => (LANGUAGE_IDS as readonly string[]).includes(v as string);
-const isGenderPref = (v: unknown): v is GenderPrefId => (GENDER_PREF_IDS as readonly string[]).includes(v as string);
+const isFitGate = (v: unknown): v is "sure" | "skip" => (FIT_GATE_IDS as readonly string[]).includes(v as string);
+const isTherapistGender = (v: unknown): v is TherapistGenderId => (THERAPIST_GENDER_IDS as readonly string[]).includes(v as string);
+const isTherapistReligion = (v: unknown): v is TherapistReligionId => (THERAPIST_RELIGION_IDS as readonly string[]).includes(v as string);
+const isAvailability = (v: unknown): v is AvailabilityId => (AVAILABILITY_IDS as readonly string[]).includes(v as string);
+const isFee = (v: unknown): v is FeeId => (FEE_IDS as readonly string[]).includes(v as string);
 
 type StepResult = {
   state: IntakeFlowState;
@@ -139,10 +156,15 @@ export async function runChipTurn(input: IntakeInput): Promise<IntakeTurn> {
 
   if (phase === "something_else") {
     const text = (input.text ?? "").trim();
+    // Guard empty text: don't fire paid isCrisis + extractConcern on nothing — just
+    // re-ask. (Crisis detection only ever runs on real free text.)
+    if (!text) {
+      return persist(session, messages, { state: "GATHER", assistantMessage: m.somethingElse }, "something_else", selection, opener);
+    }
     if (await isCrisis(text, locale)) {
       return persist(session, messages, { state: "CRISIS", assistantMessage: crisisMessage(locale) }, "crisis", selection, opener);
     }
-    if (text) messages.push({ role: "user", content: text });
+    messages.push({ role: "user", content: text });
     // Map the free text to a concern (one model call); unclear → "something_else",
     // which won't match and routes to the honest no-match escape.
     selection.concern = await extractConcern(text, locale);
@@ -160,19 +182,11 @@ export async function runChipTurn(input: IntakeInput): Promise<IntakeTurn> {
   if (phase === "language") {
     if (isLanguage(input.choice)) {
       selection.language = input.choice;
-      return persist(session, messages, { state: "GATHER", assistantMessage: m.genderQ, options: [...GENDER_PREF_IDS] }, "gender", selection, opener);
-    }
-    return persist(session, messages, { state: "GATHER", assistantMessage: m.languageQ, options: [...LANGUAGE_IDS] }, "language", selection, opener);
-  }
-
-  if (phase === "gender") {
-    if (isGenderPref(input.choice)) {
-      selection.genderPreference = input.choice;
       // Step 6 CONFIRM — the one model call (warm reflection), templated only on failure.
       const confirm = await buildConfirmMessage(opener, selection, locale);
       return persist(session, messages, { state: "CONFIRM", assistantMessage: confirm, options: [...CONFIRM_IDS] }, "confirm", selection, opener);
     }
-    return persist(session, messages, { state: "GATHER", assistantMessage: m.genderQ, options: [...GENDER_PREF_IDS] }, "gender", selection, opener);
+    return persist(session, messages, { state: "GATHER", assistantMessage: m.languageQ, options: [...LANGUAGE_IDS] }, "language", selection, opener);
   }
 
   if (phase === "confirm") {
@@ -183,26 +197,82 @@ export async function runChipTurn(input: IntakeInput): Promise<IntakeTurn> {
         messages,
         { state: "GATHER", assistantMessage: m.concernQ, options: [...CONCERN_IDS] },
         "concern",
-        { concern: undefined, style: undefined, language: undefined, genderPreference: undefined },
+        {},
         opener,
       );
     }
-    // "yes" → Step 7 deterministic matching. A genuine fit → PRESENT_OPTIONS with
-    // one match; nothing scoring ≥ threshold → honest CLARIFY (no-match → escape).
-    const picked = await pickTherapist(selection, locale);
-    if (picked) {
-      return persist(
-        session,
-        messages,
-        { state: "PRESENT_OPTIONS", assistantMessage: picked.assistantMessage, matches: [picked.match], done: true },
-        "matched",
-        selection,
-        opener,
-      );
+    // "yes" → Step 6b: the fit-form transition gate (tap-only, $0). NOT match yet.
+    return persist(session, messages, { state: "GATHER", assistantMessage: m.fitGateQ, options: [...FIT_GATE_IDS] }, "fit_gate", selection, opener);
+  }
+
+  // --- Step 6b fit form (tap-only, $0) ---------------------------------------
+  if (phase === "fit_gate") {
+    if (input.choice === "skip") {
+      // Skip → match on what we have, no penalty.
+      return finishMatch(session, messages, selection, opener, locale, m.noMatch);
     }
-    return persist(session, messages, { state: "CLARIFY", assistantMessage: m.noMatch, done: true }, "matched", selection, opener);
+    if (input.choice === "sure") {
+      return persist(session, messages, { state: "GATHER", assistantMessage: m.fitGenderQ, options: [...THERAPIST_GENDER_IDS] }, "fit_gender", selection, opener);
+    }
+    return persist(session, messages, { state: "GATHER", assistantMessage: m.fitGateQ, options: [...FIT_GATE_IDS] }, "fit_gate", selection, opener);
+  }
+
+  if (phase === "fit_gender") {
+    if (isTherapistGender(input.choice)) {
+      selection.therapistGender = input.choice;
+      return persist(session, messages, { state: "GATHER", assistantMessage: m.fitReligionQ, options: [...THERAPIST_RELIGION_IDS] }, "fit_religion", selection, opener);
+    }
+    return persist(session, messages, { state: "GATHER", assistantMessage: m.fitGenderQ, options: [...THERAPIST_GENDER_IDS] }, "fit_gender", selection, opener);
+  }
+
+  if (phase === "fit_religion") {
+    if (isTherapistReligion(input.choice)) {
+      selection.therapistReligion = input.choice;
+      return persist(session, messages, { state: "GATHER", assistantMessage: m.fitAvailabilityQ, options: [...AVAILABILITY_IDS] }, "fit_availability", selection, opener);
+    }
+    return persist(session, messages, { state: "GATHER", assistantMessage: m.fitReligionQ, options: [...THERAPIST_RELIGION_IDS] }, "fit_religion", selection, opener);
+  }
+
+  if (phase === "fit_availability") {
+    if (isAvailability(input.choice)) {
+      selection.availability = input.choice;
+      return persist(session, messages, { state: "GATHER", assistantMessage: m.fitFeeQ, options: [...FEE_IDS] }, "fit_fee", selection, opener);
+    }
+    return persist(session, messages, { state: "GATHER", assistantMessage: m.fitAvailabilityQ, options: [...AVAILABILITY_IDS] }, "fit_availability", selection, opener);
+  }
+
+  if (phase === "fit_fee") {
+    if (isFee(input.choice)) {
+      selection.fee = input.choice;
+      return finishMatch(session, messages, selection, opener, locale, m.noMatch);
+    }
+    return persist(session, messages, { state: "GATHER", assistantMessage: m.fitFeeQ, options: [...FEE_IDS] }, "fit_fee", selection, opener);
   }
 
   // matched / crisis terminal.
   return persist(session, messages, { state: "FOLLOWUP", assistantMessage: m.support, done: true }, phase, selection, opener);
+}
+
+/** Step 7 — deterministic matching. A genuine fit → PRESENT_OPTIONS with one match;
+ *  nothing scoring ≥ threshold → honest CLARIFY (no-match → escape hatch). */
+async function finishMatch(
+  session: FlowSession,
+  messages: StoredMessage[],
+  selection: IntakeSelection,
+  opener: string,
+  locale: LanguageId,
+  noMatch: string,
+): Promise<IntakeTurn> {
+  const picked = await pickTherapist(selection, locale);
+  if (picked) {
+    return persist(
+      session,
+      messages,
+      { state: "PRESENT_OPTIONS", assistantMessage: picked.assistantMessage, matches: [picked.match], done: true },
+      "matched",
+      selection,
+      opener,
+    );
+  }
+  return persist(session, messages, { state: "CLARIFY", assistantMessage: noMatch, done: true }, "matched", selection, opener);
 }

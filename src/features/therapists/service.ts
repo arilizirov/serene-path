@@ -48,7 +48,8 @@ export type CatalogEntry = {
 
 /** A verified therapist as the deterministic intake matcher sees them — full
  *  per-locale bio (the matcher quotes the active locale), plus the structured
- *  fields it filters/scores on. */
+ *  fields it filters/scores on (INTAKE_BUILD_SPEC §6b/§7). Enum DB values are
+ *  lowercased to the chip-taxonomy ids the intake matcher compares against. */
 export type MatchCandidate = {
   id: string;
   name: string;
@@ -58,7 +59,20 @@ export type MatchCandidate = {
   modalities: string[];
   bio: Record<string, string>;
   rating: number;
+  // Fit-form fields.
+  religiousAlignment: "secular" | "masorti" | "dati" | "haredi" | null;
+  offersSlidingScale: boolean;
+  acceptsInsurance: boolean;
+  acceptsSoldierSubsidy: boolean;
+  availabilityTags: ("weekday_day" | "evenings" | "weekends")[];
+  acceptingNewClients: boolean;
 };
+
+const AVAIL_TAG_ID = {
+  WEEKDAY_DAY: "weekday_day",
+  EVENINGS: "evenings",
+  WEEKENDS: "weekends",
+} as const;
 
 export async function getMatchCandidates(): Promise<MatchCandidate[]> {
   const rows = await findVerifiedForMatching();
@@ -71,6 +85,14 @@ export async function getMatchCandidates(): Promise<MatchCandidate[]> {
     modalities: r.modalities,
     bio: (r.bio ?? {}) as Record<string, string>,
     rating: r.rating,
+    religiousAlignment: r.religiousAlignment
+      ? (r.religiousAlignment.toLowerCase() as MatchCandidate["religiousAlignment"])
+      : null,
+    offersSlidingScale: r.offersSlidingScale,
+    acceptsInsurance: r.acceptsInsurance,
+    acceptsSoldierSubsidy: r.acceptsSoldierSubsidy,
+    availabilityTags: r.availabilityTags.map((t) => AVAIL_TAG_ID[t]),
+    acceptingNewClients: r.acceptingNewClients,
   }));
 }
 

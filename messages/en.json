@@ -150,5 +150,81 @@
       "stats": "Website / intake statistics",
       "costs": "API cost & usage"
     }
+  },
+  "Intake": {
+    "pageTitle": "Let's find the right person",
+    "suggestedTherapists": "Suggested therapists",
+    "aiKeyNotice": "AI mode needs an API key — showing the guided flow for now.",
+    "modeAi": "AI",
+    "modeGuided": "Guided",
+    "mode": {
+      "guided": "Guided",
+      "conversation": "Conversation"
+    },
+    "greeting": "Hi — I'm really glad you're here. Taking this step isn't easy, so thank you for showing up for yourself.",
+    "open": "How are you feeling today?",
+    "concernQ": "Thank you for trusting me with that. Which of these feels closest to what you're carrying?",
+    "styleQ": "That makes sense. What kind of support feels right for you?",
+    "languageQ": "And which language would you feel most comfortable in?",
+    "somethingElse": "Of course — tell me in your own words what's been going on.",
+    "respect": "You've been carrying a lot on your own — that takes real strength.",
+    "support": "Whatever the answer, we'll find someone who can walk through this with you.",
+    "noMatch": "I don't yet have someone who's a clear fit for what you described — would you like to browse our therapists, or have someone reach out?",
+    "fitGateQ": "Before I match you, can I ask a few quick questions to get the fit right?",
+    "fitGenderQ": "What gender therapist would you feel most comfortable with?",
+    "fitReligionQ": "What religious background would you like your therapist to have? (so I can find someone who understands your world)",
+    "fitAvailabilityQ": "When would you usually want to meet?",
+    "fitFeeQ": "And what works best for you around fees?",
+    "textPlaceholder": "Tell me what's going on…",
+    "send": "Send",
+    "matchTitle": "Your recommended therapist",
+    "viewProfile": "View profile →",
+    "nextOpening": "Next opening:",
+    "followupConfirm": "Thank you — someone from our team will reach out to you soon.",
+    "error": "Something went wrong. Please try again.",
+    "secondary": {
+      "get_help_now": "Get help now",
+      "browse_all": "Browse all therapists",
+      "human_followup": "Have someone reach out"
+    },
+    "concern": {
+      "anxiety": "Anxiety",
+      "stress_burnout": "Stress & burnout",
+      "relationships": "Relationships",
+      "trauma": "Trauma",
+      "grief": "Grief & loss",
+      "sleep": "Sleep",
+      "depression": "Depression",
+      "something_else": "Something else"
+    },
+    "style": {
+      "practical_tools": "Practical tools",
+      "explore_feelings": "Exploring feelings",
+      "mindfulness": "Mindfulness",
+      "faith_aligned": "Faith-aligned"
+    },
+    "languageChip": { "he": "עברית", "en": "English", "fr": "Français" },
+    "confirm": { "yes": "Yes, that's right", "not_quite": "Not quite" },
+    "fitGate": { "sure": "Sure", "skip": "Skip" },
+    "therapistGender": { "no_preference": "No preference", "female": "A woman", "male": "A man" },
+    "therapistReligion": {
+      "no_preference": "No preference",
+      "secular": "Secular",
+      "masorti": "Traditional (Masorti)",
+      "dati": "Religious (Dati)",
+      "haredi": "Haredi"
+    },
+    "availability": {
+      "weekday_day": "Weekday daytime",
+      "evenings": "Evenings",
+      "weekends": "Weekends",
+      "flexible": "I'm flexible"
+    },
+    "fee": {
+      "standard": "Standard rate",
+      "sliding_scale": "Sliding scale",
+      "insurance": "Through insurance",
+      "soldier_subsidy": "Soldier subsidy"
+    }
   }
 }
