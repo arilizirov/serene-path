@@ -5,28 +5,17 @@ import { Link } from "@/i18n/navigation";
 import type { IntakeTurn, IntakeFlowState, IntakeMatch, SecondaryAction } from "../contract";
 import type { Locale } from "../types";
 import { chipLabel, SECONDARY_LABELS } from "../flow-copy";
+import {
+  ERROR_REPLY,
+  TEXT_PLACEHOLDER,
+  SEND_LABEL,
+  MATCH_TITLE,
+  VIEW_PROFILE,
+  NEXT_OPENING,
+  FOLLOWUP_CONFIRM,
+} from "./ui-copy";
 
 type Turn = { role: "user" | "assistant"; content: string };
-
-const ERROR_REPLY: Record<Locale, string> = {
-  en: "Something went wrong. Please try again.",
-  he: "משהו השתבש. נסו שוב.",
-  fr: "Une erreur s'est produite. Veuillez réessayer.",
-};
-const TEXT_PLACEHOLDER: Record<Locale, string> = {
-  en: "Tell me what's going on…",
-  he: "ספרו לי מה עובר עליכם…",
-  fr: "Dites-moi ce qui se passe…",
-};
-const SEND_LABEL: Record<Locale, string> = { en: "Send", he: "שליחה", fr: "Envoyer" };
-const MATCH_TITLE: Record<Locale, string> = { en: "Your recommended therapist", he: "המטפל/ת המומלץ/ת עבורך", fr: "Votre thérapeute recommandé·e" };
-const VIEW_PROFILE: Record<Locale, string> = { en: "View profile →", he: "← לצפייה בפרופיל", fr: "Voir le profil →" };
-const NEXT_OPENING: Record<Locale, string> = { en: "Next opening:", he: "מועד פנוי:", fr: "Prochaine disponibilité :" };
-const FOLLOWUP_CONFIRM: Record<Locale, string> = {
-  en: "Thank you — someone from our team will reach out to you soon.",
-  he: "תודה — מישהו מהצוות שלנו ייצור איתך קשר בקרוב.",
-  fr: "Merci — un membre de notre équipe vous contactera bientôt.",
-};
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 const nowMs = () => Date.now();
@@ -54,7 +43,8 @@ export function ChipIntakeChat({ locale, initialMessage }: { locale: Locale; ini
       const res = await fetch("/api/intake", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ sessionId: sessionId.current, locale, ...body }),
+        // provider:"chip" routes this turn to the chip-driven flow at the seam.
+        body: JSON.stringify({ provider: "chip", sessionId: sessionId.current, locale, ...body }),
       });
       if (!res.ok) throw new Error("intake failed");
       const data: IntakeTurn = await res.json();

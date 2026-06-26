@@ -7,16 +7,14 @@ import type {
   ConcernId,
   StyleId,
 } from "./contract";
+import { MATCHING_WEIGHTS as W } from "./matching-config";
 
 // Step 7 — deterministic matching (INTAKE_BUILD_SPEC §Step 7). No model: hard
 // filters + a tunable score over the chip selection; the therapist is chosen by
 // code, validated against the catalog, and the slot is filled by the scheduler. The
 // rationale is grounded in a real quote from the active-locale bio, never invented.
-
-// Tunable config — calibrate via the eval; NOT fixed truth.
-const CONCERN_SCORE = 3; // skills/modalities cover the concern
-const STYLE_SCORE = 2; // modalities cover the support style
-const MIN_SCORE = 3; // below this → no match (CLARIFY)
+//
+// Scoring weights are EVAL-CALIBRATED and live in matching-config.ts (not inlined).
 
 const CONCERN_KEYWORDS: Record<ConcernId, string[]> = {
   anxiety: ["anxiety", "anxious", "panic", "worry"],
@@ -63,29 +61,64 @@ export async function pickTherapist(
   selection: IntakeSelection,
   locale: LanguageId,
 ): Promise<{ match: IntakeMatch; assistantMessage: string } | null> {
-  const { concern, style, language, genderPreference } = selection;
+  const { concern, style, language } = selection;
+  // Gender comes from the fit form (therapistGender); fall back to the legacy
+  // inline Step-5 field for older sessions / the AI flow (spec §6b "supersedes").
+  const gender = selection.therapistGender ?? selection.genderPreference;
+  const { therapistReligion, availability, fee } = selection;
   const candidates = await getMatchCandidates();
 
+  // HARD FILTERS (must pass): accepting new clients, language, gender, fee tier.
+  // Requested religion is SOFT only (never an exclude). standard → no fee filter.
   const pool = candidates.filter((c) => {
+    if (!c.acceptingNewClients) return false;
     if (language && !c.languages.includes(language)) return false;
-    if (genderPreference === "female" && c.gender !== "FEMALE") return false;
-    if (genderPreference === "male" && c.gender !== "MALE") return false;
+    if (gender === "female" && c.gender !== "FEMALE") return false;
+    if (gender === "male" && c.gender !== "MALE") return false;
+    if (fee === "sliding_scale" && !c.offersSlidingScale) return false;
+    if (fee === "insurance" && !c.acceptsInsurance) return false;
+    if (fee === "soldier_subsidy" && !c.acceptsSoldierSubsidy) return false;
     return true;
   });
 
   const concernKw = concern ? CONCERN_KEYWORDS[concern] : [];
   const styleKw = style ? STYLE_KEYWORDS[style] : [];
 
+  // `something_else` (and an unset concern) carry NO concern keywords, so the
+  // distress was never classifiable on a concern. Matching such a user on
+  // style/scheduling soft signals alone would recommend a therapist for a problem
+  // we couldn't identify — a safety risk. Require a genuine concern-term match here:
+  // with no concern keywords there can be none, so we return null → honest CLARIFY.
+  const concernRequired = concernKw.length === 0;
+
   const ranked = pool
     .map((c) => {
       const hay = (c.skills.join(" ") + " " + c.modalities.join(" ")).toLowerCase();
       const term = concernKw.find((k) => hay.includes(k));
       let score = 0;
-      if (term) score += CONCERN_SCORE;
-      if (styleKw.some((k) => hay.includes(k))) score += STYLE_SCORE;
+      if (term) score += W.concernMatch;
+      if (styleKw.some((k) => hay.includes(k))) score += W.styleMatch;
+      // SOFT: religion (skip if no_preference), availability (skip if flexible).
+      if (
+        therapistReligion &&
+        therapistReligion !== "no_preference" &&
+        c.religiousAlignment === therapistReligion
+      ) {
+        score += W.religiousSoft;
+      }
+      if (
+        availability &&
+        availability !== "flexible" &&
+        c.availabilityTags.includes(availability)
+      ) {
+        score += W.availabilitySoft;
+      }
       return { c, score, term };
     })
-    .filter((r) => r.score >= MIN_SCORE)
+    // Below threshold → no match. AND when no concern could be classified
+    // (something_else / unset), require a real concern-term hit — never let soft
+    // signals alone clear the bar.
+    .filter((r) => r.score >= W.minScore && !(concernRequired && !r.term))
     .sort((a, b) => b.score - a.score || b.c.rating - a.c.rating);
 
   if (!ranked.length) return null;

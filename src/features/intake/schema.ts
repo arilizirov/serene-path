@@ -11,14 +11,26 @@ export const intakeRequestSchema = z.object({
 });
 export type IntakeRequestInput = z.infer<typeof intakeRequestSchema>;
 
-/** Inbound request for the chip-driven flow (INTAKE_BUILD_SPEC). One of text /
- *  choice / action carries the turn's input; a bare {locale} starts the flow. */
+/** Inbound request to /api/intake — permissive enough for BOTH interchangeable
+ *  flows behind the IntakeProvider seam (the route dispatches on `provider`, each
+ *  provider then parses its own shape):
+ *    - chip flow (default): one of text / choice / action carries the turn; a bare
+ *      {locale} starts the flow.
+ *    - AI conversational flow: free-text `message` (+ optional `engine`).
+ *  `provider` selects the flow (default "chip"). All fields stay validated at the
+ *  boundary — locale enum, length caps — so neither flow trusts raw input. */
 export const chipIntakeRequestSchema = z.object({
   sessionId: z.string().min(1).optional(),
   locale: z.enum(["he", "en", "fr"]),
+  // chip-flow inputs
   text: z.string().trim().min(1).max(4000).optional(),
   choice: z.string().min(1).max(64).optional(),
   action: z.enum(["browse_all", "human_followup", "get_help_now"]).optional(),
+  // AI conversational-flow inputs
+  message: z.string().trim().min(1).max(4000).optional(),
+  engine: z.enum(["ai", "scripted"]).optional(),
+  // which flow handles this turn (default chip — the canonical pre-choice intake)
+  provider: z.enum(["chip", "api"]).optional(),
 });
 export type ChipIntakeRequestInput = z.infer<typeof chipIntakeRequestSchema>;
 

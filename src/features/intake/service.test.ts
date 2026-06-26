@@ -1,11 +1,14 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { getMatchingCatalog } from "@/features/therapists";
+import { getMatchingCatalog, getMatchCandidates } from "@/features/therapists";
 import { getNextAvailable } from "@/features/scheduling";
 import { aiProvider } from "@/server/ai";
 import { createSession, getSession, saveSession } from "./repository";
 import { runIntakeTurn } from "./service";
 
-vi.mock("@/features/therapists", () => ({ getMatchingCatalog: vi.fn() }));
+vi.mock("@/features/therapists", () => ({
+  getMatchingCatalog: vi.fn(),
+  getMatchCandidates: vi.fn(),
+}));
 vi.mock("@/features/scheduling", () => ({ getNextAvailable: vi.fn() }));
 vi.mock("@/server/ai", () => ({ aiProvider: vi.fn(), recordUsage: vi.fn() }));
 vi.mock("./repository", () => ({
@@ -15,6 +18,7 @@ vi.mock("./repository", () => ({
 }));
 
 const mCatalog = vi.mocked(getMatchingCatalog);
+const mCandidates = vi.mocked(getMatchCandidates);
 const mNext = vi.mocked(getNextAvailable);
 const mAi = vi.mocked(aiProvider);
 const mCreate = vi.mocked(createSession);
@@ -39,6 +43,16 @@ beforeEach(() => {
   delete process.env.OPENAI_API_KEY; // default → scripted unless a test opts into AI
   mCatalog.mockResolvedValue([
     { id: "t1", name: "Dr. A", title: "Anxiety specialist", bio: "I work with anxiety and panic.", skills: ["anxiety", "panic"], languages: ["en"] },
+  ]);
+  // The AI flow now cross-checks accepted matches against the hard-filter candidate
+  // pool (accepting new clients + speaks the conversation language). t1 qualifies.
+  mCandidates.mockResolvedValue([
+    {
+      id: "t1", name: "Dr. A", languages: ["en"], gender: null, skills: ["anxiety", "panic"],
+      modalities: [], bio: { en: "" }, rating: 0, religiousAlignment: null,
+      offersSlidingScale: false, acceptsInsurance: false, acceptsSoldierSubsidy: false,
+      availabilityTags: [], acceptingNewClients: true,
+    },
   ]);
   mNext.mockResolvedValue("2030-01-01T09:00:00.000Z");
   mCreate.mockResolvedValue({ id: "s-new", state: "GREETING", messages: [], phase: null, engine: null });
@@ -128,5 +142,50 @@ describe("ai engine (key present) — enforces §5 on untrusted output", () => {
     const r = await runIntakeTurn({ message: "panic", locale: "en", sessionId: "s1", engine: "ai" });
     expect(r.state).toBe("CLARIFY");
     expect(r.matches).toEqual([]);
+  });
+
+  it("drops an accepted catalog id that fails the hard filters (not accepting / wrong language)", async () => {
+    // The model proposes t1 (in-catalog), but the candidate pool says t1 is closed
+    // to new clients → the AI flow must NOT surface it; empty MATCH → CLARIFY.
+    mCandidates.mockResolvedValue([
+      {
+        id: "t1", name: "Dr. A", languages: ["en"], gender: null, skills: ["anxiety"],
+        modalities: [], bio: { en: "" }, rating: 0, religiousAlignment: null,
+        offersSlidingScale: false, acceptsInsurance: false, acceptsSoldierSubsidy: false,
+        availabilityTags: [], acceptingNewClients: false,
+      },
+    ]);
+    aiReplies(JSON.stringify({ state: "MATCH", reply: "Dr. A fits.", matches: [{ therapist_id: "t1", rationale: "anxiety fit" }] }));
+    const r = await runIntakeTurn({ message: "panic", locale: "en", sessionId: "s1", engine: "ai" });
+    expect(r.matches).toEqual([]);
+    expect(r.state).toBe("CLARIFY");
+  });
+});
+
+// B1 + B3: the crisis guardrail runs at the TOP of runIntakeTurn — BEFORE any engine
+// dispatch — so it covers the AI flow (and the scripted flow) and forces matches:[].
+// crisis.ts is the real (unmocked) module here; its keyword net catches these openers
+// without any model call, so the AI model is never invoked on a crisis turn.
+describe("crisis gate (covers BOTH engines, before any model/matcher)", () => {
+  beforeEach(() => {
+    process.env.OPENAI_API_KEY = "test-key"; // AI engine selected
+    mGet.mockResolvedValue(null);
+    aiReplies("{}"); // a no-op model reply; we assert it is NEVER called
+  });
+
+  it.each([
+    ["en", "I want to die"],
+    ["he", "אני לא רוצה לחיות"],
+    ["fr", "je veux mourir"],
+  ] as const)("AI-flow crisis opener (%s) → CRISIS, matches [], model NOT called", async (locale, message) => {
+    const r = await runIntakeTurn({ message, locale, engine: "ai" });
+    expect(r.state).toBe("CRISIS");
+    expect(r.matches).toEqual([]);
+    // The crisis copy is the human-authored resources (never generated).
+    expect(r.assistantMessage).toContain("101");
+    // Neither the conversational model nor the matcher ran on the crisis turn.
+    expect(mAi).not.toHaveBeenCalled();
+    expect(mCatalog).not.toHaveBeenCalled();
+    expect(mCandidates).not.toHaveBeenCalled();
   });
 });

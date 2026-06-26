@@ -6,6 +6,16 @@ export type { IntakeRequestInput, ChipIntakeRequestInput } from "./schema";
 export { runIntakeTurn } from "./service";
 export { runChipTurn } from "./chip-flow";
 
+// The IntakeProvider seam (INTAKE_BUILD_SPEC §Contract) — the chip flow and the
+// full-LLM flow behind one interface, selectable by name (default = chip).
+export {
+  getIntakeProvider,
+  ChipIntakeProvider,
+  ApiIntakeProvider,
+} from "./provider";
+export type { IntakeProviderName } from "./provider";
+export type { IntakeProvider, IntakeInput } from "./contract";
+
 // Admin (transcripts review + .md export, §11 admin-only) — reads + pure builders.
 export {
   listFinishedSessions,
@@ -29,6 +39,7 @@ export type { IntakeStats } from "./service";
 
 export { IntakeChat } from "./ui/intake-chat";
 export { ChipIntakeChat } from "./ui/chip-intake-chat";
+export { IntakeModeSwitch } from "./ui/intake-mode-switch";
 export { FeelingField } from "./ui/feeling-field";
 export type {
   IntakeResponse,

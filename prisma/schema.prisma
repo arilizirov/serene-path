@@ -48,6 +48,25 @@ enum Gender {
   OTHER
 }
 
+// Therapist religious alignment — soft-scored against the client's fit-form
+// preference (never a hard exclude). The spectrum differs FR vs IL; this enum
+// holds the IL spectrum, and the UI taxonomy lives in locale config.
+enum ReligiousAlignment {
+  SECULAR
+  MASORTI
+  DATI
+  HAREDI
+}
+
+// Coarse availability buckets — soft-scored against the client's availability
+// preference. Real bookable slots still come from the calendar (AvailabilityRule);
+// these are only a ranking hint.
+enum AvailabilityTag {
+  WEEKDAY_DAY
+  EVENINGS
+  WEEKENDS
+}
+
 model User {
   id        String   @id @default(cuid())
   role      Role     @default(CLIENT)
@@ -77,6 +96,15 @@ model TherapistProfile {
   sessionPrice Decimal                 @db.Decimal(10, 2)
   status       TherapistStatus         @default(DRAFT)
   gender       Gender? // for the intake's optional gender-preference filter (§matching)
+  // --- Chip-intake fit-form matching fields (INTAKE_BUILD_SPEC §6b/§7) ---------
+  // All nullable / defaulted so existing rows stay valid without backfill. The
+  // deploy applies the migration; sensible defaults mean no row is left invalid.
+  religiousAlignment   ReligiousAlignment? // soft-scored vs requested therapistReligion (never excludes)
+  offersSlidingScale   Boolean             @default(false) // fee hard filter: sliding_scale
+  acceptsInsurance     Boolean             @default(false) // fee hard filter: insurance
+  acceptsSoldierSubsidy Boolean            @default(false) // fee hard filter: soldier_subsidy (military entitlement)
+  availabilityTags     AvailabilityTag[]              @default([]) // soft-scored vs requested availability
+  acceptingNewClients  Boolean             @default(true)  // hard filter: must be true to match
   rating       Float                   @default(0)
   reviewCount  Int                     @default(0)
   rules        AvailabilityRule[]

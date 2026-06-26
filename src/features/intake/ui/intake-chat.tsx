@@ -9,20 +9,21 @@ import type {
   Locale,
   IntakeEngine,
 } from "../types";
+import { crisisMessage } from "../crisis";
+import {
+  ERROR_REPLY,
+  TEXT_PLACEHOLDER as PLACEHOLDER,
+  SEND_LABEL,
+  SUGGESTED_THERAPISTS,
+  VIEW_PROFILE,
+  NEXT_OPENING,
+  ENGINE_AI_LABEL,
+  ENGINE_GUIDED_LABEL,
+  AI_KEY_NOTICE,
+  GET_HELP_NOW_LABEL,
+} from "./ui-copy";
 
 type Turn = { role: "user" | "assistant"; content: string };
-
-const ERROR_REPLY: Record<Locale, string> = {
-  en: "Something went wrong. Please try again.",
-  he: "משהו השתבש. נסו שוב.",
-  fr: "Une erreur s'est produite. Veuillez réessayer.",
-};
-
-const PLACEHOLDER: Record<Locale, string> = {
-  en: "Tell me what's going on…",
-  he: "ספרו לי מה עובר עליכם…",
-  fr: "Dites-moi ce qui se passe…",
-};
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 // Wall clock for pacing. Module-level (not called during render) so it's pure
@@ -44,9 +45,13 @@ export function IntakeChat({
   const [actualEngine, setActualEngine] = useState<IntakeEngine | null>(null);
   const [input, setInput] = useState("");
   const [pending, setPending] = useState(false);
+  // Persistent crisis affordance (B2): the AI response carries no secondaryActions,
+  // so this UI surfaces the human-authored resources locally, on every turn.
+  const [showCrisis, setShowCrisis] = useState(false);
   const sessionId = useRef<string | undefined>(undefined);
   const engineRef = useRef<IntakeEngine>("ai");
   const started = useRef(false);
+  const dir = locale === "he" ? "rtl" : "ltr";
 
   async function send(message: string) {
     const text = message.trim();
@@ -61,6 +66,8 @@ export function IntakeChat({
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
+          // provider:"api" routes this turn to the AI conversational flow at the seam.
+          provider: "api",
           sessionId: sessionId.current,
           message: text,
           locale,
@@ -111,7 +118,7 @@ export function IntakeChat({
   }, [initialMessage]);
 
   return (
-    <div className="flex flex-col gap-6 lg:flex-row">
+    <div dir={dir} className="flex flex-col gap-6 lg:flex-row">
       <section className="flex min-h-[24rem] flex-1 flex-col gap-3 rounded-2xl bg-surface-container p-5">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div className="inline-flex rounded-full border border-outline p-0.5 text-sm">
@@ -127,13 +134,13 @@ export function IntakeChat({
                     : "rounded-full px-3 py-1 text-on-surface-variant disabled:opacity-50"
                 }
               >
-                {e === "ai" ? "AI" : "Guided"}
+                {e === "ai" ? ENGINE_AI_LABEL[locale] : ENGINE_GUIDED_LABEL[locale]}
               </button>
             ))}
           </div>
           {engine === "ai" && actualEngine === "scripted" ? (
             <span className="text-xs text-on-surface-variant">
-              AI mode needs an API key — showing the guided flow for now.
+              {AI_KEY_NOTICE[locale]}
             </span>
           ) : null}
         </div>
@@ -198,15 +205,33 @@ export function IntakeChat({
             disabled={pending || !input.trim()}
             className="rounded-full bg-primary px-5 py-2 text-on-primary disabled:opacity-50"
           >
-            Send
+            {SEND_LABEL[locale]}
           </button>
         </form>
+
+        {/* Persistent crisis safety net (B2): always visible, every turn, independent
+            of any classifier — matches the chip UI's always-on get_help_now button.
+            Surfaces the human-authored, owner-verified resources (crisis.ts). */}
+        <div className="flex flex-col gap-2 border-t border-outline pt-3">
+          <button
+            type="button"
+            onClick={() => setShowCrisis(true)}
+            className="self-start rounded-full bg-[#c0584e] px-3 py-1 text-xs font-medium text-white transition hover:opacity-90"
+          >
+            {GET_HELP_NOW_LABEL[locale]}
+          </button>
+          {showCrisis ? (
+            <p className="whitespace-pre-wrap rounded-2xl bg-surface-container-high px-4 py-2 text-sm text-on-surface">
+              {crisisMessage(locale)}
+            </p>
+          ) : null}
+        </div>
       </section>
 
       {matches.length > 0 ? (
         <aside className="flex w-full flex-col gap-3 lg:w-80">
           <h2 className="font-heading text-lg font-semibold text-on-background">
-            {state === "CLARIFY" ? "" : "Suggested therapists"}
+            {state === "CLARIFY" ? "" : SUGGESTED_THERAPISTS[locale]}
           </h2>
           {matches.map((m) => (
             <Link
@@ -215,10 +240,10 @@ export function IntakeChat({
               className="flex flex-col gap-1 rounded-2xl bg-surface-container-low p-4 transition hover:opacity-90"
             >
               <p className="text-sm text-on-surface">{m.rationale}</p>
-              <span className="text-xs text-primary">View profile →</span>
+              <span className="text-xs text-primary">{VIEW_PROFILE[locale]}</span>
               {m.nextAvailable ? (
                 <span className="text-xs text-on-surface-variant">
-                  Next opening:{" "}
+                  {NEXT_OPENING[locale]}{" "}
                   {new Date(m.nextAvailable).toLocaleString(locale, {
                     weekday: "short",
                     day: "numeric",

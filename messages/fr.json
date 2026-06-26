@@ -150,5 +150,81 @@
       "stats": "Statistiques du site / admission",
       "costs": "Coût et usage de l'API"
     }
+  },
+  "Intake": {
+    "pageTitle": "Trouvons la bonne personne",
+    "suggestedTherapists": "Thérapeutes suggéré·e·s",
+    "aiKeyNotice": "Le mode IA nécessite une clé API — affichage du mode guidé pour le moment.",
+    "modeAi": "IA",
+    "modeGuided": "Guidé",
+    "mode": {
+      "guided": "Guidé",
+      "conversation": "Conversation"
+    },
+    "greeting": "Bonjour — je suis vraiment contente que vous soyez là. Faire ce pas n'est pas facile, alors merci d'être présent·e pour vous-même.",
+    "open": "Comment vous sentez-vous aujourd'hui ?",
+    "concernQ": "Merci de votre confiance. Lequel de ces éléments est le plus proche de ce que vous portez ?",
+    "styleQ": "C'est compréhensible. Quel type de soutien vous conviendrait le mieux ?",
+    "languageQ": "Et dans quelle langue seriez-vous le plus à l'aise ?",
+    "somethingElse": "Bien sûr — dites-moi avec vos mots ce qui se passe.",
+    "respect": "Vous portez beaucoup, seul·e — cela demande une vraie force.",
+    "support": "Quoi qu'il en soit, nous trouverons quelqu'un pour traverser cela avec vous.",
+    "noMatch": "Je n'ai pas encore quelqu'un qui corresponde clairement à ce que vous décrivez — souhaitez-vous parcourir nos thérapeutes, ou qu'on vous recontacte ?",
+    "fitGateQ": "Avant de vous proposer quelqu'un, puis-je poser quelques questions rapides pour affiner la correspondance ?",
+    "fitGenderQ": "Avec un·e thérapeute de quel genre seriez-vous le plus à l'aise ?",
+    "fitReligionQ": "Quel parcours religieux souhaiteriez-vous pour votre thérapeute ? (pour trouver quelqu'un qui comprend votre univers)",
+    "fitAvailabilityQ": "Quand souhaiteriez-vous généralement vous rencontrer ?",
+    "fitFeeQ": "Et qu'est-ce qui vous conviendrait le mieux concernant les honoraires ?",
+    "textPlaceholder": "Dites-moi ce qui se passe…",
+    "send": "Envoyer",
+    "matchTitle": "Votre thérapeute recommandé·e",
+    "viewProfile": "Voir le profil →",
+    "nextOpening": "Prochaine disponibilité :",
+    "followupConfirm": "Merci — un membre de notre équipe vous contactera bientôt.",
+    "error": "Une erreur s'est produite. Veuillez réessayer.",
+    "secondary": {
+      "get_help_now": "Obtenir de l'aide",
+      "browse_all": "Voir tous les thérapeutes",
+      "human_followup": "Être recontacté·e"
+    },
+    "concern": {
+      "anxiety": "Anxiété",
+      "stress_burnout": "Stress et épuisement",
+      "relationships": "Relations",
+      "trauma": "Traumatisme",
+      "grief": "Deuil",
+      "sleep": "Sommeil",
+      "depression": "Dépression",
+      "something_else": "Autre chose"
+    },
+    "style": {
+      "practical_tools": "Outils pratiques",
+      "explore_feelings": "Explorer les émotions",
+      "mindfulness": "Pleine conscience",
+      "faith_aligned": "En accord avec la foi"
+    },
+    "languageChip": { "he": "עברית", "en": "English", "fr": "Français" },
+    "confirm": { "yes": "Oui, c'est ça", "not_quite": "Pas tout à fait" },
+    "fitGate": { "sure": "Bien sûr", "skip": "Passer" },
+    "therapistGender": { "no_preference": "Peu importe", "female": "Une femme", "male": "Un homme" },
+    "therapistReligion": {
+      "no_preference": "Peu importe",
+      "secular": "Laïque",
+      "masorti": "Traditionaliste (Masorti)",
+      "dati": "Religieux (Dati)",
+      "haredi": "Haredi"
+    },
+    "availability": {
+      "weekday_day": "En semaine, journée",
+      "evenings": "En soirée",
+      "weekends": "Week-ends",
+      "flexible": "Je suis flexible"
+    },
+    "fee": {
+      "standard": "Tarif standard",
+      "sliding_scale": "Tarif dégressif",
+      "insurance": "Via l'assurance",
+      "soldier_subsidy": "Subvention militaire"
+    }
   }
 }

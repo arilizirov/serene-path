@@ -43,6 +43,30 @@ describe("crisis detection", () => {
     expect(await isCrisis("everyone would be better off without me", "en")).toBe(false);
   });
 
+  it("imminent self-harm phrasing fires on the keyword net (no model needed)", () => {
+    expect(looksLikeCrisis("I'm going to kill myself tonight", "en")).toBe(true);
+    expect(looksLikeCrisis("I have a plan to end my life", "en")).toBe(true);
+  });
+
+  it("ambiguous distress is escalated to the high-recall classifier, not silently passed", async () => {
+    process.env.OPENAI_API_KEY = "k";
+    // The keyword net does not fire; the model is consulted (high recall) and decides.
+    classifies(true);
+    expect(await isCrisis("I can't go on like this anymore", "en")).toBe(true);
+  });
+
+  it("an abuse disclosure is routed to the model classifier (keyword net does not fire)", async () => {
+    process.env.OPENAI_API_KEY = "k";
+    // Abuse disclosure isn't a self-harm keyword; the classifier gets to weigh in.
+    classifies(true);
+    expect(await isCrisis("my partner hits me and I'm scared to go home", "en")).toBe(true);
+  });
+
+  it("a clear joke / hyperbole does not fire the keyword net", () => {
+    expect(looksLikeCrisis("this commute is killing me lol", "en")).toBe(false);
+    expect(looksLikeCrisis("I could kill for a coffee right now", "en")).toBe(false);
+  });
+
   it("provides confirmed crisis lines per locale", () => {
     expect(crisisMessage("en")).toContain("101");
     expect(crisisMessage("he")).toContain("1201");

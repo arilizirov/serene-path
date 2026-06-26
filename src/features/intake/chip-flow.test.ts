@@ -33,6 +33,9 @@ const at = (phase: string, selection: IntakeSelection = {}, opener = "i feel low
   opener,
 });
 const saved = () => mSave.mock.calls[0][1];
+/** The MOST RECENT saveFlowSession payload — for multi-step tests that call
+ *  runChipTurn several times without a mock reset between steps. */
+const lastSaved = () => mSave.mock.calls[mSave.mock.calls.length - 1][1];
 
 beforeEach(() => {
   vi.resetAllMocks();
@@ -73,6 +76,15 @@ describe("chip flow", () => {
     expect(r.options).toEqual(expect.arrayContaining(["practical_tools"]));
   });
 
+  it("something_else with EMPTY text re-asks without firing the paid model calls", async () => {
+    mGet.mockResolvedValue(at("something_else"));
+    const r = await runChipTurn({ locale: "en", sessionId: "s1", text: "   " });
+    expect(r.state).toBe("GATHER");
+    expect(saved().phase).toBe("something_else");
+    expect(mIsCrisis).not.toHaveBeenCalled();
+    expect(mExtract).not.toHaveBeenCalled();
+  });
+
   it("concern chip → style chips", async () => {
     mGet.mockResolvedValue(at("concern"));
     const r = await runChipTurn({ locale: "en", sessionId: "s1", choice: "anxiety" });
@@ -88,21 +100,89 @@ describe("chip flow", () => {
     expect(saved().phase).toBe("something_else");
   });
 
-  it("gender chip → CONFIRM with yes / not_quite", async () => {
-    mGet.mockResolvedValue(at("gender", { concern: "anxiety", style: "practical_tools", language: "en" }));
-    const r = await runChipTurn({ locale: "en", sessionId: "s1", choice: "no_preference" });
+  it("language chip → CONFIRM with yes / not_quite (gender is asked later, in the fit form)", async () => {
+    mGet.mockResolvedValue(at("language", { concern: "anxiety", style: "practical_tools" }));
+    const r = await runChipTurn({ locale: "en", sessionId: "s1", choice: "en" });
     expect(r.state).toBe("CONFIRM");
     expect(r.options).toEqual(["yes", "not_quite"]);
     expect(saved().phase).toBe("confirm");
+    expect(saved().selection.language).toBe("en");
   });
 
   it("not_quite at confirm → re-ask concern, selection cleared", async () => {
-    mGet.mockResolvedValue(at("confirm", { concern: "anxiety", style: "practical_tools", language: "en", genderPreference: "no_preference" }));
+    mGet.mockResolvedValue(at("confirm", { concern: "anxiety", style: "practical_tools", language: "en" }));
     const r = await runChipTurn({ locale: "en", sessionId: "s1", choice: "not_quite" });
     expect(r.state).toBe("GATHER");
     expect(r.options).toContain("anxiety");
     expect(saved().phase).toBe("concern");
     expect(saved().selection.concern).toBeUndefined();
+  });
+
+  it("confirm 'yes' → fit-form transition gate (sure / skip), NOT match yet", async () => {
+    mGet.mockResolvedValue(at("confirm", { concern: "anxiety", style: "practical_tools", language: "en" }));
+    const r = await runChipTurn({ locale: "en", sessionId: "s1", choice: "yes" });
+    expect(r.state).toBe("GATHER");
+    expect(r.options).toEqual(["sure", "skip"]);
+    expect(saved().phase).toBe("fit_gate");
+    expect(mPick).not.toHaveBeenCalled();
+  });
+
+  it("fit gate 'skip' → match on what we have (no penalty)", async () => {
+    mGet.mockResolvedValue(at("fit_gate", { concern: "anxiety", style: "practical_tools", language: "en" }));
+    mPick.mockResolvedValue({
+      match: { therapistId: "t1", rationale: "r", rationaleSource: { field: "bio", matchedTerm: "anxiety", quote: "q" }, nextAvailable: null },
+      assistantMessage: "Dr. A fits.",
+    });
+    const r = await runChipTurn({ locale: "en", sessionId: "s1", choice: "skip" });
+    expect(r.state).toBe("PRESENT_OPTIONS");
+    expect(mPick).toHaveBeenCalled();
+  });
+
+  it("fit gate 'sure' → ask therapist gender", async () => {
+    mGet.mockResolvedValue(at("fit_gate", { concern: "anxiety", style: "practical_tools", language: "en" }));
+    const r = await runChipTurn({ locale: "en", sessionId: "s1", choice: "sure" });
+    expect(r.state).toBe("GATHER");
+    expect(r.options).toEqual(expect.arrayContaining(["no_preference", "female", "male"]));
+    expect(saved().phase).toBe("fit_gender");
+  });
+
+  it("fit form walks gender → religion → availability → fee → match", async () => {
+    mPick.mockResolvedValue({
+      match: { therapistId: "t1", rationale: "r", rationaleSource: { field: "bio", matchedTerm: "anxiety", quote: "q" }, nextAvailable: null },
+      assistantMessage: "Dr. A fits.",
+    });
+
+    mGet.mockResolvedValue(at("fit_gender", { concern: "anxiety" }));
+    let r = await runChipTurn({ locale: "en", sessionId: "s1", choice: "female" });
+    expect(lastSaved().selection.therapistGender).toBe("female");
+    expect(lastSaved().phase).toBe("fit_religion");
+    expect(r.options).toEqual(expect.arrayContaining(["secular", "dati", "haredi"]));
+
+    mGet.mockResolvedValue(at("fit_religion", { concern: "anxiety", therapistGender: "female" }));
+    r = await runChipTurn({ locale: "en", sessionId: "s1", choice: "dati" });
+    expect(lastSaved().selection.therapistReligion).toBe("dati");
+    expect(lastSaved().phase).toBe("fit_availability");
+    expect(r.options).toEqual(expect.arrayContaining(["evenings", "flexible"]));
+
+    mGet.mockResolvedValue(at("fit_availability", { concern: "anxiety", therapistGender: "female", therapistReligion: "dati" }));
+    r = await runChipTurn({ locale: "en", sessionId: "s1", choice: "evenings" });
+    expect(lastSaved().selection.availability).toBe("evenings");
+    expect(lastSaved().phase).toBe("fit_fee");
+    expect(r.options).toEqual(expect.arrayContaining(["standard", "sliding_scale", "insurance", "soldier_subsidy"]));
+
+    mGet.mockResolvedValue(at("fit_fee", { concern: "anxiety", therapistGender: "female", therapistReligion: "dati", availability: "evenings" }));
+    r = await runChipTurn({ locale: "en", sessionId: "s1", choice: "sliding_scale" });
+    expect(lastSaved().selection.fee).toBe("sliding_scale");
+    expect(r.state).toBe("PRESENT_OPTIONS");
+    expect(mPick).toHaveBeenCalled();
+  });
+
+  it("a crisis term typed during something_else still halts to CRISIS", async () => {
+    mGet.mockResolvedValue(at("something_else"));
+    mIsCrisis.mockResolvedValue(true);
+    const r = await runChipTurn({ locale: "en", sessionId: "s1", text: "I want to end it all" });
+    expect(r.state).toBe("CRISIS");
+    expect(r.matches).toEqual([]);
   });
 
   it("get_help_now → CRISIS resources on any turn", async () => {
@@ -118,22 +198,22 @@ describe("chip flow", () => {
     expect(r.options).toEqual(expect.arrayContaining(["practical_tools"]));
   });
 
-  it("confirm 'yes' with a fit → PRESENT_OPTIONS + one match (done)", async () => {
-    mGet.mockResolvedValue(at("confirm", { concern: "anxiety", style: "practical_tools", language: "en", genderPreference: "no_preference" }));
+  it("fit fee answered, with a fit → PRESENT_OPTIONS + one match (done)", async () => {
+    mGet.mockResolvedValue(at("fit_fee", { concern: "anxiety", style: "practical_tools", language: "en", therapistGender: "no_preference", therapistReligion: "no_preference", availability: "flexible" }));
     mPick.mockResolvedValue({
       match: { therapistId: "t1", rationale: "r", rationaleSource: { field: "bio", matchedTerm: "anxiety", quote: "q" }, nextAvailable: "2030-01-01T09:00:00.000Z" },
       assistantMessage: "Dr. A fits.",
     });
-    const r = await runChipTurn({ locale: "en", sessionId: "s1", choice: "yes" });
+    const r = await runChipTurn({ locale: "en", sessionId: "s1", choice: "standard" });
     expect(r.state).toBe("PRESENT_OPTIONS");
     expect(r.matches.map((m) => m.therapistId)).toEqual(["t1"]);
     expect(r.done).toBe(true);
   });
 
-  it("confirm 'yes' with no fit → CLARIFY, no match", async () => {
-    mGet.mockResolvedValue(at("confirm", { concern: "grief", language: "en" }));
+  it("fit gate skipped with no fit → CLARIFY, no match", async () => {
+    mGet.mockResolvedValue(at("fit_gate", { concern: "grief", language: "en" }));
     mPick.mockResolvedValue(null);
-    const r = await runChipTurn({ locale: "en", sessionId: "s1", choice: "yes" });
+    const r = await runChipTurn({ locale: "en", sessionId: "s1", choice: "skip" });
     expect(r.state).toBe("CLARIFY");
     expect(r.matches).toEqual([]);
   });

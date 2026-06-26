@@ -5,6 +5,11 @@ import {
   LANGUAGE_IDS,
   GENDER_PREF_IDS,
   CONFIRM_IDS,
+  FIT_GATE_IDS,
+  THERAPIST_GENDER_IDS,
+  THERAPIST_RELIGION_IDS,
+  AVAILABILITY_IDS,
+  FEE_IDS,
   SECONDARY_ACTIONS,
 } from "./contract";
 
@@ -29,6 +34,14 @@ describe("intake chip IDs", () => {
     expect([...LANGUAGE_IDS]).toEqual(["he", "en", "fr"]);
     expect([...GENDER_PREF_IDS]).toEqual(["no_preference", "female", "male"]);
     expect([...CONFIRM_IDS]).toEqual(["yes", "not_quite"]);
+  });
+
+  it("step 6b fit-form sets match the spec", () => {
+    expect([...FIT_GATE_IDS]).toEqual(["sure", "skip"]);
+    expect([...THERAPIST_GENDER_IDS]).toEqual(["no_preference", "female", "male"]);
+    expect([...THERAPIST_RELIGION_IDS]).toEqual(["no_preference", "secular", "masorti", "dati", "haredi"]);
+    expect([...AVAILABILITY_IDS]).toEqual(["weekday_day", "evenings", "weekends", "flexible"]);
+    expect([...FEE_IDS]).toEqual(["standard", "sliding_scale", "insurance", "soldier_subsidy"]);
   });
 
   it("persistent secondary actions match the spec", () => {

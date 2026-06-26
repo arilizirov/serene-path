@@ -32,6 +32,21 @@ export const GENDER_PREF_IDS = ["no_preference", "female", "male"] as const;
 
 export const CONFIRM_IDS = ["yes", "not_quite"] as const;
 
+// Step 6b — the fit form (tap-only, $0). All ids, like every chip set. The
+// transition gate, then four fit questions; gender is collected HERE (superseding
+// the inline Step-5 preference chip — spec §6b "don't ask twice").
+export const FIT_GATE_IDS = ["sure", "skip"] as const;
+export const THERAPIST_GENDER_IDS = ["no_preference", "female", "male"] as const;
+export const THERAPIST_RELIGION_IDS = [
+  "no_preference",
+  "secular",
+  "masorti",
+  "dati",
+  "haredi",
+] as const;
+export const AVAILABILITY_IDS = ["weekday_day", "evenings", "weekends", "flexible"] as const;
+export const FEE_IDS = ["standard", "sliding_scale", "insurance", "soldier_subsidy"] as const;
+
 export const SECONDARY_ACTIONS = ["browse_all", "human_followup", "get_help_now"] as const;
 
 export type ConcernId = (typeof CONCERN_IDS)[number];
@@ -39,6 +54,11 @@ export type StyleId = (typeof STYLE_IDS)[number];
 export type LanguageId = (typeof LANGUAGE_IDS)[number];
 export type GenderPrefId = (typeof GENDER_PREF_IDS)[number];
 export type ConfirmId = (typeof CONFIRM_IDS)[number];
+export type FitGateId = (typeof FIT_GATE_IDS)[number];
+export type TherapistGenderId = (typeof THERAPIST_GENDER_IDS)[number];
+export type TherapistReligionId = (typeof THERAPIST_RELIGION_IDS)[number];
+export type AvailabilityId = (typeof AVAILABILITY_IDS)[number];
+export type FeeId = (typeof FEE_IDS)[number];
 export type SecondaryAction = (typeof SECONDARY_ACTIONS)[number];
 
 /** Full state set incl. CRISIS (the guardrail state that halts the flow). */
@@ -79,22 +99,34 @@ export type IntakeTurn = {
   done?: boolean;
 };
 
-/** The accumulated chip selection that drives matching — all IDs. */
+/** The accumulated chip selection that drives matching — all IDs.
+ *  `genderPreference` is the legacy inline Step-5 field (kept for back-compat with
+ *  the AI flow / older sessions). The canonical fit-form fields below (collected in
+ *  Step 6b) are what Step-7 matching reads: `therapistGender` supersedes it. */
 export type IntakeSelection = {
   concern?: ConcernId;
   style?: StyleId;
   language?: LanguageId;
   genderPreference?: GenderPrefId;
+  // Step 6b fit form — the structured filters that tune the deterministic match.
+  therapistGender?: TherapistGenderId;
+  therapistReligion?: TherapistReligionId;
+  availability?: AvailabilityId;
+  fee?: FeeId;
 };
 
 /** One inbound action: an opener / something_else free text, a chip tap (its id),
- *  or a persistent secondary action. Exactly one of text/choice/action is set. */
+ *  or a persistent secondary action. Exactly one of text/choice/action is set.
+ *  `message` is the AI conversational flow's native free-text field (the chip flow
+ *  uses `text`); `provider` selects which flow handles the turn (default chip). */
 export type IntakeInput = {
   sessionId?: string;
   locale: LanguageId;
   text?: string;
   choice?: string;
   action?: SecondaryAction;
+  message?: string;
+  provider?: "chip" | "api";
 };
 
 /** The swappable seam: the chip flow and a full-API flow both implement this. */
