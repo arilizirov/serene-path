@@ -27,10 +27,10 @@ function NavRow({
     <Link
       href={item.href}
       aria-current={active ? "page" : undefined}
-      className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition ${
+      className={`flex items-center gap-3 rounded-xl px-3 py-3 text-sm transition ${
         active
-          ? "bg-accent-soft text-accent-soft-ink"
-          : "text-ink-2 hover:bg-surface-2"
+          ? "bg-accent-soft font-semibold text-accent-soft-ink"
+          : "font-medium text-ink-2 hover:bg-surface-2"
       }`}
     >
       <span className="flex h-5 w-5 shrink-0 items-center justify-center">
@@ -140,11 +140,11 @@ export async function DashboardShell({
 
           <div className="flex items-center gap-3">
             {headerRight}
-            <div className="hidden items-center gap-2 sm:flex">
-              <span className="text-sm font-medium text-ink-2">
+            <div className="hidden items-center gap-2.5 rounded-full border border-border bg-surface py-1 pe-1 ps-3.5 sm:flex">
+              <span className="text-sm font-medium text-ink">
                 {user.name || t("there")}
               </span>
-              <span className="flex h-9 w-9 items-center justify-center rounded-full bg-accent-soft font-heading text-sm font-semibold text-accent-soft-ink">
+              <span className="flex h-7 w-7 items-center justify-center rounded-full bg-accent-soft font-heading text-xs font-semibold text-accent-soft-ink">
                 {initial}
               </span>
             </div>
