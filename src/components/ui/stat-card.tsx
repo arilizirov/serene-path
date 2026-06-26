@@ -30,7 +30,7 @@ export function StatCard({
         ) : null}
       </div>
       <div className="flex items-baseline gap-2">
-        <span className="text-3xl font-bold text-ink">{value}</span>
+        <span className="text-4xl font-bold tracking-tight text-ink">{value}</span>
         {delta ? (
           <span
             className={`text-sm font-medium ${

@@ -40,6 +40,14 @@ export function AppShell({
     () => false,
   );
 
+  // The role dashboards (admin / therapist cockpit / client account, plus the
+  // cockpit-preview harness) render their OWN sidebar + topbar via DashboardShell,
+  // so this public Cadence header would be a redundant second header — hide it
+  // there. usePathname is locale-stripped, so match the bare prefixes.
+  if (/^\/(admin|dashboard|account|appointments|cockpit-preview)(\/|$)/.test(pathname)) {
+    return null;
+  }
+
   const toggleTheme = () => {
     const next = !document.documentElement.classList.contains("dark");
     document.documentElement.classList.toggle("dark", next);
