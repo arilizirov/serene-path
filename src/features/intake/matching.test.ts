@@ -151,6 +151,55 @@ describe("pickTherapist", () => {
     expect(r).toBeNull();
   });
 
+  it("B1: a CLASSIFIED concern requires a real concern-term hit — style+soft alone is NOT enough", async () => {
+    // The concern IS classified (anxiety), but this therapist has ZERO anxiety terms
+    // in skills/modalities. They DO match the style (cbt→practical_tools=2) and the
+    // requested religion (dati=+1) for a total of 3 ≥ minScore. Before B1 they'd pass
+    // and the rationale would fabricate a term over an unrelated bio sentence. Now
+    // they're rejected → CLARIFY, because soft signals never substitute for the concern.
+    mCand.mockResolvedValue([
+      cand({
+        id: "no-concern",
+        skills: ["couples", "family"],
+        modalities: ["cbt"],
+        bio: { en: "I work with couples and families using practical tools." },
+        religiousAlignment: "dati",
+      }),
+    ]);
+    const r = await pickTherapist(
+      { concern: "anxiety", style: "practical_tools", language: "en", therapistReligion: "dati" },
+      "en",
+    );
+    expect(r).toBeNull();
+  });
+
+  it("B1: with a concern, the rationale quote always contains the REAL matched term (no fabrication)", async () => {
+    mCand.mockResolvedValue([
+      cand({
+        id: "a",
+        name: "Dr. A",
+        skills: ["anxiety", "panic"],
+        modalities: ["cbt"],
+        bio: { en: "I help with couples first. Then I treat anxiety and panic with CBT." },
+      }),
+    ]);
+    const r = await pickTherapist({ concern: "anxiety", style: "practical_tools", language: "en" }, "en");
+    expect(r?.match.rationaleSource.matchedTerm).toBe("anxiety");
+    // The quote is the sentence that actually contains the term, not sentences[0].
+    expect(r?.match.rationaleSource.quote.toLowerCase()).toContain("anxiety");
+    expect(r?.match.rationaleSource.quote.toLowerCase()).not.toContain("couples first");
+  });
+
+  it("M3: a therapist with no active-locale bio is ineligible (no cross-language quote)", async () => {
+    // Strong concern+style match, but the bio is EMPTY in the active (Hebrew) locale —
+    // quoting the English bio would put an LTR English sentence in an RTL reply.
+    mCand.mockResolvedValue([
+      cand({ id: "en-only", languages: ["he"], skills: ["anxiety"], modalities: ["cbt"], bio: { en: "anxiety work", he: "" } }),
+    ]);
+    const r = await pickTherapist({ concern: "anxiety", style: "practical_tools", language: "he" }, "he");
+    expect(r).toBeNull();
+  });
+
   it("availability is SOFT — overlapping tag ranks up, flexible skips the effect", async () => {
     mCand.mockResolvedValue([
       cand({ id: "day", skills: ["anxiety"], modalities: ["cbt"], bio: { en: "anxiety" }, availabilityTags: ["weekday_day"], rating: 5 }),

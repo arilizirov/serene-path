@@ -1,5 +1,5 @@
 import OpenAI from "openai";
-import type { ChatMessage, Completion, TokenUsage } from "./types";
+import type { ChatMessage, Completion, CompleteOptions, TokenUsage } from "./types";
 
 // The real intake/matching model (the owner's choice: OpenAI GPT-5.4), living
 // behind the AiProvider seam. This is the ONLY file that imports the OpenAI SDK;
@@ -31,12 +31,18 @@ export async function runOpenAi(
   apiKey: string,
   model: string,
   messages: ChatMessage[],
+  opts?: CompleteOptions,
 ): Promise<Completion> {
   client ??= new OpenAI({ apiKey });
   const res = await client.chat.completions.create({
     model,
     messages: messages.map((m) => ({ role: m.role, content: m.content })),
     response_format: { type: "json_object" },
+    // Cost guard: cap output tokens when the caller asks (the intake turns return a
+    // short JSON object). Omitted otherwise to keep broad model compatibility.
+    ...(opts?.maxCompletionTokens
+      ? { max_completion_tokens: opts.maxCompletionTokens }
+      : {}),
   });
   return {
     text: res.choices[0]?.message?.content ?? "",

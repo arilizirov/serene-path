@@ -2,31 +2,28 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Link } from "@/i18n/navigation";
-import type {
-  IntakeResponse,
-  IntakeStateName,
-  TherapistMatch,
-  Locale,
-  IntakeEngine,
-} from "../types";
+import type { IntakeTurn, IntakeFlowState, IntakeMatch, SecondaryAction } from "../contract";
+import type { Locale } from "../types";
+import { chipLabel, SECONDARY_LABELS } from "../flow-copy";
 import {
   ERROR_REPLY,
-  TEXT_PLACEHOLDER as PLACEHOLDER,
+  TEXT_PLACEHOLDER,
   SEND_LABEL,
-  SUGGESTED_THERAPISTS,
+  MATCH_TITLE,
   VIEW_PROFILE,
   NEXT_OPENING,
-  ENGINE_AI_LABEL,
-  ENGINE_GUIDED_LABEL,
-  AI_KEY_NOTICE,
-  GET_HELP_NOW_LABEL,
+  FOLLOWUP_CONFIRM,
 } from "./ui-copy";
+
+// The live pre-choice intake chat (INTAKE_BUILD_SPEC §5): a prompted conversation
+// (free text) → confirm chips → fit-form taps → a deterministic match. One flow, no
+// engine toggle. The crisis resources are computed server-side and passed in as a
+// prop, so this client component NEVER imports crisis.ts / @/server/ai (which pull
+// Node-only deps into the browser bundle). get_help_now is a persistent action.
 
 type Turn = { role: "user" | "assistant"; content: string };
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
-// Wall clock for pacing. Module-level (not called during render) so it's pure
-// from the component's perspective — used only inside the async send handler.
 const nowMs = () => Date.now();
 
 export function IntakeChat({
@@ -36,58 +33,48 @@ export function IntakeChat({
 }: {
   locale: Locale;
   initialMessage?: string;
-  // The human-authored crisis resources, computed server-side and passed in — so this
-  // client component never imports crisis.ts (which pulls in @/server/ai / Node-only deps).
+  // Human-authored, owner-verified crisis resources (crisis.ts), resolved on the
+  // server and passed in — so the client bundle never imports the crisis module.
   crisisText: string;
 }) {
   const [turns, setTurns] = useState<Turn[]>([]);
-  const [matches, setMatches] = useState<TherapistMatch[]>([]);
-  const [state, setState] = useState<IntakeStateName>("GREETING");
   const [options, setOptions] = useState<string[]>([]);
-  const [engine, setEngineState] = useState<IntakeEngine>("ai");
-  const [actualEngine, setActualEngine] = useState<IntakeEngine | null>(null);
+  const [secondary, setSecondary] = useState<SecondaryAction[]>([]);
+  const [matches, setMatches] = useState<IntakeMatch[]>([]);
+  const [state, setState] = useState<IntakeFlowState>("GREETING");
+  const [done, setDone] = useState(false);
+  const [showCrisis, setShowCrisis] = useState(false);
   const [input, setInput] = useState("");
   const [pending, setPending] = useState(false);
-  // Persistent crisis affordance (B2): the AI response carries no secondaryActions,
-  // so this UI surfaces the human-authored resources locally, on every turn.
-  const [showCrisis, setShowCrisis] = useState(false);
   const sessionId = useRef<string | undefined>(undefined);
-  const engineRef = useRef<IntakeEngine>("ai");
   const started = useRef(false);
   const dir = locale === "he" ? "rtl" : "ltr";
 
-  async function send(message: string) {
-    const text = message.trim();
-    if (!text || pending) return;
-    setInput("");
+  async function post(body: { text?: string; choice?: string; action?: SecondaryAction }, userBubble?: string) {
+    if (pending) return;
+    if (userBubble) setTurns((t) => [...t, { role: "user", content: userBubble }]);
     setOptions([]);
-    setTurns((t) => [...t, { role: "user", content: text }]);
+    setInput("");
     setPending(true);
     const startedAt = nowMs();
     try {
       const res = await fetch("/api/intake", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({
-          // provider:"api" routes this turn to the AI conversational flow at the seam.
-          provider: "api",
-          sessionId: sessionId.current,
-          message: text,
-          locale,
-          engine: engineRef.current,
-        }),
+        body: JSON.stringify({ sessionId: sessionId.current, locale, ...body }),
       });
       if (!res.ok) throw new Error("intake failed");
-      const data: IntakeResponse = await res.json();
+      const data: IntakeTurn = await res.json();
       // Human pace: never answer instantly. Longer replies "take longer to type".
-      const thinkMs = Math.min(2400, 650 + data.assistantMessage.length * 12);
+      const thinkMs = Math.min(2400, 600 + data.assistantMessage.length * 11);
       const elapsed = nowMs() - startedAt;
       if (elapsed < thinkMs) await sleep(thinkMs - elapsed);
       sessionId.current = data.sessionId;
       setState(data.state);
-      setMatches(data.matches);
       setOptions(data.options ?? []);
-      setActualEngine(data.engine);
+      setSecondary(data.secondaryActions ?? []);
+      setMatches(data.matches ?? []);
+      setDone(Boolean(data.done) || data.state === "CRISIS");
       setTurns((t) => [...t, { role: "assistant", content: data.assistantMessage }]);
     } catch {
       setTurns((t) => [...t, { role: "assistant", content: ERROR_REPLY[locale] }]);
@@ -96,62 +83,44 @@ export function IntakeChat({
     }
   }
 
-  // Switching engine starts a fresh conversation; re-run the opening line (if any)
-  // under the new engine so the two can be compared on the same input.
-  function switchEngine(next: IntakeEngine) {
-    if (next === engineRef.current || pending) return;
-    engineRef.current = next;
-    setEngineState(next);
-    sessionId.current = undefined;
-    setTurns([]);
-    setMatches([]);
-    setOptions([]);
-    setActualEngine(null);
-    setState("GREETING");
-    if (initialMessage) void send(initialMessage);
+  const sendText = (text: string) => {
+    const t = text.trim();
+    if (t) void post({ text: t }, t);
+  };
+  const sendChoice = (id: string) => void post({ choice: id }, chipLabel(locale, id));
+
+  // get_help_now is a real API turn (→ CRISIS resources). browse_all navigates;
+  // human_followup is acknowledged client-side.
+  function onSecondary(action: SecondaryAction) {
+    if (action === "get_help_now") {
+      setShowCrisis(true);
+      return void post({ action }, SECONDARY_LABELS[locale][action]);
+    }
+    if (action === "human_followup") {
+      setTurns((t) => [
+        ...t,
+        { role: "user", content: SECONDARY_LABELS[locale][action] },
+        { role: "assistant", content: FOLLOWUP_CONFIRM[locale] },
+      ]);
+    }
   }
 
-  // Auto-start from the home "how are you feeling?" field (F1.2) — exactly once.
+  // Auto-start: seed from the home "how are you feeling?" field if present, else a
+  // bare start that returns the static greeting + open question. Exactly once.
   useEffect(() => {
-    if (initialMessage && !started.current) {
-      started.current = true;
-      void send(initialMessage);
-    }
+    if (started.current) return;
+    started.current = true;
+    const opener = initialMessage?.trim();
+    void post(opener ? { text: opener } : {}, opener);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [initialMessage]);
+  }, []);
+
+  const showText = !done && options.length === 0 && state !== "CRISIS";
 
   return (
     <div dir={dir} className="flex flex-col gap-6 lg:flex-row">
       <section className="flex min-h-[24rem] flex-1 flex-col gap-3 rounded-2xl bg-surface-container p-5">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <div className="inline-flex rounded-full border border-outline p-0.5 text-sm">
-            {(["ai", "scripted"] as const).map((e) => (
-              <button
-                key={e}
-                type="button"
-                onClick={() => switchEngine(e)}
-                disabled={pending}
-                className={
-                  engine === e
-                    ? "rounded-full bg-primary px-3 py-1 font-medium text-on-primary"
-                    : "rounded-full px-3 py-1 text-on-surface-variant disabled:opacity-50"
-                }
-              >
-                {e === "ai" ? ENGINE_AI_LABEL[locale] : ENGINE_GUIDED_LABEL[locale]}
-              </button>
-            ))}
-          </div>
-          {engine === "ai" && actualEngine === "scripted" ? (
-            <span className="text-xs text-on-surface-variant">
-              {AI_KEY_NOTICE[locale]}
-            </span>
-          ) : null}
-        </div>
-
         <div className="flex flex-1 flex-col gap-3">
-          {turns.length === 0 && !pending ? (
-            <p className="text-on-surface-variant">{PLACEHOLDER[locale]}</p>
-          ) : null}
           {turns.map((turn, i) => (
             <div
               key={i}
@@ -177,77 +146,87 @@ export function IntakeChat({
 
         {options.length > 0 && !pending ? (
           <div className="flex flex-wrap gap-2">
-            {options.map((opt) => (
+            {options.map((id) => (
               <button
-                key={opt}
+                key={id}
                 type="button"
-                onClick={() => void send(opt)}
+                onClick={() => sendChoice(id)}
                 className="rounded-full border border-accent bg-accent-soft px-4 py-1.5 text-sm font-medium text-accent-soft-ink transition hover:opacity-90"
               >
-                {opt}
+                {chipLabel(locale, id)}
               </button>
             ))}
           </div>
         ) : null}
 
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            void send(input);
-          }}
-          className="flex gap-2"
-        >
-          <input
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            placeholder={PLACEHOLDER[locale]}
-            className="flex-1 rounded-full border border-outline bg-surface px-4 py-2 text-on-surface outline-none focus:border-primary"
-          />
-          <button
-            type="submit"
-            disabled={pending || !input.trim()}
-            className="rounded-full bg-primary px-5 py-2 text-on-primary disabled:opacity-50"
+        {showText && !pending ? (
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              sendText(input);
+            }}
+            className="flex gap-2"
           >
-            {SEND_LABEL[locale]}
-          </button>
-        </form>
+            <input
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              placeholder={TEXT_PLACEHOLDER[locale]}
+              className="flex-1 rounded-full border border-outline bg-surface px-4 py-2 text-on-surface outline-none focus:border-primary"
+            />
+            <button type="submit" disabled={!input.trim()} className="rounded-full bg-primary px-5 py-2 text-on-primary disabled:opacity-50">
+              {SEND_LABEL[locale]}
+            </button>
+          </form>
+        ) : null}
 
-        {/* Persistent crisis safety net (B2): always visible, every turn, independent
-            of any classifier — matches the chip UI's always-on get_help_now button.
-            Surfaces the human-authored, owner-verified resources (crisis.ts). */}
-        <div className="flex flex-col gap-2 border-t border-outline pt-3">
-          <button
-            type="button"
-            onClick={() => setShowCrisis(true)}
-            className="self-start rounded-full bg-[#c0584e] px-3 py-1 text-xs font-medium text-white transition hover:opacity-90"
-          >
-            {GET_HELP_NOW_LABEL[locale]}
-          </button>
-          {showCrisis ? (
-            <p className="whitespace-pre-wrap rounded-2xl bg-surface-container-high px-4 py-2 text-sm text-on-surface">
-              {crisisText}
-            </p>
-          ) : null}
-        </div>
+        {secondary.length > 0 ? (
+          <div className="flex flex-col gap-2 border-t border-outline pt-3">
+            <div className="flex flex-wrap gap-2">
+              {secondary.map((a) =>
+                a === "browse_all" ? (
+                  <Link key={a} href="/therapists" className="rounded-full border border-outline px-3 py-1 text-xs text-on-surface-variant transition hover:opacity-90">
+                    {SECONDARY_LABELS[locale][a]}
+                  </Link>
+                ) : (
+                  <button
+                    key={a}
+                    type="button"
+                    onClick={() => onSecondary(a)}
+                    className={
+                      a === "get_help_now"
+                        ? "rounded-full bg-[#c0584e] px-3 py-1 text-xs font-medium text-white transition hover:opacity-90"
+                        : "rounded-full border border-outline px-3 py-1 text-xs text-on-surface-variant transition hover:opacity-90"
+                    }
+                  >
+                    {SECONDARY_LABELS[locale][a]}
+                  </button>
+                ),
+              )}
+            </div>
+            {showCrisis ? (
+              <p className="whitespace-pre-wrap rounded-2xl bg-surface-container-high px-4 py-2 text-sm text-on-surface">
+                {crisisText}
+              </p>
+            ) : null}
+          </div>
+        ) : null}
       </section>
 
       {matches.length > 0 ? (
         <aside className="flex w-full flex-col gap-3 lg:w-80">
-          <h2 className="font-heading text-lg font-semibold text-on-background">
-            {state === "CLARIFY" ? "" : SUGGESTED_THERAPISTS[locale]}
-          </h2>
-          {matches.map((m) => (
+          <h2 className="font-heading text-lg font-semibold text-on-background">{MATCH_TITLE[locale]}</h2>
+          {matches.map((mm) => (
             <Link
-              key={m.therapistId}
-              href={`/therapists/${m.therapistId}`}
+              key={mm.therapistId}
+              href={`/therapists/${mm.therapistId}`}
               className="flex flex-col gap-1 rounded-2xl bg-surface-container-low p-4 transition hover:opacity-90"
             >
-              <p className="text-sm text-on-surface">{m.rationale}</p>
+              <p className="text-sm text-on-surface">{mm.rationale}</p>
               <span className="text-xs text-primary">{VIEW_PROFILE[locale]}</span>
-              {m.nextAvailable ? (
+              {mm.nextAvailable ? (
                 <span className="text-xs text-on-surface-variant">
                   {NEXT_OPENING[locale]}{" "}
-                  {new Date(m.nextAvailable).toLocaleString(locale, {
+                  {new Date(mm.nextAvailable).toLocaleString(locale, {
                     weekday: "short",
                     day: "numeric",
                     month: "short",

@@ -15,6 +15,7 @@ export type {
   AiProvider,
   TokenUsage,
   Completion,
+  CompleteOptions,
 } from "./types";
 import type { AiProvider } from "./types";
 
@@ -39,6 +40,7 @@ const ID_IN_SYSTEM = /"id"\s*:\s*"([^"]+)"/g;
  * bio-grounded language is the real model's job.
  */
 const stubProvider: AiProvider = {
+  // The stub ignores opts (no real model to cap); the signature stays compatible.
   async complete(messages) {
     const system = messages.find((m) => m.role === "system")?.content ?? "";
     const userTurns = messages.filter((m) => m.role === "user").length;
@@ -96,9 +98,9 @@ export function aiProvider(): AiProvider {
   if (!apiKey) return stubProvider;
   const model = process.env.OPENAI_MODEL || "gpt-5.4";
   return {
-    async complete(messages) {
+    async complete(messages, opts) {
       const { runOpenAi } = await import("./openai-provider");
-      return runOpenAi(apiKey, model, messages);
+      return runOpenAi(apiKey, model, messages, opts);
     },
   };
 }

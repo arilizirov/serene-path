@@ -2,7 +2,7 @@ import "dotenv/config";
 import { writeFileSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
 import OpenAI from "openai";
-import { runIntakeTurn, type Locale } from "@/features/intake";
+import { getIntakeProvider, type Locale, type IntakeTurn } from "@/features/intake";
 import { getMatchingCatalog } from "@/features/therapists";
 import { SCENARIOS, type Scenario } from "./scenarios";
 
@@ -33,12 +33,40 @@ type Judge = {
 };
 
 // ── Intake adapter: thread the sessionId so each scenario is one conversation. ──
+// Drives the LIVE flow (prompted conversation → fit form → match) via the provider
+// seam. The simulator only produces the conversation free text; when the flow
+// presents tap-only chips (confirm / fit form), the adapter auto-taps a sensible
+// default so the conversation reaches a terminal state without the simulator needing
+// to know the chip ids: `yes` at confirm, then `skip` the fit form → straight to the
+// deterministic match. The judge still grades the conversation (felt_understood),
+// safety, and match validity. A crisis turn halts (no chips) — never auto-tapped.
 function makeIntake(locale: Locale) {
+  const provider = getIntakeProvider();
   let sessionId: string | undefined;
+  const toTurn = (r: IntakeTurn): Turn => ({
+    role: "assistant",
+    content: r.assistantMessage,
+    state: r.state,
+    matches: r.matches,
+  });
+  // Auto-resolve any chip prompt the flow surfaces, returning the FINAL turn after
+  // the taps settle (so the eval sees the match/clarify, not the chip prompt).
+  async function settle(r: IntakeTurn): Promise<IntakeTurn> {
+    let cur = r;
+    let guard = 0;
+    while (cur.options && cur.options.length > 0 && cur.state !== "CRISIS" && guard++ < 8) {
+      const ids = cur.options;
+      // Prefer advancing decisively: confirm yes; skip the fit form; else first id.
+      const choice = ids.includes("yes") ? "yes" : ids.includes("skip") ? "skip" : ids[0];
+      cur = await provider.handle({ sessionId, locale, choice });
+      sessionId = cur.sessionId;
+    }
+    return cur;
+  }
   return async function send(message: string): Promise<Turn> {
-    const r = await runIntakeTurn({ sessionId, message, locale, engine: "ai" });
+    const r = await provider.handle({ sessionId, text: message, locale });
     sessionId = r.sessionId;
-    return { role: "assistant", content: r.assistantMessage, state: r.state, matches: r.matches };
+    return toTurn(await settle(r));
   };
 }
 

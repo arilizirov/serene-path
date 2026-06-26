@@ -1,22 +1,18 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
-// Mock the intake feature so the route is tested in isolation (no DB / model).
-// The route uses the chip-driven provider seam: chipIntakeRequestSchema validates
-// the body, getIntakeProvider(...).handle runs the turn.
+// Mock the intake feature so the route is tested in isolation (no DB / model). ONE
+// live flow behind the seam: intakeTurnRequestSchema validates the body, then
+// getIntakeProvider().handle runs the turn.
 const mHandle = vi.fn();
 vi.mock("@/features/intake", async () => {
   const { z } = await import("zod");
   return {
-    chipIntakeRequestSchema: z.object({
+    intakeTurnRequestSchema: z.object({
       sessionId: z.string().min(1).optional(),
       locale: z.enum(["he", "en", "fr"]),
       text: z.string().trim().min(1).max(4000).optional(),
       choice: z.string().min(1).max(64).optional(),
       action: z.enum(["browse_all", "human_followup", "get_help_now"]).optional(),
-      // Both flow shapes + the provider selector travel in the same body.
-      message: z.string().trim().min(1).max(4000).optional(),
-      engine: z.enum(["ai", "scripted"]).optional(),
-      provider: z.enum(["chip", "api"]).optional(),
     }),
     getIntakeProvider: vi.fn(() => ({ handle: mHandle })),
   };
@@ -53,16 +49,17 @@ describe("POST /api/intake", () => {
     expect(mHandle).toHaveBeenCalledWith({ text: "hello", locale: "en" });
   });
 
-  it("dispatches to the chip provider by default (no provider field)", async () => {
+  it("resolves the live intake provider for a valid turn", async () => {
     mHandle.mockResolvedValue({ sessionId: "s1", assistantMessage: "hi", state: "GATHER", matches: [] });
-    await POST(post({ choice: "anxiety", locale: "en" }));
-    expect(mGetProvider).toHaveBeenCalledWith("chip");
+    await POST(post({ choice: "yes", locale: "en" }));
+    expect(mGetProvider).toHaveBeenCalled();
   });
 
-  it("dispatches to the requested provider (api) when provider: 'api'", async () => {
-    mHandle.mockResolvedValue({ sessionId: "s2", assistantMessage: "mirror", state: "MATCH", matches: [] });
-    await POST(post({ message: "I feel low", locale: "en", provider: "api", engine: "ai" }));
-    expect(mGetProvider).toHaveBeenCalledWith("api");
+  it("accepts a bare {locale} (starts the flow → static greeting)", async () => {
+    mHandle.mockResolvedValue({ sessionId: "s1", assistantMessage: "greeting", state: "GREETING", matches: [] });
+    const res = await POST(post({ locale: "he" }));
+    expect(res.status).toBe(200);
+    expect(mHandle).toHaveBeenCalledWith({ locale: "he" });
   });
 
   it("rejects an invalid body with 400 and never calls the engine", async () => {

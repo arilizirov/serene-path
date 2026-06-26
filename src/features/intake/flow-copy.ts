@@ -82,6 +82,8 @@ type FlowMessages = {
   respect: string;
   support: string;
   noMatch: string;
+  // `not_quite` at CONFIRM: briefly ask what to adjust (then re-reflect ONCE).
+  notQuite: string;
   // Step 6b fit-form prompts (tap-only, $0).
   fitGateQ: string;
   fitGenderQ: string;
@@ -102,6 +104,7 @@ export const FLOW_MSG: Record<LanguageId, FlowMessages> = {
     respect: "You've been carrying a lot on your own — that takes real strength.",
     support: "Whatever the answer, we'll find someone who can walk through this with you.",
     noMatch: "I don't yet have someone who's a clear fit for what you described — would you like to browse our therapists, or have someone reach out?",
+    notQuite: "Thank you for telling me — I'd rather get this right than rush. What did I miss or get wrong?",
     fitGateQ: "Before I match you, can I ask a few quick questions to get the fit right?",
     fitGenderQ: "What gender therapist would you feel most comfortable with?",
     fitReligionQ: "What religious background would you like your therapist to have? (so I can find someone who understands your world)",
@@ -119,6 +122,7 @@ export const FLOW_MSG: Record<LanguageId, FlowMessages> = {
     respect: "החזקת הרבה לבד — זה דורש כוח אמיתי.",
     support: "ויהיה אשר יהיה, נמצא מישהו שילווה אותך בזה.",
     noMatch: "עדיין אין לי מישהו שמתאים בבירור למה שתיארת — תרצה/י לעיין במטפלים שלנו, או שמישהו יחזור אליך?",
+    notQuite: "תודה שאמרת — אני מעדיף/ה לדייק מאשר למהר. מה פספסתי או לא הבנתי נכון?",
     fitGateQ: "לפני שאני מתאים/ה לך מטפל/ת, אפשר לשאול כמה שאלות קצרות כדי לדייק את ההתאמה?",
     fitGenderQ: "עם מטפל/ת מאיזה מגדר תרגיש/י הכי בנוח?",
     fitReligionQ: "איזה רקע דתי תרצה/י שיהיה למטפל/ת? (כדי שאמצא מישהו שמבין/ה את העולם שלך)",
@@ -136,6 +140,7 @@ export const FLOW_MSG: Record<LanguageId, FlowMessages> = {
     respect: "Vous portez beaucoup, seul·e — cela demande une vraie force.",
     support: "Quoi qu'il en soit, nous trouverons quelqu'un pour traverser cela avec vous.",
     noMatch: "Je n'ai pas encore quelqu'un qui corresponde clairement à ce que vous décrivez — souhaitez-vous parcourir nos thérapeutes, ou qu'on vous recontacte ?",
+    notQuite: "Merci de me le dire — je préfère bien comprendre que d'aller trop vite. Qu'est-ce que j'ai manqué ou mal compris ?",
     fitGateQ: "Avant de vous proposer quelqu'un, puis-je poser quelques questions rapides pour affiner la correspondance ?",
     fitGenderQ: "Avec un·e thérapeute de quel genre seriez-vous le plus à l'aise ?",
     fitReligionQ: "Quel parcours religieux souhaiteriez-vous pour votre thérapeute ? (pour trouver quelqu'un qui comprend votre univers)",
@@ -146,6 +151,17 @@ export const FLOW_MSG: Record<LanguageId, FlowMessages> = {
 
 export const labels = (locale: LanguageId) => CHIP_LABELS[locale];
 export const flowMsg = (locale: LanguageId) => FLOW_MSG[locale];
+
+/** B2.1 — when OPENAI_API_KEY is unset, the prompted conversation is non-functional,
+ *  so the intake fails CLOSED with a loud static message: browse therapists + crisis
+ *  resources. NEVER a silent half-recall keyword-only conversation. */
+export const NO_KEY_MESSAGE: Record<LanguageId, string> = {
+  en: "Our guided conversation is temporarily unavailable. You can still browse our therapists directly and reach out to anyone who feels like a fit. If you need urgent help, please use the crisis resources below.",
+  he: "השיחה המלווה אינה זמינה כרגע. אפשר עדיין לעיין במטפלים שלנו ישירות ולפנות לכל מי שמרגיש/ה מתאים/ה. אם דרושה עזרה דחופה, אנא היעזר/י במשאבי החירום שמופיעים למטה.",
+  fr: "Notre conversation guidée est momentanément indisponible. Vous pouvez toujours parcourir nos thérapeutes directement et contacter celui ou celle qui vous convient. En cas d'urgence, veuillez utiliser les ressources de crise ci-dessous.",
+};
+
+export const noKeyMessage = (locale: LanguageId) => NO_KEY_MESSAGE[locale];
 
 /** Localized label for any chip id. Ids are globally unique across the sets, except
  *  the gender prefs (no_preference/female/male) which share labels between the

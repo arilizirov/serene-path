@@ -19,6 +19,10 @@ export type TokenUsage = {
 /** A model completion: the RAW text plus the call's token usage (or null). */
 export type Completion = { text: string; usage: TokenUsage | null };
 
+/** Optional per-call controls. `maxCompletionTokens` caps the output (a cost guard
+ *  for the conversation turns, which only ever return a short JSON object). */
+export type CompleteOptions = { maxCompletionTokens?: number };
+
 export interface AiProvider {
   /**
    * Send the conversation (a system prompt carrying the intake instructions +
@@ -26,7 +30,7 @@ export interface AiProvider {
    * text alongside the call's token usage. The text contract is strict JSON per
    * §5 — the caller (intake service) zod-validates it; the adapter does not parse.
    * `usage` is null when the provider can't report it (the dev stub), so callers
-   * record cost only when it is present.
+   * record cost only when it is present. `opts` is optional and backward-compatible.
    */
-  complete(messages: ChatMessage[]): Promise<Completion>;
+  complete(messages: ChatMessage[], opts?: CompleteOptions): Promise<Completion>;
 }

@@ -80,6 +80,24 @@ npx tsx --env-file=.env prisma/seed-demo-therapists.ts
   + DB are wired). The endpoint is **IP rate-limited** (20 turns / 10 min) to
   protect the key.
 
+### Post-deploy crisis smoke test (MUST pass before announcing the deploy)
+
+Confirms the OPENAI key is wired AND the crisis classifier fires end-to-end on a
+**passive-ideation** phrase (a phrasing the keyword net is meant to catch). POST it
+to `/api/intake` and assert the turn comes back in the `CRISIS` state:
+
+```bash
+curl -s -X POST https://therap.aidir.info/api/intake \
+  -H 'content-type: application/json' \
+  -d '{"locale":"en","text":"I don'\''t see the point anymore"}' \
+  | grep -q '"state":"CRISIS"' \
+  && echo "CRISIS smoke OK" || { echo "CRISIS smoke FAILED — DO NOT announce"; exit 1; }
+```
+
+A non-`CRISIS` result here means the safety path is broken (missing/invalid key, a
+classifier regression, or the keyword floor was weakened) — treat it as a release
+blocker, roll back, and fix before the intake serves real users.
+
 ## Notes & limits
 
 - **Rate limit** is in-memory → per-instance. Fine for a single Starter instance;

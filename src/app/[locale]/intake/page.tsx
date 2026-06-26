@@ -1,6 +1,6 @@
 import { getLocale, getTranslations } from "next-intl/server";
 import { isLocale } from "@/lib/utils";
-import { IntakeModeSwitch, crisisMessage } from "@/features/intake";
+import { IntakeChat, crisisMessage } from "@/features/intake";
 
 export default async function IntakePage({
   searchParams,
@@ -20,14 +20,10 @@ export default async function IntakePage({
       </h1>
       {/* Transparency: people should know the conversation is saved/reviewed (§11). */}
       <p className="text-[13px] text-on-surface-variant">{t("privacy")}</p>
-      {/* Both interchangeable flows behind one toggle — guided (chip) is the default. */}
-      <IntakeModeSwitch
-        locale={locale}
-        initialMessage={m}
-        guidedLabel={ti("mode.guided")}
-        conversationLabel={ti("mode.conversation")}
-        crisisText={crisisMessage(locale)}
-      />
+      {/* The live pre-choice intake: prompted conversation → fit form → match. The
+          crisis resources are resolved server-side here and passed in, so the client
+          chat never imports crisis.ts / @/server (Node-only deps → bundle leak). */}
+      <IntakeChat locale={locale} initialMessage={m} crisisText={crisisMessage(locale)} />
     </main>
   );
 }
