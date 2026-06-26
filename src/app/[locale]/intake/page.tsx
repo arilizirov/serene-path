@@ -1,6 +1,6 @@
 import { getLocale, getTranslations } from "next-intl/server";
 import { isLocale } from "@/lib/utils";
-import { IntakeModeSwitch } from "@/features/intake";
+import { IntakeModeSwitch, crisisMessage } from "@/features/intake";
 
 export default async function IntakePage({
   searchParams,
@@ -26,6 +26,7 @@ export default async function IntakePage({
         initialMessage={m}
         guidedLabel={ti("mode.guided")}
         conversationLabel={ti("mode.conversation")}
+        crisisText={crisisMessage(locale)}
       />
     </main>
   );

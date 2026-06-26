@@ -5,6 +5,10 @@ export { intakeRequestSchema, chipIntakeRequestSchema } from "./schema";
 export type { IntakeRequestInput, ChipIntakeRequestInput } from "./schema";
 export { runIntakeTurn } from "./service";
 export { runChipTurn } from "./chip-flow";
+// Crisis resources (human-authored, owner-verified). Server-side only; the intake
+// page resolves the string here and passes it into the client UI as a prop, so the
+// client chat never imports crisis.ts (which pulls in @/server/ai / Node-only deps).
+export { crisisMessage } from "./crisis";
 
 // The IntakeProvider seam (INTAKE_BUILD_SPEC §Contract) — the chip flow and the
 // full-LLM flow behind one interface, selectable by name (default = chip).

@@ -19,11 +19,13 @@ export function IntakeModeSwitch({
   initialMessage,
   guidedLabel,
   conversationLabel,
+  crisisText,
 }: {
   locale: Locale;
   initialMessage?: string;
   guidedLabel: string;
   conversationLabel: string;
+  crisisText: string;
 }) {
   // Chip (guided) is the default flow.
   const [mode, setMode] = useState<Mode>("chip");
@@ -63,7 +65,7 @@ export function IntakeModeSwitch({
       {mode === "chip" ? (
         <ChipIntakeChat locale={locale} initialMessage={initialMessage} />
       ) : (
-        <IntakeChat locale={locale} initialMessage={initialMessage} />
+        <IntakeChat locale={locale} initialMessage={initialMessage} crisisText={crisisText} />
       )}
     </div>
   );
