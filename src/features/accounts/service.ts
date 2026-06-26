@@ -7,6 +7,7 @@ import {
   findUserContactById,
   userCountsByRole,
   countUsersSince,
+  listUserSignupDates,
   listUsers,
   updateUserRole,
   updateUserPassword,
@@ -184,6 +185,55 @@ export async function getSignupStats(
     recent,
     recentDays,
   };
+}
+
+/** One day in the signups trend: a short day label + the count of users created
+ *  that day. Shaped for the AreaChart ({ label, value }[]). */
+export type SignupDay = { label: string; value: number };
+
+/**
+ * Daily signups for the last `days` calendar days (oldest → newest), zero-filled
+ * so every day in the window has a bar even when nobody signed up. DB-derived:
+ * reads `User.createdAt` for the window via `listUserSignupDates`, then buckets
+ * in JS by local calendar day (mirrors the rest of the app's server-local day
+ * boundaries, e.g. usage-reads `startOfToday`). Pure prisma read; no new deps.
+ *
+ * Label is a short month/day ("Jun 26") — locale-independent so it's stable for
+ * the operator-facing admin console.
+ */
+export async function getSignupsPerDay(days: number = 14): Promise<SignupDay[]> {
+  // Window start = local midnight, (days - 1) days before today, so the series
+  // spans exactly `days` calendar days ending with today.
+  const startOfDay = (d: Date): Date => {
+    const c = new Date(d);
+    c.setHours(0, 0, 0, 0);
+    return c;
+  };
+  const dayKey = (d: Date): string =>
+    `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+
+  const today = startOfDay(new Date());
+  const start = new Date(today);
+  start.setDate(start.getDate() - (days - 1));
+
+  const rows = await listUserSignupDates(start);
+
+  // Tally signups into per-day buckets keyed by local calendar day.
+  const counts = new Map<string, number>();
+  for (const { createdAt } of rows) {
+    const key = dayKey(startOfDay(createdAt));
+    counts.set(key, (counts.get(key) ?? 0) + 1);
+  }
+
+  // Emit one zero-filled point per day, oldest → newest.
+  const fmt = new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric" });
+  const series: SignupDay[] = [];
+  for (let i = 0; i < days; i++) {
+    const day = new Date(start);
+    day.setDate(start.getDate() + i);
+    series.push({ label: fmt.format(day), value: counts.get(dayKey(day)) ?? 0 });
+  }
+  return series;
 }
 
 // --- Admin: user & role management (Phase 3) ---------------------------------
