@@ -7,7 +7,7 @@ import { getCostStats } from "@/server/ai";
 import { DashboardShell } from "@/components/dashboard-shell";
 import { adminNav } from "@/components/dashboard-nav";
 import { Card, StatCard, PillLink } from "@/components/ui";
-import { AreaChart, Donut } from "@/components/charts";
+import { AreaChart, BarChart, Donut } from "@/components/charts";
 
 // Reflect current DB state (counts), not a build-time snapshot.
 export const dynamic = "force-dynamic";
@@ -61,6 +61,24 @@ export default async function AdminDashboardPage({
         )
       : -1;
 
+  // Week-over-week signups (this 7 days vs the prior 7) — the reference's
+  // "Comparison" hero, adapted to admin data: two paned mini bar charts.
+  const lastWeek = signupsPerDay.slice(0, 7);
+  const thisWeek = signupsPerDay.slice(7);
+  const sum = (xs: { value: number }[]) => xs.reduce((s, d) => s + d.value, 0);
+  const thisWeekTotal = sum(thisWeek);
+  const lastWeekTotal = sum(lastWeek);
+  const weekDelta =
+    lastWeekTotal > 0
+      ? Math.round(((thisWeekTotal - lastWeekTotal) / lastWeekTotal) * 100)
+      : thisWeekTotal > 0
+        ? 100
+        : 0;
+  const dayBars = (xs: { label: string; value: number }[]) =>
+    xs.map((d) => ({ label: d.label.split(" ")[1] ?? d.label, value: d.value }));
+  const peakOf = (xs: { value: number }[]) =>
+    xs.length ? xs.reduce((mi, d, i, a) => (d.value > a[mi].value ? i : mi), 0) : -1;
+
   const roleRows: { label: string; n: number; color: string }[] = [
     { label: "Clients", n: clients, color: "var(--color-accent)" },
     { label: "Therapists", n: therapistUsers, color: "var(--color-accent-2)" },
@@ -96,6 +114,53 @@ export default async function AdminDashboardPage({
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
           {/* Main column (2/3) */}
           <div className="flex flex-col gap-6 lg:col-span-2">
+            {/* Comparison — week-over-week signups, paired mini bar charts +
+                a full-width CTA bar (the reference's hero card). */}
+            <Card className="flex flex-col gap-5 p-0">
+              <div className="flex items-center justify-between px-6 pt-6">
+                <h2 className="text-lg font-bold text-ink">Comparison</h2>
+                <span
+                  className="flex h-8 w-8 items-center justify-center rounded-lg border border-border text-ink-3"
+                  aria-hidden
+                >
+                  <svg
+                    viewBox="0 0 24 24"
+                    className="h-4 w-4"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <path d="M4 8h13l-3-3M20 16H7l3 3" />
+                  </svg>
+                </span>
+              </div>
+              <div className="grid grid-cols-2 gap-4 px-6">
+                <ComparePane
+                  label="This week"
+                  total={thisWeekTotal}
+                  delta={weekDelta}
+                  bars={dayBars(thisWeek)}
+                  peak={peakOf(thisWeek)}
+                />
+                <ComparePane
+                  label="Last week"
+                  total={lastWeekTotal}
+                  bars={dayBars(lastWeek)}
+                  peak={peakOf(lastWeek)}
+                  bordered
+                />
+              </div>
+              <PillLink
+                href={`/${locale}/admin/stats`}
+                variant="accent"
+                className="mx-6 mb-6 justify-center py-3"
+              >
+                See details
+              </PillLink>
+            </Card>
+
             {/* Signups report card — the new daily trend line */}
             <Card className="flex flex-col gap-5">
               <div className="flex items-center justify-between">
@@ -176,6 +241,45 @@ export default async function AdminDashboardPage({
         </div>
       </div>
     </DashboardShell>
+  );
+}
+
+/** One side of the week-over-week comparison: period label, big total, an
+ *  optional colored delta % (green up / danger down), and a mini bar chart with
+ *  the period's peak day highlighted. `bordered` adds the dividing rule (RTL-safe). */
+function ComparePane({
+  label,
+  total,
+  delta,
+  bars,
+  peak,
+  bordered,
+}: {
+  label: string;
+  total: number;
+  delta?: number;
+  bars: { label: string; value: number }[];
+  peak: number;
+  bordered?: boolean;
+}) {
+  return (
+    <div
+      className={`flex flex-col gap-1 ${bordered ? "border-s border-border ps-4" : ""}`}
+    >
+      <p className="text-sm text-ink-3">{label}</p>
+      <p className="flex items-baseline gap-1.5">
+        <span className="text-2xl font-bold text-ink">{total}</span>
+        {delta !== undefined ? (
+          <span
+            className={`text-xs font-semibold ${delta >= 0 ? "text-accent-2" : "text-danger"}`}
+          >
+            {delta >= 0 ? "+" : ""}
+            {delta}%
+          </span>
+        ) : null}
+      </p>
+      <BarChart data={bars} highlightIndex={peak} title={`${label} signups`} />
+    </div>
   );
 }
 
