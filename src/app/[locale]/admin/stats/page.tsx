@@ -5,59 +5,47 @@ import { getTherapistPipeline } from "@/features/therapists";
 import { getAppointmentStatusCounts } from "@/features/scheduling";
 import { DashboardShell } from "@/components/dashboard-shell";
 import { adminNav } from "@/components/dashboard-nav";
+import { Card, StatCard, PillLink } from "@/components/ui";
+import { BarChart, Donut } from "@/components/charts";
 
 // Always reflect current DB state; also avoids coupling `next build` to a live DB.
 export const dynamic = "force-dynamic";
 
-/** A labelled stat card (one headline number). */
-function StatCard({ label, value }: { label: string; value: string | number }) {
-  return (
-    <div className="flex flex-col gap-1 rounded-2xl border border-outline-variant bg-surface-container-lowest p-6">
-      <span className="text-3xl font-bold text-on-surface">{value}</span>
-      <span className="text-sm font-medium text-primary">{label}</span>
-    </div>
-  );
-}
+// Funnel state order + short labels for the bar chart (full enum names are too long).
+const FUNNEL_ORDER = [
+  "GREETING", "GATHER", "MIRROR", "CONFIRM", "MATCH", "PRESENT_OPTIONS", "FOLLOWUP", "CLARIFY", "CRISIS",
+] as const;
+const FUNNEL_LABEL: Record<string, string> = {
+  GREETING: "Greet", GATHER: "Gather", MIRROR: "Mirror", CONFIRM: "Confirm",
+  MATCH: "Match", PRESENT_OPTIONS: "Options", FOLLOWUP: "Follow", CLARIFY: "Clarify", CRISIS: "Crisis",
+};
 
-/** A small breakdown table from a {key: count} record. */
-function Breakdown({
-  title,
-  counts,
-}: {
-  title: string;
-  counts: Record<string, number>;
-}) {
+/** A small breakdown card: title + dot-prefixed label/count rows. */
+function BreakdownCard({ title, counts }: { title: string; counts: Record<string, number> }) {
   const entries = Object.entries(counts);
   return (
-    <section className="flex flex-col gap-2">
-      <h2 className="font-heading text-lg font-semibold text-on-surface">
-        {title}
-      </h2>
+    <Card className="flex flex-col gap-3">
+      <h3 className="text-base font-bold text-ink">{title}</h3>
       {entries.length === 0 ? (
-        <p className="text-sm text-on-surface-variant">No data yet.</p>
+        <p className="text-sm text-ink-3">No data yet.</p>
       ) : (
-        <table className="w-full max-w-sm border-collapse text-start text-sm">
-          <tbody>
-            {entries.map(([k, v]) => (
-              <tr
-                key={k}
-                className="border-b border-outline-variant/40 text-on-surface"
-              >
-                <td className="py-1.5">{k}</td>
-                <td className="py-1.5 text-end font-medium">{v}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <div className="flex flex-col gap-2">
+          {entries.map(([k, v]) => (
+            <div key={k} className="flex items-center gap-2 text-sm">
+              <span className="h-2.5 w-2.5 shrink-0 rounded-full bg-accent-soft" />
+              <span className="flex-1 truncate text-ink-2">{k.toLowerCase()}</span>
+              <span className="font-medium text-ink">{v}</span>
+            </div>
+          ))}
+        </div>
       )}
-    </section>
+    </Card>
   );
 }
 
-// Website / intake statistics, DERIVED purely from the DB (no third-party
-// trackers, no new tables). All reads use prisma groupBy/count where possible;
-// the cross-feature composition happens here at the app layer (each feature
-// exposes its own DB-derived read through its public index).
+// Website / intake statistics — DB-derived (no trackers), composed in the shared
+// dashboard layout: headline stat cards + an intake-funnel bar chart + a match-rate
+// donut + by-engine breakdown, then signups / pipeline / bookings breakdown cards.
 export default async function AdminStatsPage({
   params,
 }: {
@@ -72,7 +60,18 @@ export default async function AdminStatsPage({
     getAppointmentStatusCounts(),
   ]);
 
-  const matchPct = `${Math.round(intake.matchRate * 100)}%`;
+  const matchPct = Math.round(intake.matchRate * 100);
+  const funnelData = FUNNEL_ORDER.map((s) => ({
+    label: FUNNEL_LABEL[s],
+    value: intake.byState[s] ?? 0,
+  })).filter((d, i) => d.value > 0 || FUNNEL_ORDER[i] === "GATHER" || FUNNEL_ORDER[i] === "MATCH");
+  const matchIdx = funnelData.findIndex((d) => d.label === "Match");
+
+  const engines: { label: string; n: number; color: string }[] = [
+    { label: "AI conversation", n: intake.engines.ai, color: "var(--color-accent)" },
+    { label: "Guided (chips)", n: intake.engines.scripted, color: "var(--color-accent-2)" },
+    { label: "Dropped early", n: intake.engines.none, color: "var(--color-ink-3)" },
+  ];
 
   return (
     <DashboardShell
@@ -82,29 +81,50 @@ export default async function AdminStatsPage({
       user={{ name: t("principal") }}
       locale={locale}
     >
-      <div className="flex flex-col gap-8">
-      <div className="grid gap-4 sm:grid-cols-3">
-        <StatCard label="Intake sessions" value={intake.total} />
-        <StatCard label="Matched sessions" value={intake.matched} />
-        <StatCard label="Match rate" value={matchPct} />
-        <StatCard
-          label={`New signups (${signups.recentDays}d)`}
-          value={signups.recent}
-        />
-      </div>
+      <div className="flex flex-col gap-5">
+        <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+          <StatCard label="Intake sessions" value={intake.total} />
+          <StatCard label="Matched" value={intake.matched} />
+          <StatCard label="Match rate" value={`${matchPct}%`} />
+          <StatCard label={`New signups (${signups.recentDays}d)`} value={signups.recent} />
+        </div>
 
-      <Breakdown title="Intake funnel (by state)" counts={intake.byState} />
-      <Breakdown
-        title="Intake engine"
-        counts={{
-          ai: intake.engines.ai,
-          scripted: intake.engines.scripted,
-          none: intake.engines.none,
-        }}
-      />
-      <Breakdown title="Signups (by role)" counts={signups.byRole} />
-      <Breakdown title="Therapist pipeline (by status)" counts={pipeline} />
-      <Breakdown title="Bookings (by status)" counts={bookings} />
+        <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
+          <Card className="flex flex-col gap-4 lg:col-span-2">
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-bold text-ink">Intake funnel</h2>
+              <span className="text-sm text-ink-3">by state</span>
+            </div>
+            {funnelData.length > 0 ? (
+              <BarChart data={funnelData} highlightIndex={matchIdx} title="Intake sessions by state" />
+            ) : (
+              <p className="text-sm text-ink-3">No intake sessions yet.</p>
+            )}
+            <PillLink href={`/${locale}/admin/conversations`} variant="accent" className="justify-center py-3">
+              View conversations
+            </PillLink>
+          </Card>
+
+          <Card className="flex flex-col items-center gap-3">
+            <h2 className="self-start text-lg font-bold text-ink">Match rate</h2>
+            <Donut value={intake.matched} max={Math.max(1, intake.total)} title={`${matchPct}% of intakes matched`} subLabel="matched" />
+            <div className="flex w-full flex-col gap-2 text-sm">
+              {engines.map((e) => (
+                <div key={e.label} className="flex items-center gap-2">
+                  <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: e.color }} />
+                  <span className="flex-1 text-ink-2">{e.label}</span>
+                  <span className="font-medium text-ink">{e.n}</span>
+                </div>
+              ))}
+            </div>
+          </Card>
+        </div>
+
+        <div className="grid grid-cols-1 gap-5 sm:grid-cols-3">
+          <BreakdownCard title="Signups by role" counts={signups.byRole} />
+          <BreakdownCard title="Therapist pipeline" counts={pipeline} />
+          <BreakdownCard title="Bookings by status" counts={bookings} />
+        </div>
       </div>
     </DashboardShell>
   );
