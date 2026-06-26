@@ -111,8 +111,8 @@
 
   --shadow-card: var(--shadow);
 
-  --font-sans: var(--font-plex-sans), var(--font-hebrew), ui-sans-serif, system-ui, sans-serif;
-  --font-heading: var(--font-space-grotesk), var(--font-hebrew), ui-sans-serif, system-ui, sans-serif;
+  --font-sans: var(--font-inter), var(--font-hebrew), ui-sans-serif, system-ui, sans-serif;
+  --font-heading: var(--font-inter), var(--font-hebrew), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-plex-mono), ui-monospace, monospace;
 }
 

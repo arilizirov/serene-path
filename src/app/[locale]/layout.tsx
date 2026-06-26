@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
-import { Space_Grotesk, IBM_Plex_Sans, IBM_Plex_Mono, Noto_Sans_Hebrew } from "next/font/google";
+import { Inter, IBM_Plex_Mono, Noto_Sans_Hebrew } from "next/font/google";
 import { NextIntlClientProvider, hasLocale } from "next-intl";
 import { setRequestLocale } from "next-intl/server";
 import { notFound } from "next/navigation";
@@ -10,16 +10,10 @@ import { AppShell } from "@/components/app-shell";
 import { getCurrentUser } from "@/features/accounts";
 import "../globals.css";
 
-const spaceGrotesk = Space_Grotesk({
+const inter = Inter({
   subsets: ["latin"],
   weight: ["400", "500", "600", "700"],
-  variable: "--font-space-grotesk",
-  display: "swap",
-});
-const plexSans = IBM_Plex_Sans({
-  subsets: ["latin"],
-  weight: ["400", "500", "600"],
-  variable: "--font-plex-sans",
+  variable: "--font-inter",
   display: "swap",
 });
 const plexMono = IBM_Plex_Mono({
@@ -65,7 +59,7 @@ export default async function LocaleLayout({ children, params }: Props) {
     <html
       lang={locale}
       dir={dir}
-      className={`${spaceGrotesk.variable} ${plexSans.variable} ${plexMono.variable} ${notoSansHebrew.variable}`}
+      className={`${inter.variable} ${plexMono.variable} ${notoSansHebrew.variable}`}
       suppressHydrationWarning
     >
       <body>
