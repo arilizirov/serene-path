@@ -69,7 +69,8 @@
       "aClient": "Un patient",
       "israelTime": "Heure d'Israël",
       "pendingActions": "Actions en attente",
-      "allClear": "Tout est à jour — rien ne requiert votre attention."
+      "allClear": "Tout est à jour — rien ne requiert votre attention.",
+      "thisWeek": "Cette semaine"
     },
     "stats": {
       "upcoming": "Séances à venir",
@@ -203,10 +204,24 @@
       "mindfulness": "Pleine conscience",
       "faith_aligned": "En accord avec la foi"
     },
-    "languageChip": { "he": "עברית", "en": "English", "fr": "Français" },
-    "confirm": { "yes": "Oui, c'est ça", "not_quite": "Pas tout à fait" },
-    "fitGate": { "sure": "Bien sûr", "skip": "Passer" },
-    "therapistGender": { "no_preference": "Peu importe", "female": "Une femme", "male": "Un homme" },
+    "languageChip": {
+      "he": "עברית",
+      "en": "English",
+      "fr": "Français"
+    },
+    "confirm": {
+      "yes": "Oui, c'est ça",
+      "not_quite": "Pas tout à fait"
+    },
+    "fitGate": {
+      "sure": "Bien sûr",
+      "skip": "Passer"
+    },
+    "therapistGender": {
+      "no_preference": "Peu importe",
+      "female": "Une femme",
+      "male": "Un homme"
+    },
     "therapistReligion": {
       "no_preference": "Peu importe",
       "secular": "Laïque",

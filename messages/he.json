@@ -69,7 +69,8 @@
       "aClient": "מטופל/ת",
       "israelTime": "שעון ישראל",
       "pendingActions": "פעולות ממתינות",
-      "allClear": "הכול מעודכן — אין דבר שדורש את תשומת לבך."
+      "allClear": "הכול מעודכן — אין דבר שדורש את תשומת לבך.",
+      "thisWeek": "השבוע"
     },
     "stats": {
       "upcoming": "פגישות קרובות",
@@ -203,10 +204,24 @@
       "mindfulness": "מיינדפולנס",
       "faith_aligned": "מותאם לאמונה"
     },
-    "languageChip": { "he": "עברית", "en": "English", "fr": "Français" },
-    "confirm": { "yes": "כן, זה נכון", "not_quite": "לא בדיוק" },
-    "fitGate": { "sure": "בשמחה", "skip": "אפשר לדלג" },
-    "therapistGender": { "no_preference": "אין העדפה", "female": "אישה", "male": "גבר" },
+    "languageChip": {
+      "he": "עברית",
+      "en": "English",
+      "fr": "Français"
+    },
+    "confirm": {
+      "yes": "כן, זה נכון",
+      "not_quite": "לא בדיוק"
+    },
+    "fitGate": {
+      "sure": "בשמחה",
+      "skip": "אפשר לדלג"
+    },
+    "therapistGender": {
+      "no_preference": "אין העדפה",
+      "female": "אישה",
+      "male": "גבר"
+    },
     "therapistReligion": {
       "no_preference": "אין העדפה",
       "secular": "חילוני/ת",
