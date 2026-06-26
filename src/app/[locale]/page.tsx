@@ -9,17 +9,13 @@ export default async function HomePage() {
 
   return (
     <main className="relative flex min-h-[calc(100vh-61px)] flex-col items-center justify-center overflow-hidden p-8">
-      {/* Soft sage watercolor wash filling the bottom and fading into the canvas
-          (CSS reproduction of design/cadence/assets/wc-pattern — no raster). Sage
-          = the accent blended into the bg, so it themes for light + dark. A radial
-          bloom adds the watercolor softness over the base vertical wash. */}
+      {/* Brand wave background, anchored to the bottom and covering the hero.
+          Two optimized webp assets in /public — light + dark — switched by the
+          `.dark` class (only the active theme's image is fetched). The page bg
+          (var(--bg)) sits behind, matching each image's plain top. */}
       <div
         aria-hidden
-        className="pointer-events-none absolute inset-0 z-0"
-        style={{
-          background:
-            "linear-gradient(to top, color-mix(in srgb, var(--accent-2) 24%, var(--bg)) 0%, color-mix(in srgb, var(--accent) 13%, var(--bg)) 30%, var(--bg) 60%)",
-        }}
+        className="pointer-events-none absolute inset-0 z-0 bg-[url('/home-bg-light.webp')] bg-cover bg-bottom bg-no-repeat dark:bg-[url('/home-bg-dark.webp')]"
       />
 
       <div className="relative z-10 w-full max-w-[560px] text-center">
