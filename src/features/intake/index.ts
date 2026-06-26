@@ -1,26 +1,21 @@
-// Public surface of the intake feature (F1/F2 — AI intake chat + bio-grounded
-// matching, APP_SPEC §5). Slice 3.2: the public contract + request schema. The
-// engine (service + session persistence) and the API route land in 3.3 / 3.4.
-export { intakeRequestSchema, chipIntakeRequestSchema } from "./schema";
-export type { IntakeRequestInput, ChipIntakeRequestInput } from "./schema";
-export { runIntakeTurn } from "./service";
-export { runChipTurn } from "./chip-flow";
+// Public surface of the intake feature (F1/F2 — pre-choice intake: prompted
+// conversation → fit form → deterministic match, INTAKE_BUILD_SPEC §5).
+export { intakeTurnRequestSchema } from "./schema";
+export type { IntakeTurnRequestInput } from "./schema";
 // Crisis resources (human-authored, owner-verified). Server-side only; the intake
 // page resolves the string here and passes it into the client UI as a prop, so the
 // client chat never imports crisis.ts (which pulls in @/server/ai / Node-only deps).
 export { crisisMessage } from "./crisis";
 
-// The IntakeProvider seam (INTAKE_BUILD_SPEC §Contract) — the chip flow and the
-// full-LLM flow behind one interface, selectable by name (default = chip).
-export {
-  getIntakeProvider,
-  ChipIntakeProvider,
-  ApiIntakeProvider,
-} from "./provider";
-export type { IntakeProviderName } from "./provider";
+// The IntakeProvider seam (INTAKE_BUILD_SPEC §Contract) — the live flow behind one
+// interface so a future provider can swap in without touching the route/UI.
+export { getIntakeProvider, ConversationIntakeProvider } from "./provider";
 export type { IntakeProvider, IntakeInput } from "./contract";
+export type { IntakeTurn, IntakeFlowState, SecondaryAction } from "./contract";
 
 // Admin (transcripts review + .md export, §11 admin-only) — reads + pure builders.
+// These read the SAME IntakeSession table the live flow writes; unchanged by the
+// flow rewrite (the conversation flow persists via saveFlowSession like before).
 export {
   listFinishedSessions,
   getFullSession,
@@ -41,14 +36,8 @@ export { deleteSession, purgeSessionsOlderThan } from "./service";
 export { getIntakeStats } from "./service";
 export type { IntakeStats } from "./service";
 
+// The live intake chat UI (the prompted conversation + fit-form taps) + the home
+// "how are you feeling?" field that seeds it.
 export { IntakeChat } from "./ui/intake-chat";
-export { ChipIntakeChat } from "./ui/chip-intake-chat";
-export { IntakeModeSwitch } from "./ui/intake-mode-switch";
 export { FeelingField } from "./ui/feeling-field";
-export type {
-  IntakeResponse,
-  TherapistMatch,
-  IntakeStateName,
-  Locale,
-} from "./types";
-export type { IntakeTurn, IntakeFlowState, SecondaryAction } from "./contract";
+export type { Locale } from "./types";

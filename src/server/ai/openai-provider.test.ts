@@ -44,4 +44,14 @@ describe("runOpenAi", () => {
     expect(out.text).toBe("");
     expect(out.usage).toBeNull();
   });
+
+  it("forwards max_completion_tokens when the caller caps it (M2 cost guard)", async () => {
+    await runOpenAi("sk-test", "gpt-5.4", [{ role: "user", content: "hi" }], { maxCompletionTokens: 600 });
+    expect(create).toHaveBeenCalledWith(expect.objectContaining({ max_completion_tokens: 600 }));
+  });
+
+  it("omits max_completion_tokens when no cap is given (broad compatibility)", async () => {
+    await runOpenAi("sk-test", "gpt-5.4", [{ role: "user", content: "hi" }]);
+    expect(create).toHaveBeenCalledWith(expect.not.objectContaining({ max_completion_tokens: expect.anything() }));
+  });
 });

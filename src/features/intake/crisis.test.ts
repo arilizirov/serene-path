@@ -67,6 +67,28 @@ describe("crisis detection", () => {
     expect(looksLikeCrisis("I could kill for a coffee right now", "en")).toBe(false);
   });
 
+  it("B2.2: passive-ideation stems trip the keyword net WITHOUT a model, in each locale", () => {
+    // No key set (beforeEach deletes it) → looksLikeCrisis is the only line of defense.
+    expect(looksLikeCrisis("honestly I don't see the point anymore", "en")).toBe(true);
+    expect(looksLikeCrisis("I can't go on like this", "en")).toBe(true);
+    expect(looksLikeCrisis("what's the point anymore", "en")).toBe(true);
+    expect(looksLikeCrisis("אין לי טעם להמשיך", "he")).toBe(true);
+    expect(looksLikeCrisis("אני לא יכול להמשיך ככה", "he")).toBe(true);
+    expect(looksLikeCrisis("à quoi bon continuer", "fr")).toBe(true);
+    expect(looksLikeCrisis("je n'en peux plus", "fr")).toBe(true);
+  });
+
+  it("B2.2: abuse stems trip the keyword net in each locale", () => {
+    expect(looksLikeCrisis("my partner hits me and I'm scared to go home", "en")).toBe(true);
+    expect(looksLikeCrisis("בן הזוג שלי מכה אותי", "he")).toBe(true);
+    expect(looksLikeCrisis("il me frappe tous les jours", "fr")).toBe(true);
+  });
+
+  it("B2.2: the new stems fire end-to-end via isCrisis with NO key (keyword-only)", async () => {
+    // Fail-closed safety: even without the model, passive ideation reaches CRISIS.
+    expect(await isCrisis("I don't see the point anymore", "en")).toBe(true);
+  });
+
   it("provides confirmed crisis lines per locale", () => {
     expect(crisisMessage("en")).toContain("101");
     expect(crisisMessage("he")).toContain("1201");

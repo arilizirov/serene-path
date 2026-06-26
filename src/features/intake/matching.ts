@@ -68,8 +68,9 @@ export async function pickTherapist(
   const { therapistReligion, availability, fee } = selection;
   const candidates = await getMatchCandidates();
 
-  // HARD FILTERS (must pass): accepting new clients, language, gender, fee tier.
-  // Requested religion is SOFT only (never an exclude). standard → no fee filter.
+  // HARD FILTERS (must pass): accepting new clients, language, gender, fee tier, AND
+  // a non-empty bio in the ACTIVE locale. Requested religion is SOFT only (never an
+  // exclude). standard → no fee filter.
   const pool = candidates.filter((c) => {
     if (!c.acceptingNewClients) return false;
     if (language && !c.languages.includes(language)) return false;
@@ -78,6 +79,10 @@ export async function pickTherapist(
     if (fee === "sliding_scale" && !c.offersSlidingScale) return false;
     if (fee === "insurance" && !c.acceptsInsurance) return false;
     if (fee === "soldier_subsidy" && !c.acceptsSoldierSubsidy) return false;
+    // M3 — RTL/bidi: the rationale quote MUST come from the bio in the conversation
+    // locale. A therapist with no active-locale bio is ineligible rather than quoted
+    // in another language (a Hebrew user must never see an English quote in RTL).
+    if (!(c.bio[locale] ?? "").trim()) return false;
     return true;
   });
 
@@ -90,6 +95,16 @@ export async function pickTherapist(
   // we couldn't identify — a safety risk. Require a genuine concern-term match here:
   // with no concern keywords there can be none, so we return null → honest CLARIFY.
   const concernRequired = concernKw.length === 0;
+
+  // Two regimes, never mixed:
+  //  - NO concern classified (concernKw empty): nobody can have a term hit, so
+  //    matching on soft signals alone would recommend for an unidentified problem
+  //    → require a "concern" that can't exist → no match → honest CLARIFY.
+  //  - A concern IS classified: ONLY a therapist with a genuine concern-term hit
+  //    (`r.term` truthy) is eligible. style/religion/availability are tie-breakers,
+  //    NEVER a substitute for actually covering the concern. This also guarantees
+  //    firstSentenceWith() can always quote a sentence containing the matched term
+  //    (no fabricated term, no "exactly what you described" over an unrelated line).
 
   const ranked = pool
     .map((c) => {
@@ -115,17 +130,23 @@ export async function pickTherapist(
       }
       return { c, score, term };
     })
-    // Below threshold → no match. AND when no concern could be classified
-    // (something_else / unset), require a real concern-term hit — never let soft
-    // signals alone clear the bar.
-    .filter((r) => r.score >= W.minScore && !(concernRequired && !r.term))
+    // Below threshold → no match. Then: with NO classifiable concern require the
+    // (impossible) concern hit → CLARIFY; with a concern require a REAL term hit so
+    // soft signals can never substitute for covering the concern (B1).
+    .filter((r) => r.score >= W.minScore && (concernKw.length === 0 ? !concernRequired : !!r.term))
     .sort((a, b) => b.score - a.score || b.c.rating - a.c.rating);
 
   if (!ranked.length) return null;
 
   const best = ranked[0];
-  const bio = best.c.bio[locale] ?? best.c.bio.en ?? "";
-  const matchedTerm = best.term ?? concernKw[0] ?? "";
+  // The active-locale bio is REQUIRED for eligibility (M3 — no cross-language quote),
+  // so it is non-empty here; never fall back to a different-language bio for the quote.
+  const bio = best.c.bio[locale] ?? "";
+  // After the B1 filter a ranked therapist ALWAYS has a real concern-term hit, so the
+  // matchedTerm is genuine (never fabricated) and firstSentenceWith() quotes a sentence
+  // that actually contains it — the rationale can't claim "exactly what you described"
+  // over an unrelated line.
+  const matchedTerm = best.term ?? "";
   const quote = firstSentenceWith(bio, matchedTerm);
   const rationale = rationaleText(locale, quote);
   const nextAvailable = await getNextAvailable(best.c.id, new Date().toISOString());

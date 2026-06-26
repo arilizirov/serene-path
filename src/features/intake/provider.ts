@@ -1,74 +1,51 @@
-import { runChipTurn } from "./chip-flow";
-import { runIntakeTurn } from "./service";
-import { crisisMessage } from "./crisis";
-import type { IntakeInput, IntakeProvider, IntakeTurn, SecondaryAction } from "./contract";
+import { runConversationFlowTurn } from "./conversation-flow";
+import { noKeyMessage } from "./flow-copy";
+import type { IntakeInput, IntakeProvider, IntakeTurn } from "./contract";
 
-// The two interchangeable intake flows behind ONE seam (INTAKE_BUILD_SPEC §Contract:
-// "Implement behind an IntakeProvider interface so this flow and a full-API flow are
-// interchangeable"). The CHIP flow is the spec's canonical pre-choice intake; the API
-// (full-LLM conversational) flow is the live system that predates it. Both speak the
-// same IntakeTurn, so the route/UI can select either without code changes elsewhere.
+// The intake seam (INTAKE_BUILD_SPEC §Contract: "Implement behind an IntakeProvider
+// interface"). ONE live system now: the prompted conversation → fit form →
+// deterministic match. The interface is retained so a future provider can swap in
+// without touching the route/UI — but the chip-gather flow and the chip-vs-conversation
+// toggle are retired (the conversation IS the gather; concern/style are extracted from
+// it and validated, never tapped as concept chips).
 
-// Persistent on EVERY turn, independent of any classifier (spec §Guardrails):
-// get_help_now is the crisis safety net; browse_all / human_followup are the escapes.
-const SECONDARY: SecondaryAction[] = ["get_help_now", "browse_all", "human_followup"];
+/** True when the AI conversation can actually run. The prompted conversation is the
+ *  whole intake — without a key it is non-functional, so we must NOT serve it. */
+function intakeConversationConfigured(): boolean {
+  return !!process.env.OPENAI_API_KEY;
+}
 
-/** The canonical chip-driven pre-choice intake (this spec). */
-export class ChipIntakeProvider implements IntakeProvider {
+/** The live pre-choice intake: prompted conversation, then fit form, then a
+ *  deterministic match. Crisis is gated on every free-text turn inside the flow.
+ *
+ *  B2.1 — FAIL CLOSED on a missing OPENAI_API_KEY. The conversation is non-functional
+ *  without the key; rather than silently degrade to a thin keyword-only flow, refuse
+ *  the conversation entirely and return a static "browse therapists + crisis
+ *  resources" turn. The failure is loud (the user is told the guided chat is
+ *  unavailable and pointed at the directory + crisis resources), never a half-recall
+ *  mode. get_help_now stays a persistent secondary action so the crisis net is intact.
+ */
+export class ConversationIntakeProvider implements IntakeProvider {
   handle(input: IntakeInput): Promise<IntakeTurn> {
-    return runChipTurn(input);
-  }
-}
-
-/** The full-LLM conversational intake (the live flow), adapted to the IntakeTurn
- *  contract so it stays swappable with the chip flow. The AI flow speaks `message`
- *  (free text) and an IntakeResponse; here we translate to/from IntakeTurn. */
-export class ApiIntakeProvider implements IntakeProvider {
-  async handle(input: IntakeInput): Promise<IntakeTurn> {
-    // Persistent crisis safety net — same contract as the chip flow. get_help_now
-    // is a real CRISIS turn, surfaced BEFORE any AI turn, never dropped into empty
-    // text (runIntakeTurn reads `message`, not `action`). crisis.ts is reused.
-    if (input.action === "get_help_now") {
-      return {
-        sessionId: input.sessionId ?? "",
-        assistantMessage: crisisMessage(input.locale),
-        state: "CRISIS",
-        secondaryActions: SECONDARY,
+    if (!intakeConversationConfigured()) {
+      return Promise.resolve({
+        sessionId: input.sessionId ?? "no-intake",
+        assistantMessage: noKeyMessage(input.locale),
+        state: "CLARIFY",
+        // Point them at the real, working paths: the directory + a human, plus the
+        // persistent crisis net. No matches (no conversation ran), done so the UI
+        // doesn't keep prompting for a reply the non-existent flow can't answer.
+        secondaryActions: ["browse_all", "human_followup", "get_help_now"],
         matches: [],
-      };
+        done: true,
+      });
     }
-    // The conversational flow is driven by free text. Its UI posts `message`; we
-    // also accept `text`/`choice` so a chip tap maps to its id as text (a secondary
-    // action has no AI turn — the UI handles browse/help locally).
-    const message = (input.message ?? input.text ?? input.choice ?? "").trim();
-    const r = await runIntakeTurn({
-      sessionId: input.sessionId,
-      message,
-      locale: input.locale,
-    });
-    return {
-      sessionId: r.sessionId,
-      assistantMessage: r.assistantMessage,
-      state: r.state,
-      options: r.options,
-      secondaryActions: SECONDARY,
-      // The AI matcher has no structured rationaleSource; surface a contract-valid
-      // one grounded in the rationale text it already produced (still bio-derived).
-      matches: r.matches.map((m) => ({
-        therapistId: m.therapistId,
-        rationale: m.rationale,
-        rationaleSource: { field: "bio" as const, matchedTerm: "", quote: m.rationale },
-        nextAvailable: m.nextAvailable,
-      })),
-    };
+    return runConversationFlowTurn(input);
   }
 }
 
-export type IntakeProviderName = "chip" | "api";
-
-/** Select the active intake provider. Default = the chip flow (this spec's canonical
- *  pre-choice intake). Pass "api" to use the full-LLM conversational flow. The active
- *  default is chosen at the call site (route/page), so flipping flows is one argument. */
-export function getIntakeProvider(name: IntakeProviderName = "chip"): IntakeProvider {
-  return name === "api" ? new ApiIntakeProvider() : new ChipIntakeProvider();
+/** Select the active intake provider. There is one live flow; the seam stays so a
+ *  future provider can replace it behind the same IntakeTurn contract. */
+export function getIntakeProvider(): IntakeProvider {
+  return new ConversationIntakeProvider();
 }

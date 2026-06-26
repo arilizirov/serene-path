@@ -26,6 +26,27 @@ export const STYLE_IDS = [
   "faith_aligned",
 ] as const;
 
+// The FIXED extraction vocab the prompted conversation maps to (INTAKE_BUILD_SPEC
+// §"Where the structured concern comes from"). Concern/style are EXTRACTED from the
+// conversation (folded into the step-4 confirm call) and validated against these
+// lists; an unmappable concern → CLARIFY (honest no-match → escape hatch). The
+// concern vocab uses `other` (the spec's unmappable bucket) — distinct from the
+// retired chip flow's `something_else` valve; both mean "no real concern → no match".
+export const EXTRACT_CONCERN_IDS = [
+  "anxiety",
+  "stress_burnout",
+  "relationships",
+  "trauma",
+  "grief",
+  "sleep",
+  "depression",
+  "other",
+] as const;
+export const EXTRACT_STYLE_IDS = STYLE_IDS;
+
+export type ExtractConcernId = (typeof EXTRACT_CONCERN_IDS)[number];
+export type ExtractStyleId = (typeof EXTRACT_STYLE_IDS)[number];
+
 export const LANGUAGE_IDS = ["he", "en", "fr"] as const;
 
 export const GENDER_PREF_IDS = ["no_preference", "female", "male"] as const;
