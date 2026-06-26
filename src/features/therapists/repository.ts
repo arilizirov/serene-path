@@ -48,6 +48,13 @@ export function findVerifiedForMatching() {
       modalities: true,
       bio: true,
       rating: true,
+      // Chip-intake fit-form matching fields (INTAKE_BUILD_SPEC §6b/§7).
+      religiousAlignment: true,
+      offersSlidingScale: true,
+      acceptsInsurance: true,
+      acceptsSoldierSubsidy: true,
+      availabilityTags: true,
+      acceptingNewClients: true,
       user: { select: { name: true } },
     },
   });

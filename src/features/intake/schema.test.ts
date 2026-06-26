@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { intakeRequestSchema, modelOutputSchema } from "./schema";
+import { intakeRequestSchema, chipIntakeRequestSchema, modelOutputSchema } from "./schema";
 
 describe("intakeRequestSchema", () => {
   it("accepts a valid request and an optional sessionId", () => {
@@ -14,6 +14,35 @@ describe("intakeRequestSchema", () => {
     expect(intakeRequestSchema.safeParse({ message: "hi", locale: "de" }).success).toBe(false);
     expect(
       intakeRequestSchema.safeParse({ message: "x".repeat(4001), locale: "en" }).success,
+    ).toBe(false);
+  });
+});
+
+describe("chipIntakeRequestSchema (accepts both flow shapes)", () => {
+  it("accepts the chip shape (text / choice / action) with an optional provider", () => {
+    expect(chipIntakeRequestSchema.safeParse({ locale: "en" }).success).toBe(true);
+    expect(chipIntakeRequestSchema.safeParse({ locale: "en", choice: "anxiety" }).success).toBe(true);
+    expect(
+      chipIntakeRequestSchema.safeParse({ locale: "he", text: "hi", provider: "chip" }).success,
+    ).toBe(true);
+  });
+
+  it("accepts the AI conversational shape (message / engine) under provider 'api'", () => {
+    expect(
+      chipIntakeRequestSchema.safeParse({
+        locale: "en",
+        message: "I feel low",
+        provider: "api",
+        engine: "ai",
+      }).success,
+    ).toBe(true);
+  });
+
+  it("rejects a bad locale, a bad provider, and an oversized message", () => {
+    expect(chipIntakeRequestSchema.safeParse({ locale: "de" }).success).toBe(false);
+    expect(chipIntakeRequestSchema.safeParse({ locale: "en", provider: "nope" }).success).toBe(false);
+    expect(
+      chipIntakeRequestSchema.safeParse({ locale: "en", message: "x".repeat(4001) }).success,
     ).toBe(false);
   });
 });
