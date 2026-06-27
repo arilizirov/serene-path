@@ -78,6 +78,8 @@ model User {
   timezone  String   @default("Asia/Jerusalem")
   therapist TherapistProfile?
   appointments Appointment[]
+  sentMessages     Message[] @relation("MessageSender")
+  receivedMessages Message[] @relation("MessageRecipient")
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
@@ -198,4 +200,25 @@ model ApiUsage {
 
   @@index([createdAt])
   @@index([callType])
+}
+
+// Therapist↔client direct messaging (the cockpit messages rail). A thread is the
+// unordered (sender, recipient) USER pair; eligibility to message is gated in the
+// service layer by a SHARED Appointment (the two users must be a therapist+client
+// who have at least one booking together) — strangers can't message. readAt drives
+// unread counts. Content is sensitive (§11) like IntakeSession.messages; the Stage-9
+// security pass (field encryption / audit) applies here too.
+model Message {
+  id          String    @id @default(cuid())
+  sender      User      @relation("MessageSender", fields: [senderId], references: [id])
+  senderId    String
+  recipient   User      @relation("MessageRecipient", fields: [recipientId], references: [id])
+  recipientId String
+  body        String
+  readAt      DateTime?
+  createdAt   DateTime  @default(now())
+
+  @@index([senderId])
+  @@index([recipientId])
+  @@index([createdAt])
 }
