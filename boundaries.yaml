@@ -42,6 +42,9 @@ modules:
   intake:                        # F1/F2 — AI intake chat + bio-grounded matching (Stage 3)
     path: features/intake
     public: [index]
+  messaging:                     # therapist↔client direct messaging (cockpit messages rail)
+    path: features/messaging
+    public: [index]
   sessions:                      # F7 — per-appointment video room (Stage 7)
     path: features/sessions
     public: [index]
@@ -74,6 +77,7 @@ allow:
   therapists: [accounts]                        # ADR: admin mutation server actions must enforce authz at the action boundary (actions are independently-dispatched endpoints, not gated by middleware/layout), so they call accounts.requireRole
   scheduling: [therapists]                      # slots = therapist availability rules − appointments (§9)
   intake:     [therapists, scheduling, server]  # catalog + server-resolved nextAvailable + the AI adapter (§5)
+  messaging:  [scheduling, server]              # eligibility = a shared appointment (queried via the shared Prisma client); auth in the routes
   sessions:   [scheduling, server]              # room bound to an appointment + VideoProvider (§10)
   payments:   [scheduling, server]              # payment bound to a booking + PaymentProvider (§10)
   server:     []                                # vendor adapters depend on no feature
