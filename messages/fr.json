@@ -9,6 +9,25 @@
     "tagline": "Trouvez le thérapeute qu'il vous faut, et consultez-le sur la plateforme.",
     "therapistsHeading": "Nos thérapeutes"
   },
+  "Cockpit": {
+    "nav": { "home": "Accueil", "calendar": "Agenda", "clients": "Clients", "messages": "Messages", "settings": "Réglages" },
+    "search": "Rechercher clients, séances…",
+    "greeting": "Bonne journée, {name} 👋",
+    "subtitle": "Je vous souhaite une journée calme et concentrée.",
+    "nextSession": "Prochaine séance",
+    "join": "Rejoindre la séance",
+    "noSessionsTitle": "Aucune séance prévue",
+    "noSessionsBody": "Vos prochaines séances apparaîtront ici.",
+    "scheduleTitle": "Agenda à venir",
+    "qaAvailability": "Ajouter des disponibilités",
+    "qaMessage": "Écrire à un client",
+    "qaProfile": "Modifier le profil",
+    "chats": "Discussions",
+    "composer": "Écrire un message…",
+    "accept": "Accepter",
+    "reject": "Refuser",
+    "noChats": "Aucune conversation"
+  },
   "Nav": {
     "menu": "Menu",
     "home": "Accueil",
@@ -19,7 +38,11 @@
     "dark": "Sombre",
     "light": "Clair",
     "signIn": "Se connecter",
-    "account": "Compte"
+    "account": "Compte",
+    "enterAs": "Entrer en tant que",
+    "entryPatient": "Patient",
+    "entryTherapist": "Thérapeute",
+    "entryAdmin": "Admin"
   },
   "LocaleSwitcher": {
     "label": "Changer de langue",

@@ -9,6 +9,25 @@
     "tagline": "מצאו את המטפל/ת המתאים/ה, ופִגשו אותו/ה בתוך הפלטפורמה.",
     "therapistsHeading": "המטפלים שלנו"
   },
+  "Cockpit": {
+    "nav": { "home": "בית", "calendar": "יומן", "clients": "מטופלים", "messages": "הודעות", "settings": "הגדרות" },
+    "search": "חיפוש מטופלים, פגישות…",
+    "greeting": "שיהיה לך יום טוב, {name} 👋",
+    "subtitle": "מאחלים לך יום רגוע וממוקד.",
+    "nextSession": "הפגישה הבאה",
+    "join": "הצטרפות לפגישה",
+    "noSessionsTitle": "אין פגישות מתוכננות",
+    "noSessionsBody": "הפגישות הקרובות שלך יופיעו כאן.",
+    "scheduleTitle": "לוח הפגישות",
+    "qaAvailability": "הוספת זמינות",
+    "qaMessage": "הודעה למטופל",
+    "qaProfile": "עריכת פרופיל",
+    "chats": "צ׳אטים",
+    "composer": "כתבו הודעה…",
+    "accept": "אישור",
+    "reject": "דחייה",
+    "noChats": "אין שיחות עדיין"
+  },
   "Nav": {
     "menu": "תפריט",
     "home": "בית",
@@ -19,7 +38,11 @@
     "dark": "כהה",
     "light": "בהיר",
     "signIn": "התחברות",
-    "account": "חשבון"
+    "account": "חשבון",
+    "enterAs": "כניסה בתור",
+    "entryPatient": "מטופל",
+    "entryTherapist": "מטפל",
+    "entryAdmin": "מנהל"
   },
   "LocaleSwitcher": {
     "label": "החלפת שפה",

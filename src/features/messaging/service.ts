@@ -52,13 +52,16 @@ export async function getThread(
   userId: string,
   otherId: string,
   sinceIso?: string,
+  markRead = true,
 ): Promise<ThreadResult> {
   if (otherId === userId) return { ok: false, error: "self" };
   if (!(await repo.shareAppointment(userId, otherId))) {
     return { ok: false, error: "not_allowed" };
   }
   const rows = await repo.listMessagesBetween(userId, otherId, sinceIso);
-  await repo.markThreadRead(userId, otherId);
+  // A read-only display (e.g. the cockpit's latest-thread preview) passes
+  // markRead=false so it doesn't silently clear the unread state.
+  if (markRead) await repo.markThreadRead(userId, otherId);
   return {
     ok: true,
     messages: rows.map((r) => ({

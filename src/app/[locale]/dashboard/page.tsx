@@ -1,138 +1,156 @@
 import { getTranslations } from "next-intl/server";
 import { DateTime } from "luxon";
 import { requireRole } from "@/features/accounts";
-import { getMyProfileForEdit, profileCompleteness } from "@/features/therapists";
+import { getMyProfileForEdit } from "@/features/therapists";
 import { getTherapistAppointments } from "@/features/scheduling";
-import { DashboardShell } from "@/components/dashboard-shell";
-import { Card, StatCard, PillLink } from "@/components/ui";
-import { AreaChart, Donut } from "@/components/charts";
-import { therapistNav } from "@/components/dashboard-nav";
+import { getThreads, getThread } from "@/features/messaging";
+import { CockpitShell, type CockpitNavItem } from "@/components/cockpit-shell";
+import { CockpitHero } from "@/components/cockpit/cockpit-hero";
+import { CockpitSchedule, type ScheduleDay, type SessionTone } from "@/components/cockpit/cockpit-schedule";
+import { CockpitGreeting, type QuickAction } from "@/components/cockpit/cockpit-greeting";
+import { CockpitMessages, type Conversation, type ThreadMessage } from "@/components/cockpit/cockpit-messages";
 
-// Times shown in Israel time for now (matches the rest of the app).
-const DISPLAY_TZ = "Asia/Jerusalem";
-// Module-level "now" helper so it isn't called inline during the component render.
-const startOfTodayTz = () => DateTime.now().setZone(DISPLAY_TZ).startOf("day");
-
-// Therapist cockpit home — live data, never cached.
+// The therapist cockpit — the warm "fitplan" home, wired to live data. Times are
+// shown in Israel time (matching the rest of the app). The `.theme-warm` wrapper
+// scopes the coral/cream palette to this surface only. Read-only messages for now
+// (real conversation list + latest thread); the live composer + accept/reject land
+// in the follow-up. Never cached.
+const TZ = "Asia/Jerusalem";
 export const dynamic = "force-dynamic";
 
-export default async function OverviewPage({
+const toneOf = (status: string): SessionTone =>
+  status === "CONFIRMED" ? "accent" : status === "PENDING" ? "accent2" : "muted";
+
+export default async function CockpitPage({
   params,
 }: {
   params: Promise<{ locale: string }>;
 }) {
   const { locale } = await params;
-  // Auth gate FIRST — therapist-only, unchanged boundary.
   const { id: userId } = await requireRole("THERAPIST", locale);
-  const t = await getTranslations("Dashboard");
+  const t = await getTranslations("Cockpit");
 
-  const profile = await getMyProfileForEdit(userId);
-  const completeness = profile ? profileCompleteness(profile) : null;
+  const [profile, upcoming, threads] = await Promise.all([
+    getMyProfileForEdit(userId),
+    getTherapistAppointments(userId),
+    getThreads(userId),
+  ]);
 
-  // All upcoming (non-cancelled) appointments for this therapist, soonest first.
-  const upcoming = await getTherapistAppointments(userId);
-  const pending = upcoming.filter((a) => a.status === "PENDING");
-  const next = upcoming.find((a) => a.status === "CONFIRMED") ?? null;
+  const name = (profile?.name ?? "").trim();
+  const firstName = name.split(/\s+/)[0] || name;
 
-  const fmt = (iso: string) =>
-    DateTime.fromISO(iso, { zone: "utc" })
-      .setZone(DISPLAY_TZ)
-      .setLocale(locale)
-      .toFormat("ccc d LLL HH:mm");
+  const at = (iso: string) => DateTime.fromISO(iso, { zone: "utc" }).setZone(TZ).setLocale(locale);
+  const next = upcoming.find((a) => a.status === "CONFIRMED") ?? upcoming[0] ?? null;
 
-  // Appointments per day for the next 7 days — feeds the area chart.
-  const start = startOfTodayTz();
-  const series = Array.from({ length: 7 }, (_, i) => {
-    const day = start.plus({ days: i });
-    const value = upcoming.filter((a) =>
-      DateTime.fromISO(a.startIso, { zone: "utc" }).setZone(DISPLAY_TZ).hasSame(day, "day"),
-    ).length;
-    return { label: day.setLocale(locale).toFormat("ccc"), value };
+  // Weekly schedule — the current Sun→Thu, appointments placed in their day.
+  const today = DateTime.now().setZone(TZ).startOf("day");
+  const weekStart = today.minus({ days: today.weekday % 7 }); // luxon: Mon=1..Sun=7 → Sunday start
+  const days: ScheduleDay[] = Array.from({ length: 5 }, (_, i) => {
+    const day = weekStart.plus({ days: i });
+    return {
+      key: day.toISODate() ?? String(i),
+      weekday: day.setLocale(locale).toFormat("ccc"),
+      dayNum: day.toFormat("d"),
+      today: day.hasSame(today, "day"),
+      events: upcoming
+        .filter((a) => at(a.startIso).hasSame(day, "day"))
+        .map((a) => ({
+          id: a.id,
+          title: a.clientName || "—",
+          timeLabel: at(a.startIso).toFormat("HH:mm"),
+          tone: toneOf(a.status),
+        })),
+    };
   });
-  const weekTotal = series.reduce((s, d) => s + d.value, 0);
-  const highlightIdx =
-    weekTotal > 0 ? series.reduce((mi, d, i, arr) => (d.value > arr[mi].value ? i : mi), 0) : -1;
+  const weekLabel = `${weekStart.setLocale(locale).toFormat("d LLL")} – ${weekStart.plus({ days: 4 }).setLocale(locale).toFormat("d LLL")}`;
 
-  const actions: string[] = [];
-  if (pending.length > 0) actions.push(t("actions.pendingBookings", { count: pending.length }));
-  if (completeness && !completeness.isComplete) actions.push(t("actions.incompleteProfile"));
+  // Conversations + the latest thread (read-only preview — markRead=false).
+  const conversations: Conversation[] = threads.map((th) => ({
+    id: th.otherId,
+    name: th.name,
+    lastMessage: th.lastMessage,
+    timeLabel: DateTime.fromISO(th.lastAtIso).setZone(TZ).setLocale(locale).toFormat("HH:mm"),
+    unread: th.unread,
+  }));
+  let activeName = "";
+  let messages: ThreadMessage[] = [];
+  if (conversations[0]) {
+    const thread = await getThread(userId, conversations[0].id, undefined, false);
+    if (thread.ok) {
+      activeName = conversations[0].name;
+      messages = thread.messages.map((m) => ({
+        id: m.id,
+        fromMe: m.fromMe,
+        body: m.body,
+        timeLabel: DateTime.fromISO(m.createdAtIso).setZone(TZ).setLocale(locale).toFormat("HH:mm"),
+      }));
+    }
+  }
+
+  const unreadTotal = threads.reduce((s, th) => s + th.unread, 0);
+  const nav: CockpitNavItem[] = [
+    { key: "home", label: t("nav.home"), href: "/dashboard", icon: "home" },
+    { key: "calendar", label: t("nav.calendar"), href: "/dashboard/calendar", icon: "calendar" },
+    { key: "clients", label: t("nav.clients"), href: "/dashboard/clients", icon: "clients" },
+    { key: "messages", label: t("nav.messages"), href: "/dashboard/messages", icon: "messages", badge: unreadTotal || undefined },
+    { key: "settings", label: t("nav.settings"), href: "/dashboard/settings", icon: "settings" },
+  ];
+  const actions: QuickAction[] = [
+    { key: "slot", label: t("qaAvailability"), href: "/dashboard/profile", icon: "slot" },
+    { key: "msg", label: t("qaMessage"), href: "/dashboard/messages", icon: "message" },
+    { key: "profile", label: t("qaProfile"), href: "/dashboard/profile", icon: "profile" },
+  ];
 
   return (
-    <DashboardShell
-      nav={therapistNav}
-      activeKey="overview"
-      title={t("overview.title")}
-      user={{ name: profile?.name ?? "" }}
-      locale={locale}
-    >
-      <div className="flex flex-col gap-5">
-        <div className="grid grid-cols-2 gap-4 lg:grid-cols-3">
-          <StatCard label={t("stats.upcoming")} value={upcoming.length} hint={t("stats.upcomingHint")} />
-          <StatCard label={t("stats.requests")} value={pending.length} hint={t("stats.requestsHint")} />
-          <StatCard label={t("overview.thisWeek")} value={weekTotal} hint={t("overview.israelTime")} />
-        </div>
-
-        <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
-          <div className="flex flex-col gap-5 lg:col-span-2">
-            <Card className="flex flex-col gap-4">
-              <h2 className="text-lg font-bold text-ink">{t("overview.nextSession")}</h2>
-              {next ? (
-                <div className="flex flex-wrap items-center justify-between gap-4">
-                  <div className="flex items-center gap-3">
-                    <span className="flex h-11 w-11 items-center justify-center rounded-full bg-accent-soft font-heading text-sm font-semibold text-accent-soft-ink">
-                      {(next.clientName || "?").charAt(0).toUpperCase()}
-                    </span>
-                    <div className="flex flex-col">
-                      <span className="font-bold text-ink">{next.clientName || t("overview.aClient")}</span>
-                      <span className="text-sm text-ink-2">{fmt(next.startIso)}</span>
-                    </div>
-                  </div>
-                  {/* Reuses the existing owner-scoped + time-gated join route. */}
-                  <PillLink variant="accent" href={`/appointments/${next.id}/session`}>
-                    {t("overview.join")}
-                  </PillLink>
-                </div>
-              ) : (
-                <p className="text-sm text-ink-2">{t("overview.noNextSession")}</p>
-              )}
-            </Card>
-
-            <Card className="flex flex-col gap-4">
-              <div className="flex items-center justify-between">
-                <h2 className="text-lg font-bold text-ink">{t("overview.thisWeek")}</h2>
-                <span className="text-sm text-ink-3">{t("overview.israelTime")}</span>
-              </div>
-              <AreaChart data={series} highlightIndex={highlightIdx} title={t("overview.thisWeek")} />
-            </Card>
+    <div className="theme-warm">
+      <CockpitShell
+        nav={nav}
+        activeKey="home"
+        user={{ name }}
+        searchPlaceholder={t("search")}
+        notifications={unreadTotal}
+      >
+        <div className="grid gap-5 lg:grid-cols-[1.45fr_1fr]">
+          <div className="flex flex-col gap-5">
+            <CockpitHero
+              eyebrow={t("nextSession")}
+              joinLabel={t("join")}
+              emptyTitle={t("noSessionsTitle")}
+              emptyBody={t("noSessionsBody")}
+              session={
+                next
+                  ? {
+                      clientName: next.clientName || "—",
+                      dateLabel: at(next.startIso).toFormat("ccc, d LLL"),
+                      timeLabel: at(next.startIso).toFormat("HH:mm"),
+                      joinHref: `/appointments/${next.id}/session`,
+                    }
+                  : undefined
+              }
+            />
+            <CockpitSchedule title={t("scheduleTitle")} weekLabel={weekLabel} emptyLabel="" days={days} />
           </div>
 
-          <Card className="flex flex-col gap-4">
-            <h2 className="text-lg font-bold text-ink">{t("stats.completeness")}</h2>
-            <div className="px-2">
-              <Donut
-                value={completeness?.percent ?? 0}
-                title={completeness ? `${completeness.percent}%` : "—"}
-              />
-            </div>
-            <div className="flex flex-col gap-2">
-              <p className="text-sm font-medium text-ink">{t("overview.pendingActions")}</p>
-              {actions.length > 0 ? (
-                actions.map((a) => (
-                  <div key={a} className="flex items-center gap-2 rounded-xl bg-surface-2 px-3 py-2 text-sm text-ink">
-                    <span className="h-2 w-2 shrink-0 rounded-full bg-accent" aria-hidden />
-                    {a}
-                  </div>
-                ))
-              ) : (
-                <p className="text-sm text-ink-2">{t("overview.allClear")}</p>
-              )}
-            </div>
-            <PillLink variant="accent" href="/dashboard/profile" className="justify-center py-3">
-              {t("nav.profile")}
-            </PillLink>
-          </Card>
+          <div className="flex flex-col gap-5">
+            <CockpitGreeting
+              heading={t("greeting", { name: firstName })}
+              subtitle={t("subtitle")}
+              actions={actions}
+            />
+            <CockpitMessages
+              title={t("chats")}
+              conversations={conversations}
+              activeName={activeName}
+              messages={messages}
+              composerPlaceholder={t("composer")}
+              acceptLabel={t("accept")}
+              rejectLabel={t("reject")}
+              emptyLabel={t("noChats")}
+              readOnly
+            />
+          </div>
         </div>
-      </div>
-    </DashboardShell>
+      </CockpitShell>
+    </div>
   );
 }

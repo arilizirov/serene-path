@@ -57,6 +57,60 @@
   --shadow: 0 1px 3px rgba(0, 0, 0, 0.3), 0 10px 30px rgba(0, 0, 0, 0.3);
 }
 
+/* ------------------------------------------------------------------ *
+ * Warm theme — SCOPED. Applied only on the therapist cockpit (a
+ * `.theme-warm` wrapper); the rest of the site keeps the blue/green/navy
+ * homepage palette. Overrides the same base vars, so every token-driven
+ * utility (bg-accent, text-ink…) and the SVG charts (var(--color-*))
+ * re-theme automatically — no per-component edits. Coral accent, soft
+ * cream field, warm-espresso ink — modelled on the "fitplan" reference.
+ * ------------------------------------------------------------------ */
+.theme-warm {
+  --bg: #fbf6f1;
+  --surface: #ffffff;
+  --surface-2: #f6eee6;
+  --border: #efe2d6;
+  --border-2: #f6eee6;
+  --ink: #2e2722;
+  --ink-2: #6f615a;
+  --ink-3: #a99e96;
+  --accent: #f2693c;
+  --accent-ink: #ffffff;
+  --accent-soft: #fde3d6;
+  --accent-soft-ink: #c2491f;
+  --accent-2: #ef9d3a;
+  --accent-2-soft: #fbe9cf;
+  --accent-3: #f2693c;
+  --accent-3-ink: #ffffff;
+  --accent-3-soft: #fde3d6;
+  --accent-3-soft-ink: #c2491f;
+  --danger: #c0584e;
+  --shadow: 0 1px 3px rgba(80, 50, 30, 0.06), 0 10px 30px rgba(80, 50, 30, 0.08);
+}
+
+.dark.theme-warm {
+  --bg: #1a130f;
+  --surface: #241b16;
+  --surface-2: #2f241c;
+  --border: #3a2c22;
+  --border-2: #2f241c;
+  --ink: #f6ece3;
+  --ink-2: #c6b5a8;
+  --ink-3: #8b7b6e;
+  --accent: #ff8a5c;
+  --accent-ink: #2a1810;
+  --accent-soft: #3a241a;
+  --accent-soft-ink: #ff9d73;
+  --accent-2: #f4b65e;
+  --accent-2-soft: #3a2c18;
+  --accent-3: #ff8a5c;
+  --accent-3-ink: #2a1810;
+  --accent-3-soft: #3a241a;
+  --accent-3-soft-ink: #ff9d73;
+  --danger: #d9655a;
+  --shadow: 0 1px 3px rgba(0, 0, 0, 0.3), 0 10px 30px rgba(0, 0, 0, 0.35);
+}
+
 @theme inline {
   /* --- Theraper semantic colors --- */
   --color-bg: var(--bg);
