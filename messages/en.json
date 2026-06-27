@@ -9,6 +9,25 @@
     "tagline": "Find the right therapist, and meet them on-platform.",
     "therapistsHeading": "Our therapists"
   },
+  "Cockpit": {
+    "nav": { "home": "Home", "calendar": "Calendar", "clients": "Clients", "messages": "Messages", "settings": "Settings" },
+    "search": "Search clients, sessions…",
+    "greeting": "Have a good day, {name} 👋",
+    "subtitle": "Wishing you a calm, focused day ahead.",
+    "nextSession": "Next session",
+    "join": "Join session",
+    "noSessionsTitle": "No sessions booked",
+    "noSessionsBody": "Your upcoming sessions will appear here.",
+    "scheduleTitle": "Upcoming Schedule",
+    "qaAvailability": "Add availability",
+    "qaMessage": "Message a client",
+    "qaProfile": "Edit profile",
+    "chats": "Chats",
+    "composer": "Enter text…",
+    "accept": "Accept",
+    "reject": "Reject",
+    "noChats": "No conversations yet"
+  },
   "Nav": {
     "menu": "Menu",
     "home": "Home",
@@ -19,7 +38,11 @@
     "dark": "Dark",
     "light": "Light",
     "signIn": "Sign in",
-    "account": "Account"
+    "account": "Account",
+    "enterAs": "Enter as",
+    "entryPatient": "Patient",
+    "entryTherapist": "Therapist",
+    "entryAdmin": "Admin"
   },
   "LocaleSwitcher": {
     "label": "Change language",
