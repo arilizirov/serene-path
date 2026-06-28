@@ -66,15 +66,31 @@ export default async function AdminDashboardPage({
   return (
     <AdminShell activeKey="dashboard" notifications={signupStats.recent}>
       <div className="flex flex-col gap-4">
-        {/* Greeting */}
-        <div>
-          <h1 className="font-heading text-2xl font-bold tracking-[-0.01em] text-ink">
-            Have a good day, Admin 👋
-          </h1>
-          <p className="text-sm text-ink-2">
-            {userCount} members · {therapists} therapists · {conversations} conversations ·{" "}
-            <span className="font-semibold text-accent">{signupStats.recent} new</span> this month
-          </p>
+        {/* Premium hero */}
+        <div className="relative isolate overflow-hidden rounded-3xl shadow-card">
+          <AdminHeroArt />
+          <div className="relative flex flex-wrap items-center justify-between gap-4 p-6">
+            <div>
+              <p className="font-mono text-[11px] uppercase tracking-[0.14em] text-accent-soft-ink">
+                Admin overview
+              </p>
+              <h1 className="mt-1 font-heading text-[28px] font-bold leading-tight tracking-[-0.01em] text-ink">
+                Have a good day, Admin 👋
+              </h1>
+              <p className="mt-1.5 text-sm text-ink-2">
+                {userCount} members · {therapists} therapists · {conversations} conversations
+              </p>
+            </div>
+            <div className="flex items-center gap-3">
+              <div className="rounded-2xl bg-surface/85 px-5 py-3 text-center shadow-card backdrop-blur">
+                <p className="text-2xl font-bold text-accent">+{signupStats.recent}</p>
+                <p className="text-[11px] text-ink-2">new this month</p>
+              </div>
+              <PillLink href={`/${locale}/admin/stats`} variant="accent" className="py-2.5">
+                View statistics
+              </PillLink>
+            </div>
+          </div>
         </div>
 
         {/* 10 hot actions */}
@@ -177,6 +193,23 @@ function UsagePane({
       <p className={`text-lg font-bold ${highlight ? "text-accent" : "text-ink"}`}>{usd(w.estCostUsd)}</p>
       <p className="text-[11px] text-ink-3">{compact(w.totalTokens)} tok · {w.calls}</p>
     </div>
+  );
+}
+
+function AdminHeroArt() {
+  return (
+    <svg aria-hidden className="absolute inset-0 -z-10 h-full w-full" viewBox="0 0 1200 200" preserveAspectRatio="xMidYMid slice">
+      <defs>
+        <linearGradient id="adminHero" x1="0" y1="0" x2="1" y2="0.7">
+          <stop offset="0" stopColor="#ffc99f" />
+          <stop offset="0.55" stopColor="#ffb184" />
+          <stop offset="1" stopColor="#ff9d68" />
+        </linearGradient>
+      </defs>
+      <rect width="1200" height="200" fill="url(#adminHero)" />
+      <circle cx="1080" cy="30" r="82" fill="#ffffff" opacity="0.4" />
+      <circle cx="940" cy="205" r="150" fill="#ff8f5e" opacity="0.18" />
+    </svg>
   );
 }
 

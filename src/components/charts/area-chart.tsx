@@ -52,6 +52,12 @@ export function AreaChart({
       preserveAspectRatio="xMidYMid meet"
     >
       <title>{title}</title>
+      <defs>
+        <linearGradient id="spArea" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="var(--color-accent)" stopOpacity="0.32" />
+          <stop offset="100%" stopColor="var(--color-accent)" stopOpacity="0.02" />
+        </linearGradient>
+      </defs>
       {/* y gridlines + labels — kept LTR-anchored (admin/report axes read L→R). */}
       <g>
         {yRows.map((v) => (
@@ -81,7 +87,7 @@ export function AreaChart({
         ))}
       </g>
       <g className="rtl:-scale-x-100 rtl:[transform-origin:center]">
-        <path d={areaPath} fill="var(--color-accent-soft)" opacity={0.7} />
+        <path d={areaPath} fill="url(#spArea)" />
         <path
           d={linePath}
           fill="none"
