@@ -86,6 +86,21 @@
   --accent-3-soft-ink: #c2491f;
   --danger: #c0584e;
   --shadow: 0 1px 3px rgba(80, 50, 30, 0.06), 0 10px 30px rgba(80, 50, 30, 0.08);
+  /* The hand-rolled SVG charts + a few inline styles reference the @theme
+     `--color-*` vars directly. `@theme inline` resolves those at :root, so without
+     re-pointing them here they'd stay blue/green on a warm surface. Re-point at the
+     warm base vars so charts/dots theme correctly. */
+  --color-accent: var(--accent);
+  --color-accent-soft: var(--accent-soft);
+  --color-accent-soft-ink: var(--accent-soft-ink);
+  --color-accent-2: var(--accent-2);
+  --color-accent-2-soft: var(--accent-2-soft);
+  --color-ink: var(--ink);
+  --color-ink-2: var(--ink-2);
+  --color-ink-3: var(--ink-3);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-border: var(--border);
 }
 
 .dark.theme-warm {
@@ -109,6 +124,17 @@
   --accent-3-soft-ink: #ff9d73;
   --danger: #d9655a;
   --shadow: 0 1px 3px rgba(0, 0, 0, 0.3), 0 10px 30px rgba(0, 0, 0, 0.35);
+  --color-accent: var(--accent);
+  --color-accent-soft: var(--accent-soft);
+  --color-accent-soft-ink: var(--accent-soft-ink);
+  --color-accent-2: var(--accent-2);
+  --color-accent-2-soft: var(--accent-2-soft);
+  --color-ink: var(--ink);
+  --color-ink-2: var(--ink-2);
+  --color-ink-3: var(--ink-3);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-border: var(--border);
 }
 
 @theme inline {
