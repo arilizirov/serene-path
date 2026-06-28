@@ -7,7 +7,17 @@ import { Link } from "@/i18n/navigation";
 // it re-themes via the `.theme-warm` wrapper and stays i18n-agnostic (the page
 // passes resolved labels). RTL: every offset is logical, icons are symmetric.
 
-export type CockpitIcon = "home" | "calendar" | "clients" | "messages" | "settings";
+export type CockpitIcon =
+  | "home"
+  | "calendar"
+  | "clients"
+  | "messages"
+  | "settings"
+  | "grid"
+  | "appointments"
+  | "users"
+  | "stats"
+  | "costs";
 
 export type CockpitNavItem = {
   key: string;
@@ -172,6 +182,45 @@ function NavGlyph({ icon }: { icon: CockpitIcon }) {
         <Glyph>
           <circle cx="12" cy="12" r="3" />
           <path d="M19.4 13a7.6 7.6 0 0 0 0-2l2-1.5-2-3.4-2.4 1a7.6 7.6 0 0 0-1.7-1L15 3H9l-.3 2.6a7.6 7.6 0 0 0-1.7 1l-2.4-1-2 3.4L2.6 11a7.6 7.6 0 0 0 0 2l-2 1.5 2 3.4 2.4-1a7.6 7.6 0 0 0 1.7 1L9 21h6l.3-2.6a7.6 7.6 0 0 0 1.7-1l2.4 1 2-3.4z" />
+        </Glyph>
+      );
+    case "grid":
+      return (
+        <Glyph>
+          <rect x="3" y="3" width="7" height="7" rx="1.5" />
+          <rect x="14" y="3" width="7" height="7" rx="1.5" />
+          <rect x="3" y="14" width="7" height="7" rx="1.5" />
+          <rect x="14" y="14" width="7" height="7" rx="1.5" />
+        </Glyph>
+      );
+    case "appointments":
+      return (
+        <Glyph>
+          <rect x="3" y="4" width="18" height="17" rx="2" />
+          <path d="M3 9h18M8 2v4M16 2v4M9 14l2 2 4-4" />
+        </Glyph>
+      );
+    case "users":
+      return (
+        <Glyph>
+          <circle cx="12" cy="8" r="4" />
+          <path d="M4 21c0-4 3.6-7 8-7s8 3 8 7" />
+        </Glyph>
+      );
+    case "stats":
+      return (
+        <Glyph>
+          <path d="M3 3v18h18" />
+          <rect x="7" y="11" width="3" height="6" rx="0.5" />
+          <rect x="12" y="7" width="3" height="10" rx="0.5" />
+          <rect x="17" y="13" width="3" height="4" rx="0.5" />
+        </Glyph>
+      );
+    case "costs":
+      return (
+        <Glyph>
+          <circle cx="12" cy="12" r="9" />
+          <path d="M12 7v10M9.5 9.5c0-1.1 1.1-2 2.5-2s2.5.9 2.5 2-1.1 2-2.5 2-2.5.9-2.5 2 1.1 2 2.5 2 2.5-.9 2.5-2" />
         </Glyph>
       );
   }
