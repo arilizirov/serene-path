@@ -1,7 +1,6 @@
 import { getTranslations } from "next-intl/server";
 import { TherapistForm } from "@/features/therapists";
-import { DashboardShell } from "@/components/dashboard-shell";
-import { adminNav } from "@/components/dashboard-nav";
+import { AdminShell, AdminPageHead } from "@/components/admin-shell";
 
 export default async function NewTherapistPage({
   params,
@@ -11,16 +10,11 @@ export default async function NewTherapistPage({
   const { locale } = await params;
   const t = await getTranslations("Admin");
   return (
-    <DashboardShell
-      nav={adminNav}
-      activeKey="therapists"
-      title={t("title.therapistNew")}
-      user={{ name: t("principal") }}
-      locale={locale}
-    >
+    <AdminShell activeKey="therapists">
+      <AdminPageHead title={t("title.therapistNew")} />
       <div className="mx-auto flex max-w-2xl flex-col gap-6">
         <TherapistForm locale={locale} />
       </div>
-    </DashboardShell>
+    </AdminShell>
   );
 }

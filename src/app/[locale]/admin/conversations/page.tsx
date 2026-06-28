@@ -1,7 +1,6 @@
 import { getTranslations } from "next-intl/server";
 import { listFinishedSessions } from "@/features/intake";
-import { DashboardShell } from "@/components/dashboard-shell";
-import { adminNav } from "@/components/dashboard-nav";
+import { AdminShell, AdminPageHead } from "@/components/admin-shell";
 import { ConversationsTable } from "./conversations-table";
 import { PurgeForm } from "./purge-form";
 
@@ -33,23 +32,17 @@ export default async function AdminConversationsPage({
   const error = one(sp.error);
   const rows = await listFinishedSessions(); // already newest-first
   return (
-    <DashboardShell
-      nav={adminNav}
-      activeKey="conversations"
-      title={t("title.conversations")}
-      user={{ name: t("principal") }}
-      locale={locale}
-      headerRight={
-        rows.length > 0 ? (
+    <AdminShell activeKey="conversations">
+      <AdminPageHead title={t("title.conversations")}>
+        {rows.length > 0 ? (
           <a
             href={`/${locale}/admin/conversations/download-all`}
             className="rounded-full bg-primary px-4 py-2 text-sm font-medium text-on-primary"
           >
             Download all (.md)
           </a>
-        ) : undefined
-      }
-    >
+        ) : undefined}
+      </AdminPageHead>
       <div className="flex flex-col gap-6">
       {purged !== undefined && (
         <p className="rounded-lg bg-surface-container px-4 py-2 text-sm text-on-surface">
@@ -90,6 +83,6 @@ export default async function AdminConversationsPage({
         />
       )}
       </div>
-    </DashboardShell>
+    </AdminShell>
   );
 }

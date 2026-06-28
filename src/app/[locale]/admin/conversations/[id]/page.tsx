@@ -1,8 +1,7 @@
 import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { getFullSession } from "@/features/intake";
-import { DashboardShell } from "@/components/dashboard-shell";
-import { adminNav } from "@/components/dashboard-nav";
+import { AdminShell, AdminPageHead } from "@/components/admin-shell";
 
 // Always reflect current DB state (transcripts arrive continuously) and avoid
 // coupling `next build` to a live database.
@@ -23,13 +22,8 @@ export default async function ConversationViewPage({
   if (!session) notFound();
 
   return (
-    <DashboardShell
-      nav={adminNav}
-      activeKey="conversations"
-      title={t("title.conversation")}
-      user={{ name: t("principal") }}
-      locale={locale}
-    >
+    <AdminShell activeKey="conversations">
+      <AdminPageHead title={t("title.conversation")} />
       <div className="flex flex-col gap-6">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <a
@@ -114,6 +108,6 @@ export default async function ConversationViewPage({
         )}
       </section>
       </div>
-    </DashboardShell>
+    </AdminShell>
   );
 }
