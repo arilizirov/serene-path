@@ -1,34 +1,34 @@
+import type { ReactNode } from "react";
+import { Link } from "@/i18n/navigation";
 import { countTherapists } from "@/features/therapists";
 import { countFinishedSessions } from "@/features/intake";
 import { countAllAppointments } from "@/features/scheduling";
 import { getSignupStats, getSignupsPerDay } from "@/features/accounts";
 import { getCostStats } from "@/server/ai";
-import { CockpitShell, type CockpitNavItem } from "@/components/cockpit-shell";
-import { CockpitGreeting, type QuickAction } from "@/components/cockpit/cockpit-greeting";
-import { Card, StatCard, PillLink } from "@/components/ui";
+import { AdminShell } from "@/components/admin-shell";
+import { Card, PillLink } from "@/components/ui";
 import { AreaChart, Donut } from "@/components/charts";
 
-// Admin landing — the warm "fitplan" cockpit treatment (top nav + gradient hero +
-// warm cards) over live admin reads. Operator-facing English; requireRole("ADMIN")
-// in the /admin layout; warm palette scoped via `.theme-warm`. Never cached.
+// Admin landing — warm "fitplan" treatment, COMPACT so it fits one viewport, with
+// 10 hot-action buttons up top. All colour comes from the warm theme tokens. Live
+// admin reads; requireRole("ADMIN") in the layout; never cached.
 export const dynamic = "force-dynamic";
 
 const usd = (n: number) => `$${n.toFixed(2)}`;
 const compact = (n: number) => (n >= 1000 ? `${(n / 1000).toFixed(1)}k` : String(n));
 
-const NAV: CockpitNavItem[] = [
-  { key: "dashboard", label: "Dashboard", href: "/admin", icon: "grid" },
-  { key: "therapists", label: "Therapists", href: "/admin/therapists", icon: "clients" },
-  { key: "appointments", label: "Appointments", href: "/admin/appointments", icon: "appointments" },
-  { key: "conversations", label: "Conversations", href: "/admin/conversations", icon: "messages" },
-  { key: "users", label: "Users", href: "/admin/users", icon: "users" },
-  { key: "stats", label: "Stats", href: "/admin/stats", icon: "stats" },
-];
-
-const ACTIONS: QuickAction[] = [
-  { key: "therapists", label: "Therapists", href: "/admin/therapists", icon: "profile" },
-  { key: "conversations", label: "Conversations", href: "/admin/conversations", icon: "message" },
-  { key: "stats", label: "Statistics", href: "/admin/stats", icon: "slot" },
+type Hot = { label: string; href: string; icon: string };
+const HOT: Hot[] = [
+  { label: "Add therapist", href: "/admin/therapists/new", icon: "add" },
+  { label: "Therapists", href: "/admin/therapists", icon: "clients" },
+  { label: "Appointments", href: "/admin/appointments", icon: "appointments" },
+  { label: "Schedule", href: "/admin/schedule", icon: "calendar" },
+  { label: "Conversations", href: "/admin/conversations", icon: "messages" },
+  { label: "Users", href: "/admin/users", icon: "users" },
+  { label: "Add admin", href: "/admin/users", icon: "shield" },
+  { label: "Statistics", href: "/admin/stats", icon: "stats" },
+  { label: "API costs", href: "/admin/costs", icon: "costs" },
+  { label: "Export data", href: "/admin/conversations", icon: "export" },
 ];
 
 export default async function AdminDashboardPage({
@@ -51,11 +51,10 @@ export default async function AdminDashboardPage({
   const therapistUsers = signupStats.byRole.THERAPIST ?? 0;
   const admins = signupStats.byRole.ADMIN ?? 0;
   const userCount = clients + therapistUsers + admins;
-
   const signupsTotal = signupsPerDay.reduce((s, d) => s + d.value, 0);
   const peakIdx =
     signupsTotal > 0
-      ? signupsPerDay.reduce((mi, d, i, arr) => (d.value > arr[mi].value ? i : mi), 0)
+      ? signupsPerDay.reduce((mi, d, i, a) => (d.value > a[mi].value ? i : mi), 0)
       : -1;
 
   const roleRows: { label: string; n: number; color: string }[] = [
@@ -65,153 +64,101 @@ export default async function AdminDashboardPage({
   ];
 
   return (
-    <div className="theme-warm">
-      <CockpitShell
-        nav={NAV}
-        activeKey="dashboard"
-        user={{ name: "Admin" }}
-        searchPlaceholder="Search therapists, users…"
-        notifications={signupStats.recent}
-      >
-        <div className="grid gap-5 lg:grid-cols-[1.45fr_1fr]">
-          {/* Main column */}
-          <div className="flex flex-col gap-5">
-            {/* Highlight hero — recent growth, warm gradient + calm art. */}
-            <div className="relative isolate flex min-h-[210px] flex-col justify-end overflow-hidden rounded-3xl p-6 shadow-card">
-              <HeroArt />
-              <div className="relative z-10 max-w-sm rounded-2xl bg-surface/95 p-5 shadow-card backdrop-blur">
-                <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-accent-soft-ink">
-                  Last {signupStats.recentDays} days
-                </p>
-                <h2 className="mt-1 flex items-baseline gap-2 font-heading text-3xl font-bold tracking-[-0.01em] text-ink">
-                  {signupStats.recent}
-                  <span className="text-sm font-semibold text-accent-2">new members</span>
-                </h2>
-                <p className="mt-1 text-sm text-ink-2">
-                  {userCount} members · {therapists} therapists · {conversations} conversations
-                </p>
-                <PillLink
-                  href={`/${locale}/admin/stats`}
-                  variant="accent"
-                  className="mt-4 py-2.5"
-                >
-                  View statistics
-                </PillLink>
-              </div>
-            </div>
-
-            {/* Headline stats */}
-            <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-              <StatCard label="Therapists" value={therapists} />
-              <StatCard label="Conversations" value={conversations} />
-              <StatCard label="Appointments" value={appointments} />
-              <StatCard
-                label="Users"
-                value={userCount}
-                delta={signupStats.recent > 0 ? { value: `+${signupStats.recent}`, dir: "up" } : undefined}
-              />
-            </div>
-
-            {/* Signups report */}
-            <Card className="flex flex-col gap-5">
-              <div className="flex items-center justify-between">
-                <h2 className="text-lg font-bold text-ink">Signups</h2>
-                <span className="text-sm text-ink-3">last 14 days</span>
-              </div>
-              <AreaChart
-                data={signupsPerDay}
-                highlightIndex={peakIdx}
-                title="New signups per day (last 14 days)"
-              />
-              <div className="flex items-center justify-between border-t border-border pt-4 text-sm">
-                <span className="text-ink-3">New accounts this window</span>
-                <span className="font-semibold text-ink">{signupsTotal}</span>
-              </div>
-            </Card>
-
-            {/* API usage */}
-            <Card className="flex flex-col gap-5 p-0">
-              <div className="flex items-center justify-between px-6 pt-6">
-                <h2 className="text-lg font-bold text-ink">API usage</h2>
-                <span className="text-sm text-ink-3">estimated · OpenAI</span>
-              </div>
-              <div className="grid grid-cols-3 gap-4 px-6">
-                <UsagePane label="Today" w={costStats.today} highlight />
-                <UsagePane label="Last 7 days" w={costStats.last7Days} bordered />
-                <UsagePane label="All-time" w={costStats.allTime} bordered />
-              </div>
-              <PillLink
-                href={`/${locale}/admin/costs`}
-                variant="accent"
-                className="mx-6 mb-6 justify-center py-3"
-              >
-                View cost details
-              </PillLink>
-            </Card>
-          </div>
-
-          {/* Right rail */}
-          <div className="flex flex-col gap-5">
-            <CockpitGreeting
-              heading="Have a good day, Admin 👋"
-              subtitle="Here's your platform at a glance — members, conversations, and costs."
-              actions={ACTIONS}
-            />
-            <Card className="flex flex-col gap-5">
-              <h2 className="text-lg font-bold text-ink">Community</h2>
-              <div className="px-2">
-                <Donut
-                  value={clients}
-                  max={Math.max(1, userCount)}
-                  title={`${clients} of ${userCount} users are clients`}
-                  subLabel="are clients"
-                />
-              </div>
-              <div className="rounded-xl bg-surface-2 p-4">
-                <p className="text-sm text-ink-3">Recent signups</p>
-                <p className="text-2xl font-bold text-ink">{signupStats.recent}</p>
-                <p className="text-xs text-ink-3">in the last {signupStats.recentDays} days</p>
-              </div>
-              <div className="flex flex-col gap-2.5">
-                <p className="text-sm font-medium text-ink">By role</p>
-                {roleRows.map((r) => (
-                  <div key={r.label} className="flex items-center gap-2 text-sm">
-                    <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: r.color }} />
-                    <span className="flex-1 text-ink-2">{r.label}</span>
-                    <span className="font-medium text-ink">{r.n}</span>
-                  </div>
-                ))}
-              </div>
-              <PillLink href={`/${locale}/admin/users`} variant="accent" className="justify-center py-3">
-                Manage users
-              </PillLink>
-            </Card>
-          </div>
+    <AdminShell activeKey="dashboard" notifications={signupStats.recent}>
+      <div className="flex flex-col gap-4">
+        {/* Greeting */}
+        <div>
+          <h1 className="font-heading text-2xl font-bold tracking-[-0.01em] text-ink">
+            Have a good day, Admin 👋
+          </h1>
+          <p className="text-sm text-ink-2">
+            {userCount} members · {therapists} therapists · {conversations} conversations ·{" "}
+            <span className="font-semibold text-accent">{signupStats.recent} new</span> this month
+          </p>
         </div>
-      </CockpitShell>
-    </div>
+
+        {/* 10 hot actions */}
+        <div className="grid grid-cols-3 gap-2.5 sm:grid-cols-5">
+          {HOT.map((a) => (
+            <Link
+              key={a.label}
+              href={a.href}
+              className="flex flex-col items-center justify-center gap-2 rounded-2xl border border-border bg-surface p-3 text-center shadow-card transition hover:border-accent hover:bg-accent-soft"
+            >
+              <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-accent-soft text-accent-soft-ink">
+                <HotIcon name={a.icon} />
+              </span>
+              <span className="text-xs font-medium leading-tight text-ink">{a.label}</span>
+            </Link>
+          ))}
+        </div>
+
+        {/* Stats + charts */}
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+          <div className="flex flex-col gap-4 lg:col-span-2">
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+              <StatTile label="Therapists" value={therapists} />
+              <StatTile label="Conversations" value={conversations} />
+              <StatTile label="Appointments" value={appointments} />
+              <StatTile label="Users" value={userCount} accent={`+${signupStats.recent}`} />
+            </div>
+
+            <Card className="flex flex-col gap-3 p-4">
+              <div className="flex items-center justify-between">
+                <h2 className="text-base font-bold text-ink">Signups</h2>
+                <span className="text-xs text-ink-3">last 14 days · {signupsTotal} total</span>
+              </div>
+              <div className="h-40 [&>svg]:!h-full [&>svg]:!w-full">
+                <AreaChart data={signupsPerDay} highlightIndex={peakIdx} title="New signups per day" />
+              </div>
+            </Card>
+
+            <Card className="flex flex-wrap items-center justify-between gap-3 p-4">
+              <div className="flex items-center gap-5">
+                <UsagePane label="Today" w={costStats.today} highlight />
+                <UsagePane label="7 days" w={costStats.last7Days} />
+                <UsagePane label="All-time" w={costStats.allTime} />
+              </div>
+              <PillLink href={`/${locale}/admin/costs`} variant="accent" className="py-2 text-xs">
+                Cost details
+              </PillLink>
+            </Card>
+          </div>
+
+          {/* Community rail */}
+          <Card className="flex flex-col gap-3 p-4">
+            <h2 className="text-base font-bold text-ink">Community</h2>
+            <div className="mx-auto max-w-[160px]">
+              <Donut value={clients} max={Math.max(1, userCount)} title="clients share" subLabel="are clients" />
+            </div>
+            <div className="flex flex-col gap-2">
+              {roleRows.map((r) => (
+                <div key={r.label} className="flex items-center gap-2 text-sm">
+                  <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: r.color }} />
+                  <span className="flex-1 text-ink-2">{r.label}</span>
+                  <span className="font-semibold text-ink">{r.n}</span>
+                </div>
+              ))}
+            </div>
+            <PillLink href={`/${locale}/admin/users`} variant="accent" className="justify-center py-2.5">
+              Manage users
+            </PillLink>
+          </Card>
+        </div>
+      </div>
+    </AdminShell>
   );
 }
 
-function HeroArt() {
+function StatTile({ label, value, accent }: { label: string; value: number; accent?: string }) {
   return (
-    <svg
-      aria-hidden
-      className="absolute inset-0 -z-10 h-full w-full"
-      viewBox="0 0 600 220"
-      preserveAspectRatio="xMidYMid slice"
-    >
-      <defs>
-        <linearGradient id="adminSky" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stopColor="#ffd9b0" />
-          <stop offset="0.6" stopColor="#ffb38a" />
-          <stop offset="1" stopColor="#f59f7e" />
-        </linearGradient>
-      </defs>
-      <rect width="600" height="220" fill="url(#adminSky)" />
-      <circle cx="470" cy="70" r="46" fill="#fff1dd" opacity="0.85" />
-      <path d="M0 178 Q160 140 330 172 T600 162 V220 H0 Z" fill="#ec7a4c" opacity="0.9" />
-    </svg>
+    <div className="rounded-2xl border border-border bg-surface p-4 shadow-card">
+      <p className="text-xs text-ink-2">{label}</p>
+      <p className="mt-1 flex items-baseline gap-1.5">
+        <span className="text-2xl font-bold tracking-tight text-ink">{value}</span>
+        {accent ? <span className="text-xs font-semibold text-accent">{accent}</span> : null}
+      </p>
+    </div>
   );
 }
 
@@ -219,22 +166,36 @@ function UsagePane({
   label,
   w,
   highlight,
-  bordered,
 }: {
   label: string;
   w: { estCostUsd: number; totalTokens: number; calls: number };
   highlight?: boolean;
-  bordered?: boolean;
 }) {
   return (
-    <div className={`flex flex-col gap-1 ${bordered ? "border-s border-border ps-4" : ""}`}>
-      <p className="text-sm text-ink-3">{label}</p>
-      <p className={`text-2xl font-bold ${highlight ? "text-accent-soft-ink" : "text-ink"}`}>
-        {usd(w.estCostUsd)}
-      </p>
-      <p className="text-xs text-ink-3">
-        {compact(w.totalTokens)} tokens · {w.calls} calls
-      </p>
+    <div className="flex flex-col">
+      <p className="text-xs text-ink-3">{label}</p>
+      <p className={`text-lg font-bold ${highlight ? "text-accent" : "text-ink"}`}>{usd(w.estCostUsd)}</p>
+      <p className="text-[11px] text-ink-3">{compact(w.totalTokens)} tok · {w.calls}</p>
     </div>
+  );
+}
+
+function HotIcon({ name }: { name: string }): ReactNode {
+  const inner: Record<string, ReactNode> = {
+    add: <><circle cx="9" cy="8" r="3" /><path d="M3 20c0-3.3 2.7-6 6-6s4 1 5 2M17 14v6M14 17h6" /></>,
+    clients: <><circle cx="9" cy="8" r="3" /><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6M17 11l2 2 3-3" /></>,
+    appointments: <><rect x="3" y="4" width="18" height="17" rx="2" /><path d="M3 9h18M8 2v4M16 2v4M9 14l2 2 4-4" /></>,
+    calendar: <><rect x="3" y="4" width="18" height="17" rx="2" /><path d="M3 9h18M8 2v4M16 2v4" /></>,
+    messages: <path d="M4 5h16v11H7l-3 3zM8 9h8M8 12h5" />,
+    users: <><circle cx="12" cy="8" r="4" /><path d="M4 21c0-4 3.6-7 8-7s8 3 8 7" /></>,
+    shield: <path d="M12 3l7 3v5c0 4.5-3 8-7 10-4-2-7-5.5-7-10V6zM9.5 12l1.8 1.8L15 10" />,
+    stats: <><path d="M3 3v18h18" /><rect x="7" y="11" width="3" height="6" rx="0.5" /><rect x="12" y="7" width="3" height="10" rx="0.5" /><rect x="17" y="13" width="3" height="4" rx="0.5" /></>,
+    costs: <><circle cx="12" cy="12" r="9" /><path d="M12 7v10M9.5 9.5c0-1.1 1.1-2 2.5-2s2.5.9 2.5 2-1.1 2-2.5 2-2.5.9-2.5 2 1.1 2 2.5 2 2.5-.9 2.5-2" /></>,
+    export: <path d="M12 3v12M8 11l4 4 4-4M4 19h16" />,
+  };
+  return (
+    <svg viewBox="0 0 24 24" className="h-[18px] w-[18px]" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
+      {inner[name] ?? null}
+    </svg>
   );
 }
