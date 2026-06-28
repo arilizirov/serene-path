@@ -4,8 +4,7 @@ import {
   appointmentStatusSchema,
 } from "@/features/scheduling";
 import { listTherapistsForAdmin } from "@/features/therapists";
-import { DashboardShell } from "@/components/dashboard-shell";
-import { adminNav } from "@/components/dashboard-nav";
+import { AdminShell, AdminPageHead } from "@/components/admin-shell";
 import { adminCancelAppointment, adminMarkNoShow } from "./actions";
 import { AppointmentActionButton } from "./appointment-action-button";
 
@@ -45,13 +44,8 @@ export default async function AdminAppointmentsPage({
   ]);
 
   return (
-    <DashboardShell
-      nav={adminNav}
-      activeKey="appointments"
-      title={t("title.appointments")}
-      user={{ name: t("principal") }}
-      locale={locale}
-    >
+    <AdminShell activeKey="appointments">
+      <AdminPageHead title={t("title.appointments")} />
       <div className="flex flex-col gap-6">
       <form method="get" className="flex flex-wrap items-end gap-3 text-sm">
         <label className="flex flex-col gap-1">
@@ -151,6 +145,6 @@ export default async function AdminAppointmentsPage({
         </table>
       )}
       </div>
-    </DashboardShell>
+    </AdminShell>
   );
 }

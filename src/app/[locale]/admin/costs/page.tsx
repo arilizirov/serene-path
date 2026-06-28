@@ -1,7 +1,6 @@
 import { getTranslations } from "next-intl/server";
 import { getCostStats, recentCalls } from "@/server/ai";
-import { DashboardShell } from "@/components/dashboard-shell";
-import { adminNav } from "@/components/dashboard-nav";
+import { AdminShell, AdminPageHead } from "@/components/admin-shell";
 
 // Phase 4 — API cost & usage tracking dashboard. Reflects current DB state and
 // avoids coupling `next build` to a live DB.
@@ -43,23 +42,13 @@ function CostCard({
 // Costs are DERIVED from the ApiUsage table (groupBy/aggregate, no full-table
 // load). The dollar figures are ESTIMATES from a configurable per-model price map
 // (server/ai/usage.ts) — flagged on the page so no one reads them as billed.
-export default async function AdminCostsPage({
-  params,
-}: {
-  params: Promise<{ locale: string }>;
-}) {
-  const { locale } = await params;
+export default async function AdminCostsPage() {
   const t = await getTranslations("Admin");
   const [stats, recent] = await Promise.all([getCostStats(), recentCalls(20)]);
 
   return (
-    <DashboardShell
-      nav={adminNav}
-      activeKey="costs"
-      title={t("title.costs")}
-      user={{ name: t("principal") }}
-      locale={locale}
-    >
+    <AdminShell activeKey="costs">
+      <AdminPageHead title={t("title.costs")} />
       <div className="flex flex-col gap-8">
       <p className="text-sm text-on-surface-variant">
         Dollar amounts are <strong>estimates</strong> from a configurable
@@ -141,6 +130,6 @@ export default async function AdminCostsPage({
         )}
       </section>
       </div>
-    </DashboardShell>
+    </AdminShell>
   );
 }

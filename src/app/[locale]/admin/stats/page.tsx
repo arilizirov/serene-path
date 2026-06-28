@@ -3,8 +3,7 @@ import { getIntakeStats } from "@/features/intake";
 import { getSignupStats, getSignupsPerDay } from "@/features/accounts";
 import { getTherapistPipeline } from "@/features/therapists";
 import { getAppointmentStatusCounts } from "@/features/scheduling";
-import { DashboardShell } from "@/components/dashboard-shell";
-import { adminNav } from "@/components/dashboard-nav";
+import { AdminShell, AdminPageHead } from "@/components/admin-shell";
 import { Card, StatCard, PillLink } from "@/components/ui";
 import { BarChart, Donut, AreaChart } from "@/components/charts";
 
@@ -83,13 +82,8 @@ export default async function AdminStatsPage({
   ];
 
   return (
-    <DashboardShell
-      nav={adminNav}
-      activeKey="stats"
-      title={t("title.stats")}
-      user={{ name: t("principal") }}
-      locale={locale}
-    >
+    <AdminShell activeKey="stats">
+      <AdminPageHead title={t("title.stats")} />
       <div className="flex flex-col gap-6">
         <div className="grid grid-cols-2 gap-5 lg:grid-cols-4">
           <StatCard label="Intake sessions" value={intake.total} />
@@ -151,6 +145,6 @@ export default async function AdminStatsPage({
           <BreakdownCard title="Bookings by status" counts={bookings} />
         </div>
       </div>
-    </DashboardShell>
+    </AdminShell>
   );
 }
