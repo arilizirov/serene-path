@@ -1,5 +1,6 @@
 "use server";
 
+import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { DateTime } from "luxon";
 import { getCurrentUser, getUserContact } from "@/features/accounts";
@@ -59,16 +60,34 @@ export async function bookSlotAction(formData: FormData): Promise<void> {
 
   const user = await getCurrentUser();
   if (!user) {
-    const next = encodeURIComponent(`/${locale}/therapists/${therapistId}`);
-    redirect(`/${locale}/login?next=${next}`);
+    // Remember the intended slot so it SURVIVES sign-up (the old ?next= only kept
+    // the profile URL, losing the chosen time). /account reads this cookie and
+    // offers a one-click "confirm your session". Short-lived; httpOnly.
+    if (therapistId && startUtc) {
+      const jar = await cookies();
+      jar.set("sp_pending_booking", `${therapistId}|${startUtc}`, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "lax",
+        path: "/",
+        maxAge: 60 * 30,
+      });
+    }
+    const next = encodeURIComponent(`/${locale}/account`);
+    redirect(`/${locale}/register?next=${next}`);
   }
 
   const result = await createBooking(therapistId, user.id, startUtc);
   if (result.ok) {
     await confirmByEmail(user.id, therapistId, startUtc, locale);
+    // Clear any stale pending-booking cookie so /account doesn't re-prompt to
+    // confirm a slot this already-signed-in patient just booked directly.
+    (await cookies()).delete("sp_pending_booking");
+    // Land on the account so the patient sees the booking in context (was the
+    // profile page) — the smooth end of the journey.
+    redirect(`/${locale}/account?booked=1`);
   }
-  const flag = result.ok
-    ? "booked=1"
-    : `error=${encodeURIComponent(result.error)}`;
-  redirect(`/${locale}/therapists/${therapistId}?${flag}`);
+  redirect(
+    `/${locale}/therapists/${therapistId}?error=${encodeURIComponent(result.error)}`,
+  );
 }

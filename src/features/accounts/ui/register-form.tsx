@@ -6,7 +6,13 @@ import { registerAction, type RegisterState } from "../actions";
 const inputClass =
   "rounded-md border border-outline-variant bg-surface-container-lowest px-3 py-2 text-on-surface";
 
-export function RegisterForm({ locale }: { locale: string }) {
+export function RegisterForm({
+  locale,
+  next,
+}: {
+  locale: string;
+  next?: string;
+}) {
   const [state, action, pending] = useActionState<RegisterState, FormData>(
     registerAction,
     {},
@@ -15,6 +21,7 @@ export function RegisterForm({ locale }: { locale: string }) {
   return (
     <form action={action} className="flex flex-col gap-4">
       <input type="hidden" name="locale" defaultValue={locale} />
+      {next ? <input type="hidden" name="next" defaultValue={next} /> : null}
 
       {state.error ? (
         <p className="rounded-md bg-error-container px-3 py-2 text-sm text-on-error-container">

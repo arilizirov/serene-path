@@ -301,6 +301,11 @@ export {
 } from "./repository";
 export type { FinishedSessionRow, FullSession } from "./repository";
 
+// Login-linking (F1.5) — owner-scoped session→user link + the user's latest
+// recommendation. Pure repository pass-throughs; the composition root (/account)
+// supplies the authenticated userId.
+export { linkSessionToUser, getRecommendationForUser } from "./repository";
+
 /** One transcript turn rendered as a labelled markdown block. */
 function turnToMarkdown(m: StoredMessage): string {
   const speaker = m.role === "user" ? "User" : "Assistant";

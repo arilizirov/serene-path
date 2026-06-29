@@ -32,6 +32,11 @@ export type { FinishedSessionRow, FullSession, ParseIdsResult } from "./service"
 // Admin manual data deletion (Phase 5, retention & GDPR) — admin-triggered only.
 export { deleteSession, purgeSessionsOlderThan } from "./service";
 
+// Login-linking (F1.5) — link an anonymous intake session to a user at sign-up,
+// and read that user's most-recent recommendation (both owner-scoped). Consumed
+// only by the app composition root (/account).
+export { linkSessionToUser, getRecommendationForUser } from "./service";
+
 // Admin statistics (Phase 2, DB-derived intake funnel / match rate / engines).
 export { getIntakeStats } from "./service";
 export type { IntakeStats } from "./service";

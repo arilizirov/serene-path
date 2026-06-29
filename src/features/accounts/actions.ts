@@ -82,5 +82,10 @@ export async function registerAction(
   }
   const result = await registerClient(parsed.data);
   if (!result.ok) return { error: result.error };
-  redirect(`/${locale}`);
+  // registerClient always creates + signs in a CLIENT. Honor a validated ?next=
+  // (same open-redirect + role guards as login) so a patient who registered
+  // mid-booking returns to /account to finish — instead of being dumped on home.
+  const home = roleHome("CLIENT", locale);
+  const dest = safeNext(String(formData.get("next") ?? ""), home);
+  redirect(roleMayAccess("CLIENT", dest) ? dest : home);
 }

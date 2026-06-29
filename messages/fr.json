@@ -145,7 +145,16 @@
       "emptyTitle": "Trouvons le thérapeute qu'il vous faut",
       "emptyBody": "Dites-nous comment vous vous sentez et nous vous proposerons un thérapeute — puis réservez votre première séance.",
       "emptyCta": "Trouver un thérapeute",
-      "resumeIntake": "Commencer l'admission"
+      "resumeIntake": "Commencer l'admission",
+      "confirmTitle": "Confirmez votre séance",
+      "confirmBody": "Vous avez choisi {therapist} à {time}. Confirmez pour réserver votre première séance.",
+      "confirmCta": "Confirmer la réservation",
+      "confirmDismiss": "Plus tard",
+      "booked": "Votre séance est réservée — en attente de confirmation du thérapeute.",
+      "bookFailed": "Ce créneau n'est plus disponible — veuillez en choisir un autre.",
+      "recommendedTitle": "Votre thérapeute recommandé",
+      "recommendedBody": "Proposé à partir de votre conversation d'admission.",
+      "recommendedCta": "Voir et réserver"
     },
     "stats": {
       "upcoming": "Séances à venir",

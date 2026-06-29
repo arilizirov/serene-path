@@ -145,7 +145,16 @@
       "emptyTitle": "Let's find the right therapist for you",
       "emptyBody": "Tell us how you're feeling and we'll match you with a therapist — then book your first session.",
       "emptyCta": "Find a therapist",
-      "resumeIntake": "Start intake"
+      "resumeIntake": "Start intake",
+      "confirmTitle": "Confirm your session",
+      "confirmBody": "You chose {therapist} at {time}. Confirm to book your first session.",
+      "confirmCta": "Confirm booking",
+      "confirmDismiss": "Not now",
+      "booked": "Your session is booked — pending the therapist's confirmation.",
+      "bookFailed": "That time isn't available anymore — please pick another slot.",
+      "recommendedTitle": "Your recommended therapist",
+      "recommendedBody": "Matched from your intake conversation.",
+      "recommendedCta": "View & book"
     },
     "stats": {
       "upcoming": "Upcoming sessions",
