@@ -35,8 +35,11 @@ export async function createSession(): Promise<IntakeSessionRow> {
  * private mental-health transcript (§11 IDOR). Do not skip that when F1.5 lands.
  */
 export async function getSession(id: string): Promise<IntakeSessionRow | null> {
-  const s = await prisma.intakeSession.findUnique({
-    where: { id },
+  // Owner-scoped: only ANONYMOUS sessions are resumable via the bearer cuid. Once a
+  // session is linked to a user (linkSessionToUser), this returns null, so the cuid
+  // alone can no longer read a logged-in user's private transcript (§11 IDOR).
+  const s = await prisma.intakeSession.findFirst({
+    where: { id, userId: null },
     select: { id: true, state: true, messages: true, constraints: true },
   });
   if (!s) return null;
@@ -336,8 +339,11 @@ export async function createFlowSession(): Promise<FlowSession> {
 }
 
 export async function getFlowSession(id: string): Promise<FlowSession | null> {
-  const s = await prisma.intakeSession.findUnique({
-    where: { id },
+  // Owner-scoped like getSession: a LINKED session (userId set) is no longer
+  // resumable via its bearer cuid (§11 IDOR). During the anonymous conversation
+  // userId is null, so the live flow is unaffected until sign-up links it.
+  const s = await prisma.intakeSession.findFirst({
+    where: { id, userId: null },
     select: { id: true, messages: true, constraints: true },
   });
   if (!s) return null;
@@ -371,4 +377,40 @@ export async function saveFlowSession(
       constraints: { flow: { phase: data.phase, selection: data.selection, opener: data.opener } },
     },
   });
+}
+
+// --- Login-linking (F1.5): anonymous session → authenticated user ------------
+// The cross-feature glue (read the sp_intake cookie, call this) lives in the app
+// composition root (/account), never in the accounts feature.
+
+/**
+ * Link an anonymous intake session to a user, at sign-up/login. Scoped to
+ * `userId: null` so it ONLY claims a still-anonymous session — a cuid that's
+ * already owned by someone else can't be re-linked (no session hijack). No-op
+ * (count 0) if the id is unknown or already linked.
+ */
+export async function linkSessionToUser(
+  sessionId: string,
+  userId: string,
+): Promise<void> {
+  await prisma.intakeSession.updateMany({
+    where: { id: sessionId, userId: null },
+    data: { userId },
+  });
+}
+
+/**
+ * The therapist ids most recently suggested to THIS user (owner-scoped on
+ * `userId`), newest finished session first — for the "your recommended
+ * therapist" card on /account. Empty array if none.
+ */
+export async function getRecommendationForUser(
+  userId: string,
+): Promise<string[]> {
+  const s = await prisma.intakeSession.findFirst({
+    where: { userId, suggestedTherapistIds: { isEmpty: false } },
+    orderBy: { updatedAt: "desc" },
+    select: { suggestedTherapistIds: true },
+  });
+  return s?.suggestedTherapistIds ?? [];
 }

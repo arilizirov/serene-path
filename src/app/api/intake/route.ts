@@ -29,7 +29,20 @@ export async function POST(request: Request): Promise<Response> {
   }
   try {
     const result = await getIntakeProvider().handle(parsed.data);
-    return NextResponse.json(result);
+    const res = NextResponse.json(result);
+    // Remember the anonymous session id so /account can link this conversation to
+    // the account after sign-up (the "your recommended therapist" memory). httpOnly
+    // bearer; harmless while anonymous, claimed once (linkSessionToUser) on sign-up.
+    if (result.sessionId) {
+      res.cookies.set("sp_intake", result.sessionId, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "lax",
+        path: "/",
+        maxAge: 60 * 60 * 24 * 7,
+      });
+    }
+    return res;
   } catch {
     // The provider awaits the model + DB + scheduling; on any failure return a clean
     // JSON error (never an opaque framework 500) — the client shows a retry bubble.
