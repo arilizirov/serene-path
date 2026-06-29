@@ -18,7 +18,10 @@ import { MATCHING_WEIGHTS as W } from "./matching-config";
 
 const CONCERN_KEYWORDS: Record<ConcernId, string[]> = {
   anxiety: ["anxiety", "anxious", "panic", "worry"],
-  stress_burnout: ["stress", "burnout", "burn-out", "overwhelm", "work"],
+  // NB: "work" was removed — it is too generic (a "social work" / "work with elderly"
+  // bio falsely hit burnout, e.g. a geriatric therapist matched to professional burnout).
+  // Burnout-specific stems only; "overwhelm" also covers "overwhelmed".
+  stress_burnout: ["stress", "burnout", "burn-out", "overwhelm", "overwork", "overworked"],
   relationships: ["couple", "relationship", "marriage", "family", "intimacy"],
   trauma: ["trauma", "ptsd", "emdr", "abuse"],
   grief: ["grief", "loss", "bereavement", "mourning"],
@@ -42,10 +45,14 @@ function firstSentenceWith(bio: string, term: string): string {
   return q;
 }
 
+// The quote relates to the matched concern — but the matcher works on the coarse
+// 7-concern vocab, so it cannot know how SPECIFIC the fit is. Frame it honestly
+// ("in line with") rather than overclaiming ("exactly what you described"), which
+// reads as hollow when the fit is only broadly on-topic.
 function rationaleText(locale: LanguageId, quote: string): string {
-  if (locale === "he") return `בפרופיל שלהם/ן מצוין: "${quote}" — בדיוק מה שתיארת.`;
-  if (locale === "fr") return `Leur profil mentionne : « ${quote} » — précisément ce que vous décrivez.`;
-  return `Their profile mentions: "${quote}" — exactly what you described.`;
+  if (locale === "he") return `בפרופיל שלהם/ן מצוין: "${quote}" — קרוב למה שתיארת.`;
+  if (locale === "fr") return `Leur profil mentionne : « ${quote} » — en lien avec ce que vous décrivez.`;
+  return `Their profile mentions: "${quote}" — in line with what you described.`;
 }
 
 function matchMessage(locale: LanguageId, name: string, rationale: string): string {
