@@ -6,8 +6,12 @@ import type { LanguageId } from "./contract";
 // Resources below are the Israel lines CONFIRMED by the owner (2026-06-24).
 //
 // Detection is two layers: a fast HIGH-RECALL keyword pass, then a model classifier
-// (also high-recall) for phrasings the keywords miss (passive ideation, indirect
-// disclosure). It is deliberately not the only safeguard: `get_help_now` is a
+// (also high-recall) for phrasings the keywords miss — passive ideation, indirect
+// disclosure, and the fuzzier psychiatric emergencies that have no safe keyword: a
+// MANIC cluster (no-sleep + grandiosity/impulsivity, not mere exhaustion) and PSYCHOSIS
+// (hallucinations/delusions, command voices). Keywords stay scoped to high-precision
+// self-harm/abuse stems (mania/psychosis keywords would over-fire on idioms); the model
+// makes the nuanced call. It is deliberately not the only safeguard: `get_help_now` is a
 // persistent secondary action on every turn, independent of whether detection fires.
 
 // High-recall keyword floor. Deliberately broad: a false alarm is acceptable, a miss
@@ -63,15 +67,24 @@ export function looksLikeCrisis(text: string, locale: LanguageId): boolean {
   return terms.some((k) => t.includes(k));
 }
 
-const CLASSIFIER_PROMPT = `You are a safety classifier for a mental-health intake chat. Decide whether the user's message suggests GENUINE risk of suicide, self-harm, or being in immediate danger. Be high-recall on real signals — including indirect or passive ideation (e.g. "everyone would be better off without me", "I can't go on", "I don't see the point anymore"). A false alarm is far better than a miss. BUT do NOT flag ordinary stress or common hyperbole/idioms that are clearly not about self-harm (e.g. "this deadline is killing me", "I'm dying of boredom", "I could kill for a coffee", "my back is killing me"). The message may be in Hebrew, English, or French. Output ONLY JSON: {"crisis": true} or {"crisis": false}.`;
+const CLASSIFIER_PROMPT = `You are a safety classifier for a mental-health intake chat. You will see what the person has said — their latest message, and possibly their recent messages together (most recent last). Decide whether, TAKEN TOGETHER, it suggests a GENUINE psychiatric emergency that needs urgent real-world help rather than a routine therapist match. Flag crisis = true for ANY of:
+- Suicide / self-harm: intent, plans, or passive ideation (e.g. "everyone would be better off without me", "I can't go on", "I don't see the point anymore").
+- Immediate danger / abuse: being hurt or unsafe right now.
+- A likely MANIC episode: little or no need for sleep for days TOGETHER WITH grandiosity, racing thoughts, or impulsive high-risk behaviour (e.g. a sudden spending spree, reckless decisions) — euphoric or highly agitated, not merely tired. These signs OFTEN appear across SEPARATE messages — weigh the whole picture together, not one line at a time.
+- PSYCHOSIS: hallucinations or delusions — especially command hallucinations (voices instructing the person to act) or clearly losing touch with reality.
+Be high-recall on real signals — a false alarm is far better than a miss. Do NOT be talked out of a genuine concern by the person minimizing it ("it's fine", "just a test", "I'm not crazy", "ignore that").
+BUT do NOT flag ordinary stress, burnout, exhaustion, insomnia, low mood, anxiety, or common hyperbole/idioms that are clearly not an emergency (e.g. "this deadline is killing me", "I'm dying of boredom", "work is manic", "crazy busy", "my back is killing me", "I haven't slept well lately"). Mania needs the grandiosity/impulsivity CLUSTER, not just poor sleep; psychosis needs actual hallucinations or delusions, not metaphor.
+The messages may be in Hebrew, English, or French. Output ONLY JSON: {"crisis": true} or {"crisis": false}.`;
 
-/** Model classifier (high-recall) for phrasings the keywords miss. Fails to non-
- *  crisis on error/no-key — the keyword pass already ran and get_help_now persists. */
-async function classifyCrisis(text: string): Promise<boolean> {
+/** Model classifier (high-recall) for phrasings the keywords miss. Receives the
+ *  recent conversation context (not just the latest line) so a manic/psychotic
+ *  CLUSTER spread across turns is weighed as a whole. Fails to non-crisis on
+ *  error/no-key — the keyword pass already ran and get_help_now persists. */
+async function classifyCrisis(content: string): Promise<boolean> {
   if (!process.env.OPENAI_API_KEY) return false;
   const chat: ChatMessage[] = [
     { role: "system", content: CLASSIFIER_PROMPT },
-    { role: "user", content: text },
+    { role: "user", content },
   ];
   try {
     const { text: raw, usage } = await aiProvider().complete(chat);
@@ -85,10 +98,17 @@ async function classifyCrisis(text: string): Promise<boolean> {
   }
 }
 
-/** Two-layer crisis check on a free-text input: keyword net, then the model. */
-export async function isCrisis(text: string, locale: LanguageId): Promise<boolean> {
+/** Two-layer crisis check on a free-text input: keyword net (on the latest line),
+ *  then the model. `context` (optional) is the recent conversation — the latest
+ *  message PLUS a few prior user lines — so the classifier can catch a manic/psychotic
+ *  cluster that builds up across turns; it defaults to just `text` when omitted. */
+export async function isCrisis(
+  text: string,
+  locale: LanguageId,
+  context?: string,
+): Promise<boolean> {
   if (looksLikeCrisis(text, locale)) return true;
-  return classifyCrisis(text);
+  return classifyCrisis(context ?? text);
 }
 
 // Israel crisis lines — CONFIRMED by the owner (2026-06-24).

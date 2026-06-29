@@ -127,7 +127,14 @@ export async function runConversationFlowTurn(input: IntakeInput): Promise<Intak
   // confirm-phase swallow (a typed "I want to die" at confirm used to fall through to
   // the fit form). The per-phase blocks below need no further crisis check.
   const freeText = (input.text ?? "").trim();
-  if (freeText && (await isCrisis(freeText, locale))) {
+  // Pass the recent conversation (the latest line + a few prior USER lines) so the
+  // classifier can weigh a manic/psychotic CLUSTER that builds up across turns — no
+  // single message carries "no sleep + grandiosity + impulsive spending" on its own.
+  const crisisContext = [
+    ...messages.filter((msg) => msg.role === "user").slice(-3).map((msg) => msg.content),
+    freeText,
+  ].join("\n");
+  if (freeText && (await isCrisis(freeText, locale, crisisContext))) {
     return persist(session, messages, { state: "CRISIS", assistantMessage: crisisMessage(locale) }, "crisis", selection, opener);
   }
 
